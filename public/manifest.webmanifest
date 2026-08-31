@@ -1,0 +1,18 @@
+{
+  "name": "Recipes",
+  "short_name": "Recipes",
+  "description": "Shared recipes, current meals and one simple shopping list.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f2e8",
+  "theme_color": "#f7f2e8",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
