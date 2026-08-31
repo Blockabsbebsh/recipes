@@ -201,3 +201,9 @@ textarea { resize: vertical; line-height: 1.5; }
 .shop-section + .shop-section { margin-top: 18px; }
 .shop-section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .shop-section-title span { display: grid; min-width: 18px; height: 18px; padding: 0 5px; place-items: center; border-radius: 99px; background: #eee9df; font-size: .68rem; font-weight: 700; letter-spacing: 0; }
+
+.meal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.meal-head .text-button { font-size: .74rem; }
+.recent-chip { position: relative; padding-right: 34px; }
+.recent-again { position: absolute; top: 50%; right: 8px; display: grid; width: 22px; height: 22px; transform: translateY(-50%); place-items: center; border: 0; border-radius: 50%; background: #eee9df; color: var(--muted); font-size: .82rem; line-height: 1; cursor: pointer; }
+.recent-again:hover { background: var(--orange); color: #fff; }

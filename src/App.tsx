@@ -145,10 +145,21 @@ function App() {
       setError(firstError.message)
       return
     }
-    setRecipes((recipeResult.data || []) as Recipe[])
+    const vocabularyRows = (vocabularyResult.data || []) as VocabularyIngredient[]
+    const nameById = new Map(vocabularyRows.map((entry) => [entry.id, entry.name]))
+    // recipe_ingredients still carries a denormalised `item`, but the vocabulary
+    // is the source of truth for the name, so resolve through it here. That
+    // leaves the column unread and free to be dropped.
+    setRecipes(((recipeResult.data || []) as Recipe[]).map((recipe) => ({
+      ...recipe,
+      recipe_ingredients: recipe.recipe_ingredients.map((ingredient) => ({
+        ...ingredient,
+        item: nameById.get(ingredient.ingredient_id) ?? ingredient.item,
+      })),
+    })))
     setRoster((rosterResult.data || []) as RosterEntry[])
     setQueue((queueResult.data || []) as QueueEntry[])
-    setVocabulary((vocabularyResult.data || []) as VocabularyIngredient[])
+    setVocabulary(vocabularyRows)
   }, [household])
 
   useEffect(() => {
@@ -278,15 +289,18 @@ function App() {
     }
 
     if (cleanedIngredients.length) {
-      const { error: ingredientError } = await supabase.from('recipe_ingredients').insert(
-        cleanedIngredients.map((item, position) => ({
-          household_id: household.id,
-          recipe_id: recipeId,
-          item,
-          position,
-        })),
-      )
-      if (ingredientError) setError(ingredientError.message)
+      const ingredientIds = await resolveIngredientIds(cleanedIngredients)
+      if (ingredientIds) {
+        const { error: ingredientError } = await supabase.from('recipe_ingredients').insert(
+          ingredientIds.map((ingredient_id, position) => ({
+            household_id: household.id,
+            recipe_id: recipeId,
+            ingredient_id,
+            position,
+          })),
+        )
+        if (ingredientError) setError(ingredientError.message)
+      }
     }
     if (!existing && destination === 'queue' && recipeId) {
       await supabase.from('shopping_queue').insert({
@@ -299,6 +313,45 @@ function App() {
     setMessage(existing ? 'Recipe updated' : destination === 'queue' ? 'Added to the shopping plan' : 'Recipe saved')
     await loadData()
     setLoading(false)
+  }
+
+  /**
+   * Maps ingredient names onto vocabulary ids, adding any the household has
+   * not used before so they are offered on every later recipe. Reads the
+   * vocabulary fresh rather than trusting component state, since the other
+   * person may have added something since this page loaded.
+   */
+  async function resolveIngredientIds(names: string[]): Promise<string[] | null> {
+    if (!household) return null
+    const { data: existing, error: readError } = await supabase
+      .from('ingredients')
+      .select('id, name')
+      .eq('household_id', household.id)
+    if (readError) {
+      setError(readError.message)
+      return null
+    }
+    const idByName = new Map((existing || []).map((row) => [row.name.trim().toLocaleLowerCase(), row.id as string]))
+    const missing = [...new Map(
+      names
+        .map((name) => name.trim())
+        .filter((name) => name && !idByName.has(name.toLocaleLowerCase()))
+        .map((name) => [name.toLocaleLowerCase(), name]),
+    ).values()]
+    if (missing.length) {
+      const { data: created, error: createError } = await supabase
+        .from('ingredients')
+        .insert(missing.map((name) => ({ household_id: household.id, name })))
+        .select('id, name')
+      if (createError) {
+        setError(createError.message)
+        return null
+      }
+      ;(created || []).forEach((row) => idByName.set(row.name.trim().toLocaleLowerCase(), row.id as string))
+    }
+    return names
+      .map((name) => idByName.get(name.trim().toLocaleLowerCase()))
+      .filter((id): id is string => Boolean(id))
   }
 
   async function saveImported(drafts: RecipeDraft[]) {
@@ -465,6 +518,8 @@ function App() {
             recipeById={recipeById}
             onCooked={(entry) => void resolveEntry(entry, 'cooked')}
             onSkipped={(entry) => void resolveEntry(entry, 'skipped')}
+            onEdit={(recipe) => setEditor({ recipe, destination: 'library' })}
+            onQueue={(recipe) => void planRecipe(recipe, 'queue')}
             onAdd={() => { setTab('shop'); setPickerOpen(true) }}
           />
         )}
@@ -630,12 +685,14 @@ function HouseholdSetup({ loading, error, onCreate, onJoin }: {
   )
 }
 
-function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onAdd }: {
+function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit, onQueue, onAdd }: {
   entries: RosterEntry[]
   recent: RosterEntry[]
   recipeById: Map<string, Recipe>
   onCooked: (entry: RosterEntry) => void
   onSkipped: (entry: RosterEntry) => void
+  onEdit: (recipe: Recipe) => void
+  onQueue: (recipe: Recipe) => void
   onAdd: () => void
 }) {
   return (
@@ -651,7 +708,10 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onAdd }
             return (
               <article className="meal-card" key={entry.id}>
                 <div className="meal-copy">
-                  <p className="eyebrow">Ready</p>
+                  <div className="meal-head">
+                    <p className="eyebrow">Ready</p>
+                    <button className="text-button" onClick={() => onEdit(recipe)}>Edit</button>
+                  </div>
                   <h2>{recipe.title}</h2>
                   <IngredientLine recipe={recipe} />
                   {recipe.notes && <p className="notes">{recipe.notes}</p>}
@@ -671,7 +731,13 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onAdd }
           <div className="recent-strip">
             {recent.map((entry) => {
               const recipe = recipeById.get(entry.recipe_id)
-              return recipe ? <div className="recent-chip" key={entry.id}><span>✓</span><div><strong>{recipe.title}</strong><small>{formatRelative(entry.resolved_at)}</small></div></div> : null
+              return recipe ? (
+                <div className="recent-chip" key={entry.id}>
+                  <span>✓</span>
+                  <div><strong>{recipe.title}</strong><small>{formatRelative(entry.resolved_at)}</small></div>
+                  <button className="recent-again" onClick={() => onQueue(recipe)} aria-label={`Add ${recipe.title} to the shopping list again`} title="Add to shopping again">＋</button>
+                </div>
+              ) : null
             })}
           </div>
         </section>
