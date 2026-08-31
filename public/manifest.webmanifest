@@ -1,7 +1,8 @@
 {
-  "name": "Recipes",
-  "short_name": "Recipes",
-  "description": "Shared recipes, current meals and one simple shopping list.",
+  "name": "Receptai",
+  "short_name": "Receptai",
+  "description": "Bendri receptai, gaminami patiekalai ir vienas paprastas pirkinių sąrašas.",
+  "lang": "lt",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -9,10 +10,22 @@
   "theme_color": "#f7f2e8",
   "icons": [
     {
-      "src": "./icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

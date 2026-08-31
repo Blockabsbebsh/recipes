@@ -2,23 +2,34 @@ import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { parseRecipeList, titleSimilarity } from './lib/parser'
+import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
 import type { Household, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
 type Tab = 'current' | 'library' | 'shop' | 'deleted'
 type RecipeDestination = 'library' | 'queue'
 
-const blankDraft = (): RecipeDraft => ({ title: '', ingredients: [], notes: '', sourceUrl: '' })
+const blankDraft = (): RecipeDraft => ({ title: '', ingredients: [], notes: '', sourceUrl: '', dishType: 'Kita', cuisine: 'Tarptautinė' })
 
 // Roughly the order a shop is walked, so the list reads top to bottom.
 const SECTION_ORDER: IngredientSection[] =
   ['Produce', 'Bakery', 'Dairy & alternatives', 'Frozen', 'Pantry', 'Spices', 'Other']
 
+const SECTION_LABELS: Record<IngredientSection, string> = {
+  Produce: 'Vaisiai ir daržovės',
+  Bakery: 'Kepiniai',
+  'Dairy & alternatives': 'Pieno produktai ir alternatyvos',
+  Frozen: 'Šaldyti produktai',
+  Pantry: 'Bakalėja',
+  Spices: 'Prieskoniai',
+  Other: 'Kita',
+}
+
 function formatRelative(dateValue: string | null) {
-  if (!dateValue) return 'Never'
+  if (!dateValue) return 'Niekada'
   const days = Math.floor((Date.now() - new Date(dateValue).getTime()) / 86_400_000)
-  if (days <= 0) return 'Today'
-  if (days === 1) return 'Yesterday'
-  return `${days} days ago`
+  if (days <= 0) return 'Šiandien'
+  if (days === 1) return 'Vakar'
+  return `Prieš ${days} d.`
 }
 
 function barboraUrl(item: string) {
@@ -45,6 +56,12 @@ function App() {
   const [similarPrompt, setSimilarPrompt] = useState<{ recipe: Recipe; destination: 'queue' | 'roster'; matches: Recipe[] } | null>(null)
   const [undo, setUndo] = useState<{ entryId: string; label: string } | null>(null)
   const undoTimer = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!message) return
+    const timer = window.setTimeout(() => setMessage(null), 5_000)
+    return () => window.clearTimeout(timer)
+  }, [message])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -121,7 +138,7 @@ function App() {
     const [recipeResult, rosterResult, queueResult, vocabularyResult] = await Promise.all([
       supabase
         .from('recipes')
-        .select('*, recipe_ingredients(*)')
+        .select('*, recipe_ingredients(*), recipe_tags(tag:tags(id, name))')
         .eq('household_id', household.id)
         .order('updated_at', { ascending: false }),
       supabase
@@ -171,7 +188,7 @@ function App() {
       timer = window.setTimeout(() => void loadData(), 180)
     }
     const channel = supabase.channel(`household:${household.id}`)
-    ;['recipes', 'recipe_ingredients', 'roster_entries', 'shopping_queue', 'ingredients'].forEach((table) => {
+    ;['recipes', 'recipe_ingredients', 'recipe_tags', 'tags', 'roster_entries', 'shopping_queue', 'ingredients'].forEach((table) => {
       channel.on(
         'postgres_changes',
         { event: '*', schema: 'public', table, filter: `household_id=eq.${household.id}` },
@@ -310,7 +327,8 @@ function App() {
       })
     }
     setEditor(null)
-    setMessage(existing ? 'Recipe updated' : destination === 'queue' ? 'Added to the shopping plan' : 'Recipe saved')
+    if (recipeId) await saveRecipeClassification(recipeId, draft)
+    setMessage(existing ? 'Receptas atnaujintas' : destination === 'queue' ? 'Pridėta į pirkinių planą' : 'Receptas išsaugotas')
     await loadData()
     setLoading(false)
   }
@@ -354,10 +372,69 @@ function App() {
       .filter((id): id is string => Boolean(id))
   }
 
+  async function saveRecipeClassification(recipeId: string, draft: RecipeDraft) {
+    if (!household) return
+    const desiredNames = classificationTags(draft)
+    const { data: currentTags, error: tagReadError } = await supabase
+      .from('tags')
+      .select('id, name')
+      .eq('household_id', household.id)
+    if (tagReadError) {
+      setError(tagReadError.message)
+      return
+    }
+    const tagIdByName = new Map((currentTags || []).map((tag) => [tag.name.toLocaleLowerCase('lt'), tag.id as string]))
+    const missing = desiredNames.filter((name) => !tagIdByName.has(name.toLocaleLowerCase('lt')))
+    if (missing.length) {
+      const { data: created, error: createError } = await supabase
+        .from('tags')
+        .insert(missing.map((name) => ({ household_id: household.id, name })))
+        .select('id, name')
+      if (createError && createError.code !== '23505') {
+        setError(createError.message)
+        return
+      }
+      ;(created || []).forEach((tag) => tagIdByName.set(tag.name.toLocaleLowerCase('lt'), tag.id as string))
+      if (createError?.code === '23505') {
+        const { data: refreshed } = await supabase.from('tags').select('id, name').eq('household_id', household.id)
+        ;(refreshed || []).forEach((tag) => tagIdByName.set(tag.name.toLocaleLowerCase('lt'), tag.id as string))
+      }
+    }
+    const { data: classifications, error: classificationReadError } = await supabase
+      .from('tags')
+      .select('id, name')
+      .eq('household_id', household.id)
+    if (classificationReadError) {
+      setError(classificationReadError.message)
+      return
+    }
+    const classificationIds = (classifications || [])
+      .filter((tag) => tag.name.startsWith(DISH_TAG_PREFIX) || tag.name.startsWith(CUISINE_TAG_PREFIX))
+      .map((tag) => tag.id)
+    if (classificationIds.length) {
+      const { error: deleteError } = await supabase
+        .from('recipe_tags')
+        .delete()
+        .eq('recipe_id', recipeId)
+        .in('tag_id', classificationIds)
+      if (deleteError) {
+        setError(deleteError.message)
+        return
+      }
+    }
+    const desiredIds = desiredNames.map((name) => tagIdByName.get(name.toLocaleLowerCase('lt'))).filter((id): id is string => Boolean(id))
+    if (desiredIds.length) {
+      const { error: linkError } = await supabase.from('recipe_tags').insert(
+        desiredIds.map((tag_id) => ({ household_id: household.id, recipe_id: recipeId, tag_id })),
+      )
+      if (linkError) setError(linkError.message)
+    }
+  }
+
   async function saveImported(drafts: RecipeDraft[]) {
     for (const draft of drafts) await saveRecipe(draft)
     setImportOpen(false)
-    setMessage(`${drafts.length} recipe${drafts.length === 1 ? '' : 's'} imported`)
+    setMessage(`Importuota receptų: ${drafts.length}`)
   }
 
   function similarInPlan(recipe: Recipe) {
@@ -378,9 +455,9 @@ function App() {
     const result = destination === 'queue'
       ? await supabase.from('shopping_queue').insert({ household_id: household.id, recipe_id: recipe.id, added_by: session.user.id })
       : await supabase.from('roster_entries').insert({ household_id: household.id, recipe_id: recipe.id, added_by: session.user.id })
-    if (result.error?.code === '23505') setMessage('That recipe is already on the shopping list')
+    if (result.error?.code === '23505') setMessage('Šis receptas jau yra pirkinių sąraše')
     else if (result.error) setError(result.error.message)
-    else setMessage(destination === 'queue' ? 'Added to shopping' : 'Added to current recipes')
+    else setMessage(destination === 'queue' ? 'Pridėta prie pirkinių' : 'Pridėta prie gaminamų receptų')
     setSimilarPrompt(null)
     await loadData()
   }
@@ -397,7 +474,7 @@ function App() {
     }
     setRoster((current) => current.map((item) => item.id === entry.id ? { ...item, status, resolved_at: new Date().toISOString() } : item))
     if (undoTimer.current) window.clearTimeout(undoTimer.current)
-    setUndo({ entryId: entry.id, label: status === 'cooked' ? 'Marked cooked' : 'Skipped' })
+    setUndo({ entryId: entry.id, label: status === 'cooked' ? 'Pažymėta kaip pagaminta' : 'Praleista' })
     undoTimer.current = window.setTimeout(() => setUndo(null), 5_000)
   }
 
@@ -421,12 +498,12 @@ function App() {
 
   async function completeShopping() {
     if (!household || queue.length === 0) return
-    if (!window.confirm(`Move ${queue.length} planned recipe${queue.length === 1 ? '' : 's'} to Current and clear the shopping list?`)) return
+    if (!window.confirm(`Perkelti suplanuotus receptus (${queue.length}) į „Gaminama“ ir išvalyti pirkinių sąrašą?`)) return
     setLoading(true)
     const { data, error: completeError } = await supabase.rpc('complete_shopping', { p_household_id: household.id })
     if (completeError) setError(completeError.message)
     else {
-      setMessage(`Shopping complete — ${data} recipe${data === 1 ? '' : 's'} ready to cook`)
+      setMessage(`Apsipirkta — gaminimui paruoštų receptų: ${data}`)
       setTab('current')
       await loadData()
     }
@@ -434,14 +511,14 @@ function App() {
   }
 
   async function softDelete(recipe: Recipe) {
-    if (!session || !window.confirm(`Move “${recipe.title}” to Deleted?`)) return
+    if (!session || !window.confirm(`Perkelti „${recipe.title}“ į ištrintus?`)) return
     const { error: deleteError } = await supabase
       .from('recipes')
       .update({ deleted_at: new Date().toISOString(), deleted_by: session.user.id })
       .eq('id', recipe.id)
     if (deleteError) setError(deleteError.message)
     else {
-      setMessage('Recipe moved to Deleted')
+      setMessage('Receptas perkeltas į ištrintus')
       await loadData()
     }
   }
@@ -453,7 +530,7 @@ function App() {
       .eq('id', recipe.id)
     if (restoreError) setError(restoreError.message)
     else {
-      setMessage('Recipe restored')
+      setMessage('Receptas atkurtas')
       await loadData()
     }
   }
@@ -502,9 +579,9 @@ function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">{household.name}</p>
-          <h1>{tab === 'current' ? 'Ready to cook' : tab === 'library' ? 'Recipe library' : tab === 'shop' ? 'Shopping' : 'Deleted'}</h1>
+          <h1>{tab === 'current' ? 'Gaminama' : tab === 'library' ? 'Receptų biblioteka' : tab === 'shop' ? 'Pirkiniai' : 'Ištrinti'}</h1>
         </div>
-        <button className="icon-button" aria-label="Household settings" onClick={() => setSettingsOpen(true)}>•••</button>
+        <button className="icon-button" aria-label="Namų ūkio nustatymai" onClick={() => setSettingsOpen(true)}>•••</button>
       </header>
 
       <main>
@@ -550,11 +627,11 @@ function App() {
         {tab === 'deleted' && <DeletedView recipes={deletedRecipes} onRestore={(recipe) => void restoreRecipe(recipe)} />}
       </main>
 
-      <nav className="bottom-nav" aria-label="Main navigation">
-        <NavButton active={tab === 'current'} label="Current" icon={<BowlIcon />} onClick={() => setTab('current')} />
-        <NavButton active={tab === 'library'} label="Library" icon={<BookIcon />} onClick={() => setTab('library')} />
-        <NavButton active={tab === 'shop'} label="Shop" icon={<BasketIcon />} badge={queue.length} onClick={() => setTab('shop')} />
-        <NavButton active={tab === 'deleted'} label="Deleted" icon={<TrashIcon />} onClick={() => setTab('deleted')} />
+      <nav className="bottom-nav" aria-label="Pagrindinė navigacija">
+        <NavButton active={tab === 'current'} label="Gaminama" icon={<BowlIcon />} onClick={() => setTab('current')} />
+        <NavButton active={tab === 'library'} label="Biblioteka" icon={<BookIcon />} onClick={() => setTab('library')} />
+        <NavButton active={tab === 'shop'} label="Pirkiniai" icon={<BasketIcon />} badge={queue.length} onClick={() => setTab('shop')} />
+        <NavButton active={tab === 'deleted'} label="Ištrinti" icon={<TrashIcon />} onClick={() => setTab('deleted')} />
       </nav>
 
       {editor && (
@@ -579,20 +656,20 @@ function App() {
       )}
       {settingsOpen && <SettingsDialog household={household} email={session.user.email || ''} onClose={() => setSettingsOpen(false)} />}
       {similarPrompt && (
-        <Modal title="Similar recipes already here" onClose={() => setSimilarPrompt(null)}>
-          <p className="muted">You already planned:</p>
+        <Modal title="Čia jau yra panašių receptų" onClose={() => setSimilarPrompt(null)}>
+          <p className="muted">Jau suplanuota:</p>
           <ul className="plain-list">{similarPrompt.matches.map((match) => <li key={match.id}>{match.title}</li>)}</ul>
-          <p>You can still add <strong>{similarPrompt.recipe.title}</strong>.</p>
+          <p>Vis tiek galite pridėti <strong>{similarPrompt.recipe.title}</strong>.</p>
           <div className="button-row">
-            <button className="button secondary" onClick={() => setSimilarPrompt(null)}>Cancel</button>
-            <button className="button primary" onClick={() => void planRecipe(similarPrompt.recipe, similarPrompt.destination, true)}>Add anyway</button>
+            <button className="button secondary" onClick={() => setSimilarPrompt(null)}>Atšaukti</button>
+            <button className="button primary" onClick={() => void planRecipe(similarPrompt.recipe, similarPrompt.destination, true)}>Vis tiek pridėti</button>
           </div>
         </Modal>
       )}
       {undo && (
         <div className="undo-toast" role="status">
           <span>{undo.label}</span>
-          <button onClick={() => void undoResolution()}>Undo</button>
+          <button onClick={() => void undoResolution()}>Atšaukti</button>
         </div>
       )}
     </div>
@@ -600,7 +677,7 @@ function App() {
 }
 
 function Splash() {
-  return <div className="splash"><div className="brand-mark">R</div><p>Preparing the kitchen…</p></div>
+  return <div className="splash"><div className="brand-mark">R</div><p>Ruošiama virtuvė…</p></div>
 }
 
 function AuthScreen() {
@@ -622,7 +699,7 @@ function AuthScreen() {
           options: { emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` },
         })
     if (result.error) setNotice(result.error.message)
-    else if (mode === 'signup' && !result.data.session) setNotice('Check your email to confirm the account, then come back and sign in.')
+    else if (mode === 'signup' && !result.data.session) setNotice('Patvirtinkite paskyrą el. paštu, tada grįžkite ir prisijunkite.')
     setLoading(false)
   }
 
@@ -630,18 +707,18 @@ function AuthScreen() {
     <div className="auth-page">
       <section className="auth-card">
         <div className="brand-mark">R</div>
-        <p className="eyebrow">Shared kitchen</p>
-        <h1>What should we cook?</h1>
-        <p className="lead">Keep the recipes you loved, plan the next batch, and take one tidy list shopping.</p>
+        <p className="eyebrow">Bendra virtuvė</p>
+        <h1>Ką gaminsime?</h1>
+        <p className="lead">Saugokite mėgstamus receptus, suplanuokite valgius ir apsipirkite pagal vieną tvarkingą sąrašą.</p>
         <div className="segmented">
-          <button className={mode === 'signin' ? 'active' : ''} onClick={() => setMode('signin')}>Sign in</button>
-          <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>Create account</button>
+          <button className={mode === 'signin' ? 'active' : ''} onClick={() => setMode('signin')}>Prisijungti</button>
+          <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>Kurti paskyrą</button>
         </div>
         <form onSubmit={submit} className="form-stack">
-          <label>Email<input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
-          <label>Password<input type="password" minLength={8} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+          <label>El. paštas<input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
+          <label>Slaptažodis<input type="password" minLength={8} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
           {notice && <p className="form-notice">{notice}</p>}
-          <button className="button primary wide" disabled={loading}>{loading ? 'One moment…' : mode === 'signin' ? 'Sign in' : 'Create account'}</button>
+          <button className="button primary wide" disabled={loading}>{loading ? 'Akimirką…' : mode === 'signin' ? 'Prisijungti' : 'Kurti paskyrą'}</button>
         </form>
       </section>
     </div>
@@ -655,30 +732,30 @@ function HouseholdSetup({ loading, error, onCreate, onJoin }: {
   onJoin: (code: string, displayName: string) => void
 }) {
   const [mode, setMode] = useState<'create' | 'join'>('create')
-  const [name, setName] = useState('Our kitchen')
+  const [name, setName] = useState('Mūsų virtuvė')
   const [displayName, setDisplayName] = useState('')
   const [code, setCode] = useState('')
   return (
     <div className="auth-page">
       <section className="auth-card">
-        <p className="eyebrow">First things first</p>
-        <h1>Set up your kitchen</h1>
-        <p className="lead">One person creates it. The other joins with the short code.</p>
+        <p className="eyebrow">Pradėkime</p>
+        <h1>Sukurkite savo virtuvę</h1>
+        <p className="lead">Vienas žmogus ją sukuria, o kitas prisijungia trumpu kodu.</p>
         <div className="segmented">
-          <button className={mode === 'create' ? 'active' : ''} onClick={() => setMode('create')}>Create</button>
-          <button className={mode === 'join' ? 'active' : ''} onClick={() => setMode('join')}>Join</button>
+          <button className={mode === 'create' ? 'active' : ''} onClick={() => setMode('create')}>Sukurti</button>
+          <button className={mode === 'join' ? 'active' : ''} onClick={() => setMode('join')}>Prisijungti</button>
         </div>
         <form className="form-stack" onSubmit={(event) => {
           event.preventDefault()
           if (mode === 'create') onCreate(name, displayName)
           else onJoin(code, displayName)
         }}>
-          <label>Your name <span className="optional">optional</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></label>
+          <label>Jūsų vardas <span className="optional">nebūtina</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></label>
           {mode === 'create'
-            ? <label>Kitchen name<input required value={name} onChange={(event) => setName(event.target.value)} /></label>
-            : <label>Invite code<input className="code-input" required maxLength={8} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} /></label>}
+            ? <label>Virtuvės pavadinimas<input required value={name} onChange={(event) => setName(event.target.value)} /></label>
+            : <label>Pakvietimo kodas<input className="code-input" required maxLength={8} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} /></label>}
           {error && <p className="form-notice">{error}</p>}
-          <button className="button primary wide" disabled={loading}>{loading ? 'Setting up…' : mode === 'create' ? 'Create kitchen' : 'Join kitchen'}</button>
+          <button className="button primary wide" disabled={loading}>{loading ? 'Ruošiama…' : mode === 'create' ? 'Sukurti virtuvę' : 'Prisijungti prie virtuvės'}</button>
         </form>
       </section>
     </div>
@@ -697,9 +774,9 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
 }) {
   return (
     <div className="page-stack">
-      <button className="button primary add-meals" onClick={onAdd}>＋ Add meals</button>
+      <button className="button primary add-meals" onClick={onAdd}>＋ Pridėti patiekalų</button>
       {entries.length === 0 ? (
-        <EmptyState title="Nothing waiting to be cooked" text="Add a few meals, shop once, and they will land here." action="Plan meals" onAction={onAdd} />
+        <EmptyState title="Nėra laukiančių receptų" text="Pridėkite kelis patiekalus, apsipirkite, ir jie atsiras čia." action="Planuoti patiekalus" onAction={onAdd} />
       ) : (
         <section className="card-grid">
           {entries.map((entry) => {
@@ -709,16 +786,17 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
               <article className="meal-card" key={entry.id}>
                 <div className="meal-copy">
                   <div className="meal-head">
-                    <p className="eyebrow">Ready</p>
-                    <button className="text-button" onClick={() => onEdit(recipe)}>Edit</button>
+                    <p className="eyebrow">Paruošta gaminti</p>
+                    <button className="text-button" onClick={() => onEdit(recipe)}>Redaguoti</button>
                   </div>
                   <h2>{recipe.title}</h2>
+                  <RecipeTags recipe={recipe} />
                   <IngredientLine recipe={recipe} />
                   {recipe.notes && <p className="notes">{recipe.notes}</p>}
                 </div>
                 <div className="resolve-actions">
-                  <button className="resolve cooked" onClick={() => onCooked(entry)} aria-label={`Mark ${recipe.title} cooked`}>✓ <span>Cooked</span></button>
-                  <button className="resolve skipped" onClick={() => onSkipped(entry)} aria-label={`Skip ${recipe.title}`}>× <span>Skip</span></button>
+                  <button className="resolve cooked" onClick={() => onCooked(entry)} aria-label={`Pažymėti „${recipe.title}“ kaip pagamintą`}>✓ <span>Pagaminta</span></button>
+                  <button className="resolve skipped" onClick={() => onSkipped(entry)} aria-label={`Praleisti „${recipe.title}“`}>× <span>Praleisti</span></button>
                 </div>
               </article>
             )
@@ -727,7 +805,7 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
       )}
       {recent.length > 0 && (
         <section className="recent-section">
-          <div className="section-heading"><div><p className="eyebrow">Last 5 days</p><h2>Recently cooked</h2></div></div>
+          <div className="section-heading"><div><p className="eyebrow">Pastarosios 5 dienos</p><h2>Neseniai gaminta</h2></div></div>
           <div className="recent-strip">
             {recent.map((entry) => {
               const recipe = recipeById.get(entry.recipe_id)
@@ -735,7 +813,7 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
                 <div className="recent-chip" key={entry.id}>
                   <span>✓</span>
                   <div><strong>{recipe.title}</strong><small>{formatRelative(entry.resolved_at)}</small></div>
-                  <button className="recent-again" onClick={() => onQueue(recipe)} aria-label={`Add ${recipe.title} to the shopping list again`} title="Add to shopping again">＋</button>
+                  <button className="recent-again" onClick={() => onQueue(recipe)} aria-label={`Vėl pridėti „${recipe.title}“ į pirkinių sąrašą`} title="Vėl pridėti prie pirkinių">＋</button>
                 </div>
               ) : null
             })}
@@ -757,33 +835,49 @@ function LibraryView({ recipes, lastCooked, onAdd, onImport, onEdit, onQueue, on
   onDelete: (recipe: Recipe) => void
 }) {
   const [search, setSearch] = useState('')
-  const filtered = recipes.filter((recipe) => `${recipe.title} ${recipe.recipe_ingredients.map((item) => item.item).join(' ')}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+  const needle = search.trim().toLocaleLowerCase('lt')
+  const filtered = recipes.filter((recipe) => {
+    const tags = recipeTagNames(recipe).map((name) => name.replace(DISH_TAG_PREFIX, '').replace(CUISINE_TAG_PREFIX, ''))
+    const haystack = `${recipe.title} ${recipe.recipe_ingredients.map((item) => item.item).join(' ')} ${tags.join(' ')}`.toLocaleLowerCase('lt')
+    return haystack.includes(needle)
+  })
+  const groups = DISH_TYPES
+    .map((dishType) => ({ dishType, recipes: filtered.filter((recipe) => dishTypeFor(recipe) === dishType) }))
+    .filter((group) => group.recipes.length > 0)
   return (
     <div className="page-stack">
       <div className="toolbar">
-        <input className="search" type="search" placeholder="Search recipes or ingredients" value={search} onChange={(event) => setSearch(event.target.value)} />
-        <button className="button primary" onClick={onAdd}>＋ New</button>
+        <input className="search" type="search" placeholder="Ieškoti receptų, produktų ar virtuvių" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <button className="button primary" onClick={onAdd}>＋ Naujas</button>
       </div>
-      <button className="text-button import-button" onClick={onImport}>Import a pasted recipe list</button>
-      {filtered.length === 0 ? <EmptyState title={recipes.length ? 'No matches' : 'Your library is empty'} text={recipes.length ? 'Try another search.' : 'Add one recipe or paste your existing weekly list.'} action={recipes.length ? undefined : 'Add a recipe'} onAction={recipes.length ? undefined : onAdd} /> : (
-        <section className="library-list">
-          {filtered.map((recipe) => (
-            <article className="library-card" key={recipe.id}>
-              <div className="library-main">
-                <div><p className="eyebrow">Last cooked · {formatRelative(lastCooked(recipe.id))}</p><h2>{recipe.title}</h2></div>
-                <IngredientLine recipe={recipe} />
-                {recipe.notes && <p className="notes">{recipe.notes}</p>}
-                {recipe.source_url && <a className="source-link" href={recipe.source_url} target="_blank" rel="noreferrer">Open original recipe ↗</a>}
+      <button className="text-button import-button" onClick={onImport}>Importuoti įklijuotą receptų sąrašą</button>
+      {filtered.length === 0 ? <EmptyState title={recipes.length ? 'Nieko nerasta' : 'Biblioteka tuščia'} text={recipes.length ? 'Pabandykite kitą paiešką.' : 'Pridėkite receptą arba įklijuokite turimą savaitės sąrašą.'} action={recipes.length ? undefined : 'Pridėti receptą'} onAction={recipes.length ? undefined : onAdd} /> : (
+        <div className="library-groups">
+          {groups.map((group) => (
+            <section className="library-group" key={group.dishType}>
+              <div className="library-group-heading"><h2>{group.dishType}</h2><span>{group.recipes.length}</span></div>
+              <div className="library-list">
+                {group.recipes.map((recipe) => (
+                  <article className="library-card" key={recipe.id}>
+                    <div className="library-main">
+                      <div><p className="eyebrow">Gaminta · {formatRelative(lastCooked(recipe.id))}</p><h2>{recipe.title}</h2></div>
+                      <RecipeTags recipe={recipe} />
+                      <IngredientLine recipe={recipe} />
+                      {recipe.notes && <p className="notes">{recipe.notes}</p>}
+                      {recipe.source_url && <a className="source-link" href={recipe.source_url} target="_blank" rel="noreferrer">Atverti originalų receptą ↗</a>}
+                    </div>
+                    <div className="library-actions">
+                      <button onClick={() => onQueue(recipe)}>Prie pirkinių</button>
+                      <button onClick={() => onCurrent(recipe)}>Gaminti dabar</button>
+                      <button onClick={() => onEdit(recipe)}>Redaguoti</button>
+                      <button className="danger-text" onClick={() => onDelete(recipe)}>Ištrinti</button>
+                    </div>
+                  </article>
+                ))}
               </div>
-              <div className="library-actions">
-                <button onClick={() => onQueue(recipe)}>Add to shop</button>
-                <button onClick={() => onCurrent(recipe)}>Cook now</button>
-                <button onClick={() => onEdit(recipe)}>Edit</button>
-                <button className="danger-text" onClick={() => onDelete(recipe)}>Delete</button>
-              </div>
-            </article>
+            </section>
           ))}
-        </section>
+        </div>
       )}
     </div>
   )
@@ -801,32 +895,32 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
 }) {
   return (
     <div className="page-stack shop-page">
-      <div className="section-heading"><div><p className="eyebrow">Temporary batch</p><h2>{queue.length} meal{queue.length === 1 ? '' : 's'} planned</h2></div><button className="button primary" onClick={onAdd}>＋ Add</button></div>
-      {queue.length === 0 ? <EmptyState title="No shopping batch yet" text="Choose all the meals you want before making one combined list." action="Add meals" onAction={onAdd} /> : (
+      <div className="section-heading"><div><p className="eyebrow">Laikinas planas</p><h2>Suplanuota patiekalų: {queue.length}</h2></div><button className="button primary" onClick={onAdd}>＋ Pridėti</button></div>
+      {queue.length === 0 ? <EmptyState title="Pirkinių planas tuščias" text="Pasirinkite visus norimus patiekalus ir gausite vieną bendrą sąrašą." action="Pridėti patiekalų" onAction={onAdd} /> : (
         <>
           <div className="queue-chips">
             {queue.map((entry) => {
               const recipe = recipeById.get(entry.recipe_id)
-              return recipe ? <div className="queue-chip" key={entry.id}><span>{recipe.title}</span><button aria-label={`Remove ${recipe.title}`} onClick={() => onRemove(entry)}>×</button></div> : null
+              return recipe ? <div className="queue-chip" key={entry.id}><span>{recipe.title}</span><button aria-label={`Pašalinti „${recipe.title}“`} onClick={() => onRemove(entry)}>×</button></div> : null
             })}
           </div>
           <section className="shopping-card">
-            <div className="section-heading"><div><p className="eyebrow">Combined list</p><h2>Ingredients</h2></div><span className="count-pill">{count}</span></div>
+            <div className="section-heading"><div><p className="eyebrow">Bendras sąrašas</p><h2>Produktai</h2></div><span className="count-pill">{count}</span></div>
             {count ? sections.map((group) => (
               <div className="shop-section" key={group.section}>
-                <h3 className="shop-section-title">{group.section}<span>{group.items.length}</span></h3>
+                <h3 className="shop-section-title">{SECTION_LABELS[group.section]}<span>{group.items.length}</span></h3>
                 <ul className="ingredient-shopping-list">
                   {group.items.map((item) => {
                     const titles = [...item.recipes]
-                    const usage = titles.length === 1 ? `used by ${titles[0]}` : titles.length === 2 ? `used by ${titles[0]} and ${titles[1]}` : `used by ${titles.length} recipes`
-                    return <li key={item.item}><a href={barboraUrl(item.item)} target="_blank" rel="noreferrer"><strong>{item.item}</strong><span>{usage} · search Barbora ↗</span></a></li>
+                    const usage = titles.length === 1 ? `reikia „${titles[0]}“` : titles.length === 2 ? `reikia „${titles[0]}“ ir „${titles[1]}“` : `reikia ${titles.length} receptams`
+                    return <li key={item.item}><a href={barboraUrl(item.item)} target="_blank" rel="noreferrer"><strong>{item.item}</strong><span>{usage} · ieškoti „Barboroje“ ↗</span></a></li>
                   })}
                 </ul>
               </div>
-            )) : <p className="muted">These recipes do not have ingredients yet.</p>}
+            )) : <p className="muted">Šiuose receptuose produktų dar nėra.</p>}
           </section>
-          <button className="button success wide complete-button" disabled={loading} onClick={onComplete}>✓ Shopping complete</button>
-          <p className="center-note">This moves every planned meal to Current and resets this list.</p>
+          <button className="button success wide complete-button" disabled={loading} onClick={onComplete}>✓ Apsipirkta</button>
+          <p className="center-note">Visi suplanuoti patiekalai bus perkelti į „Gaminama“, o šis sąrašas išvalytas.</p>
         </>
       )}
     </div>
@@ -835,13 +929,18 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
 
 function DeletedView({ recipes, onRestore }: { recipes: Recipe[]; onRestore: (recipe: Recipe) => void }) {
   return recipes.length === 0
-    ? <EmptyState title="Deleted is empty" text="Removed recipes stay recoverable here." />
-    : <section className="library-list">{recipes.map((recipe) => <article className="library-card" key={recipe.id}><div className="library-main"><p className="eyebrow">Deleted · {formatRelative(recipe.deleted_at)}</p><h2>{recipe.title}</h2><IngredientLine recipe={recipe} /></div><button className="button secondary" onClick={() => onRestore(recipe)}>Restore</button></article>)}</section>
+    ? <EmptyState title="Ištrintų receptų nėra" text="Pašalintus receptus čia visada galėsite atkurti." />
+    : <section className="library-list">{recipes.map((recipe) => <article className="library-card" key={recipe.id}><div className="library-main"><p className="eyebrow">Ištrinta · {formatRelative(recipe.deleted_at)}</p><h2>{recipe.title}</h2><IngredientLine recipe={recipe} /></div><button className="button secondary" onClick={() => onRestore(recipe)}>Atkurti</button></article>)}</section>
 }
 
 function IngredientLine({ recipe }: { recipe: Recipe }) {
   const sorted = [...recipe.recipe_ingredients].sort((a, b) => a.position - b.position)
-  return sorted.length ? <p className="ingredients">{sorted.map((ingredient) => ingredient.item).join(' · ')}</p> : <p className="ingredients empty">No ingredients added</p>
+  return sorted.length ? <p className="ingredients">{sorted.map((ingredient) => ingredient.item).join(' · ')}</p> : <p className="ingredients empty">Produktų nepridėta</p>
+}
+
+function RecipeTags({ recipe }: { recipe: Recipe }) {
+  const cuisine = cuisineFor(recipe)
+  return <div className="recipe-tags"><span>{cuisine}</span></div>
 }
 
 function RecipeEditor({ recipe, destination, vocabulary, loading, onClose, onSave }: {
@@ -857,20 +956,34 @@ function RecipeEditor({ recipe, destination, vocabulary, loading, onClose, onSav
     ingredients: [...recipe.recipe_ingredients].sort((a, b) => a.position - b.position).map((item) => item.item),
     notes: recipe.notes || '',
     sourceUrl: recipe.source_url || '',
+    dishType: dishTypeFor(recipe),
+    cuisine: cuisineFor(recipe),
   } : blankDraft())
+  const [categoriesTouched, setCategoriesTouched] = useState(Boolean(recipe))
+
+  function updateContent(next: Pick<RecipeDraft, 'title' | 'ingredients'>) {
+    const detected = categoriesTouched ? {} : classifyRecipe(next.title, next.ingredients)
+    setDraft((current) => ({ ...current, ...next, ...detected }))
+  }
+
   return (
-    <Modal title={recipe ? 'Edit recipe' : destination === 'queue' ? 'New meal' : 'New recipe'} onClose={onClose}>
+    <Modal title={recipe ? 'Redaguoti receptą' : destination === 'queue' ? 'Naujas patiekalas' : 'Naujas receptas'} onClose={onClose}>
       <form className="form-stack" onSubmit={(event) => {
         event.preventDefault()
         onSave(draft)
       }}>
-        <label>Dish name<input autoFocus required value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Pasta e ceci" /></label>
-        <div className="field"><span className="field-label">Ingredients <span className="optional">one at a time</span></span>
-          <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => setDraft({ ...draft, ingredients })} />
+        <label>Patiekalo pavadinimas<input autoFocus required value={draft.title} onChange={(event) => updateContent({ title: event.target.value, ingredients: draft.ingredients })} placeholder="Pasta e ceci" /></label>
+        <div className="field"><span className="field-label">Produktai <span className="optional">po vieną</span></span>
+          <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => updateContent({ title: draft.title, ingredients })} />
         </div>
-        <label>At-a-glance steps <span className="optional">optional</span><textarea rows={4} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder="Any details worth remembering…" /></label>
-        <label>Source link <span className="optional">optional</span><input type="url" value={draft.sourceUrl} onChange={(event) => setDraft({ ...draft, sourceUrl: event.target.value })} placeholder="https://…" /></label>
-        <button className="button primary wide" disabled={loading}>{loading ? 'Saving…' : recipe ? 'Save changes' : destination === 'queue' ? 'Save and add to shopping' : 'Save recipe'}</button>
+        <div className="category-grid">
+          <label>Patiekalo tipas<select value={draft.dishType} onChange={(event) => { setCategoriesTouched(true); setDraft({ ...draft, dishType: event.target.value }) }}>{DISH_TYPES.map((value) => <option key={value}>{value}</option>)}</select></label>
+          <label>Virtuvė<select value={draft.cuisine} onChange={(event) => { setCategoriesTouched(true); setDraft({ ...draft, cuisine: event.target.value }) }}>{CUISINES.map((value) => <option key={value}>{value}</option>)}</select></label>
+        </div>
+        {!categoriesTouched && <p className="category-hint">Kategorijos parenkamos automatiškai pagal pavadinimą ir produktus.</p>}
+        <label>Trumpi gaminimo žingsniai <span className="optional">nebūtina</span><textarea rows={4} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder="Kas svarbu gaminant…" /></label>
+        <label>Šaltinio nuoroda <span className="optional">nebūtina</span><input type="url" value={draft.sourceUrl} onChange={(event) => setDraft({ ...draft, sourceUrl: event.target.value })} placeholder="https://…" /></label>
+        <button className="button primary wide" disabled={loading}>{loading ? 'Saugoma…' : recipe ? 'Išsaugoti pakeitimus' : destination === 'queue' ? 'Išsaugoti ir pridėti prie pirkinių' : 'Išsaugoti receptą'}</button>
       </form>
     </Modal>
   )
@@ -880,26 +993,26 @@ function ImportDialog({ vocabulary, loading, onClose, onSave }: { vocabulary: Vo
   const [raw, setRaw] = useState('')
   const [drafts, setDrafts] = useState<RecipeDraft[] | null>(null)
   if (!drafts) return (
-    <Modal title="Import a recipe list" onClose={onClose}>
-      <p className="muted">Paste one dish per line. A dash separates its name from comma-separated ingredients. Checkboxes and numbering are removed.</p>
+    <Modal title="Importuoti receptų sąrašą" onClose={onClose}>
+      <p className="muted">Įklijuokite po vieną patiekalą eilutėje. Brūkšnys atskiria pavadinimą nuo kableliais išvardytų produktų. Žymimieji langeliai ir numeracija bus pašalinti.</p>
       <textarea className="import-area" rows={10} value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="[ ] 1. Pasta e ceci — makaronai, avinžirniai, pomidorai" />
-      <p className="fine-print">The importer preserves the original language. You can edit every preview before saving.</p>
-      <button className="button primary wide" disabled={!raw.trim()} onClick={() => setDrafts(parseRecipeList(raw))}>Preview recipes</button>
+      <p className="fine-print">Kalba nekeičiama. Prieš išsaugodami galėsite pataisyti kiekvieną receptą.</p>
+      <button className="button primary wide" disabled={!raw.trim()} onClick={() => setDrafts(parseRecipeList(raw))}>Peržiūrėti receptus</button>
     </Modal>
   )
   return (
-    <Modal title={`Review ${drafts.length} recipe${drafts.length === 1 ? '' : 's'}`} onClose={onClose} wide>
+    <Modal title={`Peržiūrėti receptus (${drafts.length})`} onClose={onClose} wide>
       <div className="import-preview">
         {drafts.map((draft, index) => <div className="preview-card" key={index}>
           <div className="preview-number">{index + 1}</div>
-          <label>Dish<input value={draft.title} onChange={(event) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} /></label>
-          <div className="field"><span className="field-label">Ingredients</span>
+          <label>Patiekalas<input value={draft.title} onChange={(event) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} /></label>
+          <div className="field"><span className="field-label">Produktai</span>
             <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, ingredients } : item))} />
           </div>
-          <button className="text-button danger-text" onClick={() => setDrafts(drafts.filter((_, itemIndex) => itemIndex !== index))}>Remove</button>
+          <button className="text-button danger-text" onClick={() => setDrafts(drafts.filter((_, itemIndex) => itemIndex !== index))}>Pašalinti</button>
         </div>)}
       </div>
-      <div className="button-row sticky-actions"><button className="button secondary" onClick={() => setDrafts(null)}>Back</button><button className="button primary" disabled={loading || drafts.length === 0 || drafts.some((draft) => !draft.title.trim())} onClick={() => onSave(drafts)}>{loading ? 'Importing…' : `Import ${drafts.length}`}</button></div>
+      <div className="button-row sticky-actions"><button className="button secondary" onClick={() => setDrafts(null)}>Atgal</button><button className="button primary" disabled={loading || drafts.length === 0 || drafts.some((draft) => !draft.title.trim())} onClick={() => onSave(drafts)}>{loading ? 'Importuojama…' : `Importuoti (${drafts.length})`}</button></div>
     </Modal>
   )
 }
@@ -912,11 +1025,11 @@ function MealPicker({ recipes, queuedIds, onClose, onPick, onNew }: {
   onNew: () => void
 }) {
   const [search, setSearch] = useState('')
-  const filtered = recipes.filter((recipe) => recipe.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+  const filtered = recipes.filter((recipe) => `${recipe.title} ${cuisineFor(recipe)} ${dishTypeFor(recipe)}`.toLocaleLowerCase('lt').includes(search.toLocaleLowerCase('lt')))
   return (
-    <Modal title="Add meals" onClose={onClose}>
-      <div className="picker-actions"><input autoFocus className="search" type="search" placeholder="Find a recipe" value={search} onChange={(event) => setSearch(event.target.value)} /><button className="button secondary" onClick={onNew}>＋ New</button></div>
-      <div className="picker-list">{filtered.map((recipe) => <button className="picker-row" key={recipe.id} disabled={queuedIds.has(recipe.id)} onClick={() => onPick(recipe)}><span><strong>{recipe.title}</strong><small>{recipe.recipe_ingredients.length} ingredients</small></span><span>{queuedIds.has(recipe.id) ? 'Added' : '＋'}</span></button>)}</div>
+    <Modal title="Pridėti patiekalų" onClose={onClose}>
+      <div className="picker-actions"><input autoFocus className="search" type="search" placeholder="Rasti receptą" value={search} onChange={(event) => setSearch(event.target.value)} /><button className="button secondary" onClick={onNew}>＋ Naujas</button></div>
+      <div className="picker-list">{filtered.map((recipe) => <button className="picker-row" key={recipe.id} disabled={queuedIds.has(recipe.id)} onClick={() => onPick(recipe)}><span><strong>{recipe.title}</strong><small>Produktų: {recipe.recipe_ingredients.length}</small></span><span>{queuedIds.has(recipe.id) ? 'Pridėta' : '＋'}</span></button>)}</div>
     </Modal>
   )
 }
@@ -929,11 +1042,11 @@ function SettingsDialog({ household, email, onClose }: { household: Household; e
     window.setTimeout(() => setCopied(false), 1800)
   }
   return (
-    <Modal title="Your kitchen" onClose={onClose}>
-      <p className="muted">Share this code with the other person after they create their own account.</p>
-      <button className="invite-code" onClick={() => void copyCode()}><span>{household.invite_code}</span><small>{copied ? 'Copied!' : 'Tap to copy'}</small></button>
-      <div className="settings-meta"><span>Signed in as</span><strong>{email}</strong></div>
-      <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Sign out</button>
+    <Modal title="Jūsų virtuvė" onClose={onClose}>
+      <p className="muted">Kai kitas žmogus susikurs paskyrą, pasidalykite su juo šiuo kodu.</p>
+      <button className="invite-code" onClick={() => void copyCode()}><span>{household.invite_code}</span><small>{copied ? 'Nukopijuota!' : 'Paliesti ir kopijuoti'}</small></button>
+      <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
+      <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Atsijungti</button>
     </Modal>
   )
 }
@@ -944,7 +1057,7 @@ function Modal({ title, onClose, wide = false, children }: { title: string; onCl
     window.addEventListener('keydown', close)
     return () => window.removeEventListener('keydown', close)
   }, [onClose])
-  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title}><header><h2>{title}</h2><button className="icon-button" aria-label="Close" onClick={onClose}>×</button></header><div className="modal-body">{children}</div></section></div>
+  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title}><header><h2>{title}</h2><button className="icon-button" aria-label="Uždaryti" onClick={onClose}>×</button></header><div className="modal-body">{children}</div></section></div>
 }
 
 function Banner({ tone = 'info', onClose, children }: { tone?: 'info' | 'error'; onClose: () => void; children: React.ReactNode }) {
@@ -1068,7 +1181,7 @@ function IngredientChips({ value, vocabulary, onChange }: {
         {value.map((item, index) => (
           <span className="chip" key={`${item}-${index}`}>
             {item}
-            <button type="button" aria-label={`Remove ${item}`} onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
+            <button type="button" aria-label={`Pašalinti „${item}“`} onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
           </span>
         ))}
         {adding ? (
@@ -1080,8 +1193,8 @@ function IngredientChips({ value, vocabulary, onChange }: {
               onChange={(event) => { setEntry(event.target.value); setHighlight(0) }}
               onKeyDown={onKeyDown}
               onBlur={() => { if (!entry.trim()) setAdding(false) }}
-              placeholder="Start typing…"
-              aria-label="Add an ingredient"
+              placeholder="Pradėkite rašyti…"
+              aria-label="Pridėti produktą"
             />
             {suggestions.length > 0 && (
               <ul className="chip-suggestions">
@@ -1092,21 +1205,21 @@ function IngredientChips({ value, vocabulary, onChange }: {
                       className={index === highlight ? 'active' : ''}
                       onMouseDown={(event) => { event.preventDefault(); add(item.name) }}
                     >
-                      <strong>{item.name}</strong><span>{item.section}</span>
+                      <strong>{item.name}</strong><span>{SECTION_LABELS[item.section]}</span>
                     </button>
                   </li>
                 ))}
               </ul>
             )}
             {entry.trim() && !exactMatch && (
-              <p className="chip-hint">Enter adds <strong>{entry.trim()}</strong> as a new ingredient</p>
+              <p className="chip-hint">„Enter“ pridės <strong>{entry.trim()}</strong> kaip naują produktą</p>
             )}
           </div>
         ) : (
-          <button type="button" className="chip-add" onClick={() => setAdding(true)}>＋ Add</button>
+          <button type="button" className="chip-add" onClick={() => setAdding(true)}>＋ Pridėti</button>
         )}
       </div>
-      {value.length === 0 && !adding && <p className="chip-empty">No ingredients yet.</p>}
+      {value.length === 0 && !adding && <p className="chip-empty">Produktų dar nėra.</p>}
     </div>
   )
 }

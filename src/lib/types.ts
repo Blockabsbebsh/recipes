@@ -38,6 +38,16 @@ export type Recipe = {
   created_at: string
   updated_at: string
   recipe_ingredients: Ingredient[]
+  recipe_tags: RecipeTagLink[]
+}
+
+export type RecipeTag = {
+  id: string
+  name: string
+}
+
+export type RecipeTagLink = {
+  tag: RecipeTag
 }
 
 export type RosterEntry = {
@@ -61,4 +71,6 @@ export type RecipeDraft = {
   ingredients: string[]
   notes: string
   sourceUrl: string
+  dishType?: string
+  cuisine?: string
 }

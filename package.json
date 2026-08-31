@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node --test src/lib/parser.test.mjs"
+    "test": "node --test --test-isolation=none src/lib/parser.test.mjs src/lib/categories.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",

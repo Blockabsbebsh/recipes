@@ -16,6 +16,10 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Soft deletion and recovery
 - Live refresh when the other person edits data
 - Installable PWA layout for Android and iOS
+- Lithuanian interface copy and metadata
+- Automatic dish-type and cuisine classification with manual editing
+- Library search across recipe names, ingredients, dish types, and cuisines
+- Library sections grouped by dish type, with cuisine shown as an extra tag
 
 ## Run locally
 
@@ -48,6 +52,8 @@ If Pages is unavailable for this private repository on the current GitHub plan, 
 The live schema is in Supabase project `recipes` (`malrgdecuaqtkwnloixa`). The reproducible SQL lives in `supabase/migrations/`, applied in filename order. Ingredients are a per-household vocabulary with two independent axes: `section` is the part of a shop it is bought in, `food_type` is what the food actually is. Recipes carry free-form tags through `recipe_tags`.
 
 Every public table has RLS. Policies authorize through `household_members`, not user-editable JWT metadata. The two privileged RPCs authenticate the caller and have execution revoked from `PUBLIC` and `anon`.
+
+Recipe classifications reuse the existing normalized tag relation. Machine-readable names use `Tipas: ` for the single dish-type axis and `Virtuvė: ` for cuisine; the UI removes those prefixes. Dish type controls library grouping, while both axes participate in search. New recipes are classified locally with deterministic Lithuanian/English keyword rules and can be corrected in the editor.
 
 ## Current MVP limits
 
