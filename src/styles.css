@@ -104,7 +104,6 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .ingredient-shopping-list li { border-top: 1px solid var(--line); }
 .ingredient-shopping-list a { display: block; padding: 13px 2px; text-decoration: none; }
 .ingredient-shopping-list strong, .ingredient-shopping-list span { display: block; }
-.ingredient-shopping-list strong { text-transform: lowercase; }
 .ingredient-shopping-list span { margin-top: 3px; color: var(--muted); font-size: .74rem; }
 .complete-button { margin-top: 4px; }
 
@@ -133,7 +132,7 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .modal-body { max-height: calc(88vh - 74px); padding: 8px 20px 24px; overflow-y: auto; }
 .form-stack { display: grid; gap: 16px; }
 .form-stack label, .preview-card label { display: grid; gap: 7px; font-size: .79rem; font-weight: 700; }
-input, textarea, select { width: 100%; padding: 12px 13px; border: 1px solid var(--line); border-radius: 11px; outline: none; background: #fff; color: var(--ink); }
+input, textarea, select { width: 100%; padding: 12px 13px; border: 1px solid var(--line); border-radius: 11px; outline: none; background: #fff; color: var(--ink); font-size: 1rem; }
 textarea { resize: vertical; line-height: 1.5; }
 .category-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .category-grid label { min-width: 0; }
@@ -213,7 +212,7 @@ textarea { resize: vertical; line-height: 1.5; }
 .shop-section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .shop-section-title span { display: grid; min-width: 18px; height: 18px; padding: 0 5px; place-items: center; border-radius: 99px; background: #eee9df; font-size: .68rem; font-weight: 700; letter-spacing: 0; }
 
-.meal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.meal-head { display: flex; align-items: baseline; justify-content: flex-end; gap: 10px; }
 .meal-head .text-button { font-size: .74rem; }
 .recent-chip { position: relative; padding-right: 34px; }
 .recent-again { position: absolute; top: 50%; right: 8px; display: grid; width: 22px; height: 22px; transform: translateY(-50%); place-items: center; border: 0; border-radius: 50%; background: #eee9df; color: var(--muted); font-size: .82rem; line-height: 1; cursor: pointer; }

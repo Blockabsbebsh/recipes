@@ -12,7 +12,6 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Temporary meal batch and a deduplicated ingredient list showing which recipes use each item
 - Barbora search links for individual ingredients
 - One-tap shopping completion that atomically moves planned meals to Current
-- Similar-recipe warnings that still allow intentional duplicates
 - Soft deletion and recovery
 - Live refresh when the other person edits data
 - Installable PWA layout for Android and iOS

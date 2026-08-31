@@ -53,7 +53,6 @@ function App() {
   const [importOpen, setImportOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [similarPrompt, setSimilarPrompt] = useState<{ recipe: Recipe; destination: 'queue' | 'roster'; matches: Recipe[] } | null>(null)
   const [undo, setUndo] = useState<{ entryId: string; label: string } | null>(null)
   const undoTimer = useRef<number | null>(null)
 
@@ -328,7 +327,7 @@ function App() {
     }
     setEditor(null)
     if (recipeId) await saveRecipeClassification(recipeId, draft)
-    setMessage(existing ? 'Receptas atnaujintas' : destination === 'queue' ? 'Pridėta į pirkinių planą' : 'Receptas išsaugotas')
+    setMessage(existing ? 'Receptas atnaujintas' : destination === 'queue' ? 'Pridėta į krepšelį' : 'Receptas išsaugotas')
     await loadData()
     setLoading(false)
   }
@@ -437,28 +436,15 @@ function App() {
     setMessage(`Importuota receptų: ${drafts.length}`)
   }
 
-  function similarInPlan(recipe: Recipe) {
-    const plannedIds = new Set([...readyEntries.map((entry) => entry.recipe_id), ...queue.map((entry) => entry.recipe_id)])
-    return activeRecipes.filter(
-      (candidate) => candidate.id !== recipe.id && plannedIds.has(candidate.id) && titleSimilarity(recipe.title, candidate.title) >= 0.58,
-    )
-  }
-
-  async function planRecipe(recipe: Recipe, destination: 'queue' | 'roster', force = false) {
+  async function planRecipe(recipe: Recipe, destination: 'queue' | 'roster') {
     if (!household || !session) return
-    const matches = similarInPlan(recipe)
-    if (matches.length && !force) {
-      setSimilarPrompt({ recipe, destination, matches })
-      return
-    }
     setError(null)
     const result = destination === 'queue'
       ? await supabase.from('shopping_queue').insert({ household_id: household.id, recipe_id: recipe.id, added_by: session.user.id })
       : await supabase.from('roster_entries').insert({ household_id: household.id, recipe_id: recipe.id, added_by: session.user.id })
-    if (result.error?.code === '23505') setMessage('Šis receptas jau yra pirkinių sąraše')
+    if (result.error?.code === '23505') setMessage(destination === 'queue' ? 'Šis receptas jau yra krepšelyje' : 'Šis receptas jau yra meniu')
     else if (result.error) setError(result.error.message)
-    else setMessage(destination === 'queue' ? 'Pridėta prie pirkinių' : 'Pridėta prie gaminamų receptų')
-    setSimilarPrompt(null)
+    else setMessage(destination === 'queue' ? 'Pridėta į krepšelį' : 'Pridėta į meniu')
     await loadData()
   }
 
@@ -498,7 +484,7 @@ function App() {
 
   async function completeShopping() {
     if (!household || queue.length === 0) return
-    if (!window.confirm(`Perkelti suplanuotus receptus (${queue.length}) į „Gaminama“ ir išvalyti pirkinių sąrašą?`)) return
+    if (!window.confirm(`Perkelti suplanuotus receptus (${queue.length}) į „Meniu“ ir išvalyti krepšelį?`)) return
     setLoading(true)
     const { data, error: completeError } = await supabase.rpc('complete_shopping', { p_household_id: household.id })
     if (completeError) setError(completeError.message)
@@ -579,7 +565,7 @@ function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">{household.name}</p>
-          <h1>{tab === 'current' ? 'Gaminama' : tab === 'library' ? 'Receptų biblioteka' : tab === 'shop' ? 'Pirkiniai' : 'Ištrinti'}</h1>
+          <h1>{tab === 'current' ? 'Meniu' : tab === 'library' ? 'Receptai' : tab === 'shop' ? 'Krepšelis' : 'Ištrinti'}</h1>
         </div>
         <button className="icon-button" aria-label="Namų ūkio nustatymai" onClick={() => setSettingsOpen(true)}>•••</button>
       </header>
@@ -628,9 +614,9 @@ function App() {
       </main>
 
       <nav className="bottom-nav" aria-label="Pagrindinė navigacija">
-        <NavButton active={tab === 'current'} label="Gaminama" icon={<BowlIcon />} onClick={() => setTab('current')} />
-        <NavButton active={tab === 'library'} label="Biblioteka" icon={<BookIcon />} onClick={() => setTab('library')} />
-        <NavButton active={tab === 'shop'} label="Pirkiniai" icon={<BasketIcon />} badge={queue.length} onClick={() => setTab('shop')} />
+        <NavButton active={tab === 'current'} label="Meniu" icon={<BowlIcon />} onClick={() => setTab('current')} />
+        <NavButton active={tab === 'library'} label="Receptai" icon={<BookIcon />} onClick={() => setTab('library')} />
+        <NavButton active={tab === 'shop'} label="Krepšelis" icon={<BasketIcon />} badge={queue.length} onClick={() => setTab('shop')} />
         <NavButton active={tab === 'deleted'} label="Ištrinti" icon={<TrashIcon />} onClick={() => setTab('deleted')} />
       </nav>
 
@@ -655,17 +641,6 @@ function App() {
         />
       )}
       {settingsOpen && <SettingsDialog household={household} email={session.user.email || ''} onClose={() => setSettingsOpen(false)} />}
-      {similarPrompt && (
-        <Modal title="Čia jau yra panašių receptų" onClose={() => setSimilarPrompt(null)}>
-          <p className="muted">Jau suplanuota:</p>
-          <ul className="plain-list">{similarPrompt.matches.map((match) => <li key={match.id}>{match.title}</li>)}</ul>
-          <p>Vis tiek galite pridėti <strong>{similarPrompt.recipe.title}</strong>.</p>
-          <div className="button-row">
-            <button className="button secondary" onClick={() => setSimilarPrompt(null)}>Atšaukti</button>
-            <button className="button primary" onClick={() => void planRecipe(similarPrompt.recipe, similarPrompt.destination, true)}>Vis tiek pridėti</button>
-          </div>
-        </Modal>
-      )}
       {undo && (
         <div className="undo-toast" role="status">
           <span>{undo.label}</span>
@@ -786,7 +761,6 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
               <article className="meal-card" key={entry.id}>
                 <div className="meal-copy">
                   <div className="meal-head">
-                    <p className="eyebrow">Paruošta gaminti</p>
                     <button className="text-button" onClick={() => onEdit(recipe)}>Redaguoti</button>
                   </div>
                   <h2>{recipe.title}</h2>
@@ -813,7 +787,7 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
                 <div className="recent-chip" key={entry.id}>
                   <span>✓</span>
                   <div><strong>{recipe.title}</strong><small>{formatRelative(entry.resolved_at)}</small></div>
-                  <button className="recent-again" onClick={() => onQueue(recipe)} aria-label={`Vėl pridėti „${recipe.title}“ į pirkinių sąrašą`} title="Vėl pridėti prie pirkinių">＋</button>
+                  <button className="recent-again" onClick={() => onQueue(recipe)} aria-label={`Vėl pridėti „${recipe.title}“ į krepšelį`} title="Vėl pridėti į krepšelį">＋</button>
                 </div>
               ) : null
             })}
@@ -851,7 +825,7 @@ function LibraryView({ recipes, lastCooked, onAdd, onImport, onEdit, onQueue, on
         <button className="button primary" onClick={onAdd}>＋ Naujas</button>
       </div>
       <button className="text-button import-button" onClick={onImport}>Importuoti įklijuotą receptų sąrašą</button>
-      {filtered.length === 0 ? <EmptyState title={recipes.length ? 'Nieko nerasta' : 'Biblioteka tuščia'} text={recipes.length ? 'Pabandykite kitą paiešką.' : 'Pridėkite receptą arba įklijuokite turimą savaitės sąrašą.'} action={recipes.length ? undefined : 'Pridėti receptą'} onAction={recipes.length ? undefined : onAdd} /> : (
+      {filtered.length === 0 ? <EmptyState title={recipes.length ? 'Nieko nerasta' : 'Receptų nėra'} text={recipes.length ? 'Pabandykite kitą paiešką.' : 'Pridėkite receptą arba įklijuokite turimą savaitės sąrašą.'} action={recipes.length ? undefined : 'Pridėti receptą'} onAction={recipes.length ? undefined : onAdd} /> : (
         <div className="library-groups">
           {groups.map((group) => (
             <section className="library-group" key={group.dishType}>
@@ -867,7 +841,7 @@ function LibraryView({ recipes, lastCooked, onAdd, onImport, onEdit, onQueue, on
                       {recipe.source_url && <a className="source-link" href={recipe.source_url} target="_blank" rel="noreferrer">Atverti originalų receptą ↗</a>}
                     </div>
                     <div className="library-actions">
-                      <button onClick={() => onQueue(recipe)}>Prie pirkinių</button>
+                      <button onClick={() => onQueue(recipe)}>Į krepšelį</button>
                       <button onClick={() => onCurrent(recipe)}>Gaminti dabar</button>
                       <button onClick={() => onEdit(recipe)}>Redaguoti</button>
                       <button className="danger-text" onClick={() => onDelete(recipe)}>Ištrinti</button>
@@ -896,7 +870,7 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
   return (
     <div className="page-stack shop-page">
       <div className="section-heading"><div><p className="eyebrow">Laikinas planas</p><h2>Suplanuota patiekalų: {queue.length}</h2></div><button className="button primary" onClick={onAdd}>＋ Pridėti</button></div>
-      {queue.length === 0 ? <EmptyState title="Pirkinių planas tuščias" text="Pasirinkite visus norimus patiekalus ir gausite vieną bendrą sąrašą." action="Pridėti patiekalų" onAction={onAdd} /> : (
+      {queue.length === 0 ? <EmptyState title="Krepšelis tuščias" text="Pasirinkite visus norimus patiekalus ir gausite vieną bendrą sąrašą." action="Pridėti patiekalų" onAction={onAdd} /> : (
         <>
           <div className="queue-chips">
             {queue.map((entry) => {
@@ -920,7 +894,7 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
             )) : <p className="muted">Šiuose receptuose produktų dar nėra.</p>}
           </section>
           <button className="button success wide complete-button" disabled={loading} onClick={onComplete}>✓ Apsipirkta</button>
-          <p className="center-note">Visi suplanuoti patiekalai bus perkelti į „Gaminama“, o šis sąrašas išvalytas.</p>
+          <p className="center-note">Visi suplanuoti patiekalai bus perkelti į „Meniu“, o krepšelis išvalytas.</p>
         </>
       )}
     </div>
@@ -983,7 +957,7 @@ function RecipeEditor({ recipe, destination, vocabulary, loading, onClose, onSav
         {!categoriesTouched && <p className="category-hint">Kategorijos parenkamos automatiškai pagal pavadinimą ir produktus.</p>}
         <label>Trumpi gaminimo žingsniai <span className="optional">nebūtina</span><textarea rows={4} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder="Kas svarbu gaminant…" /></label>
         <label>Šaltinio nuoroda <span className="optional">nebūtina</span><input type="url" value={draft.sourceUrl} onChange={(event) => setDraft({ ...draft, sourceUrl: event.target.value })} placeholder="https://…" /></label>
-        <button className="button primary wide" disabled={loading}>{loading ? 'Saugoma…' : recipe ? 'Išsaugoti pakeitimus' : destination === 'queue' ? 'Išsaugoti ir pridėti prie pirkinių' : 'Išsaugoti receptą'}</button>
+        <button className="button primary wide" disabled={loading}>{loading ? 'Saugoma…' : recipe ? 'Išsaugoti pakeitimus' : destination === 'queue' ? 'Išsaugoti ir pridėti į krepšelį' : 'Išsaugoti receptą'}</button>
       </form>
     </Modal>
   )
