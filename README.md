@@ -45,7 +45,7 @@ If Pages is unavailable for this private repository on the current GitHub plan, 
 
 ## Database
 
-The live schema is in Supabase project `recipes` (`malrgdecuaqtkwnloixa`). The reproducible SQL lives in `supabase/migrations/20260831140000_initial_schema.sql`.
+The live schema is in Supabase project `recipes` (`malrgdecuaqtkwnloixa`). The reproducible SQL lives in `supabase/migrations/`, applied in filename order. Ingredients are a per-household vocabulary with two independent axes: `section` is the part of a shop it is bought in, `food_type` is what the food actually is. Recipes carry free-form tags through `recipe_tags`.
 
 Every public table has RLS. Policies authorize through `household_members`, not user-editable JWT metadata. The two privileged RPCs authenticate the caller and have execution revoked from `PUBLIC` and `anon`.
 
