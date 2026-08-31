@@ -179,3 +179,25 @@ textarea { resize: vertical; line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
 }
+
+.field { display: grid; gap: 7px; }
+.field-label { font-size: .79rem; font-weight: 700; }
+.chip-field { display: grid; gap: 8px; }
+.chip-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 7px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 7px 6px 13px; border: 1px solid var(--line); border-radius: 99px; background: #fff; font-size: .82rem; }
+.chip button { display: grid; width: 19px; height: 19px; place-items: center; border: 0; border-radius: 50%; background: #eee9df; color: var(--muted); font-size: .82rem; line-height: 1; cursor: pointer; }
+.chip button:hover { background: var(--orange); color: #fff; }
+.chip-add { padding: 7px 15px; border: 1px dashed var(--line); border-radius: 99px; background: transparent; color: var(--muted); font-size: .82rem; font-weight: 700; cursor: pointer; }
+.chip-add:hover { border-color: var(--orange); color: var(--orange-dark); }
+.chip-input { position: relative; min-width: 190px; flex: 1 1 190px; }
+.chip-input input { padding: 9px 12px; border-radius: 11px; }
+.chip-suggestions { position: absolute; z-index: 30; top: calc(100% + 5px); right: 0; left: 0; max-height: 232px; margin: 0; padding: 5px; overflow-y: auto; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); box-shadow: var(--shadow); list-style: none; }
+.chip-suggestions button { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font-size: .84rem; text-align: left; cursor: pointer; }
+.chip-suggestions button.active, .chip-suggestions button:hover { background: #f3ede1; }
+.chip-suggestions span { color: var(--muted); font-size: .7rem; }
+.chip-hint { margin: 7px 2px 0; color: var(--muted); font-size: .74rem; }
+.chip-empty { margin: 0; color: var(--muted); font-size: .8rem; }
+
+.shop-section + .shop-section { margin-top: 18px; }
+.shop-section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.shop-section-title span { display: grid; min-width: 18px; height: 18px; padding: 0 5px; place-items: center; border-radius: 99px; background: #eee9df; font-size: .68rem; font-weight: 700; letter-spacing: 0; }
