@@ -2,12 +2,16 @@ import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { parseRecipeList, titleSimilarity } from './lib/parser'
-import type { Household, QueueEntry, Recipe, RecipeDraft, RosterEntry } from './lib/types'
+import type { Household, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
 type Tab = 'current' | 'library' | 'shop' | 'deleted'
 type RecipeDestination = 'library' | 'queue'
 
 const blankDraft = (): RecipeDraft => ({ title: '', ingredients: [], notes: '', sourceUrl: '' })
+
+// Roughly the order a shop is walked, so the list reads top to bottom.
+const SECTION_ORDER: IngredientSection[] =
+  ['Produce', 'Bakery', 'Dairy & alternatives', 'Frozen', 'Pantry', 'Spices', 'Other']
 
 function formatRelative(dateValue: string | null) {
   if (!dateValue) return 'Never'
@@ -25,6 +29,7 @@ function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [household, setHousehold] = useState<Household | null>(null)
+  const [vocabulary, setVocabulary] = useState<VocabularyIngredient[]>([])
   const [setupChecked, setSetupChecked] = useState(false)
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [roster, setRoster] = useState<RosterEntry[]>([])
@@ -113,7 +118,7 @@ function App() {
 
   const loadData = useCallback(async () => {
     if (!household) return
-    const [recipeResult, rosterResult, queueResult] = await Promise.all([
+    const [recipeResult, rosterResult, queueResult, vocabularyResult] = await Promise.all([
       supabase
         .from('recipes')
         .select('*, recipe_ingredients(*)')
@@ -129,8 +134,13 @@ function App() {
         .select('*')
         .eq('household_id', household.id)
         .order('added_at', { ascending: true }),
+      supabase
+        .from('ingredients')
+        .select('*')
+        .eq('household_id', household.id)
+        .order('name', { ascending: true }),
     ])
-    const firstError = recipeResult.error || rosterResult.error || queueResult.error
+    const firstError = recipeResult.error || rosterResult.error || queueResult.error || vocabularyResult.error
     if (firstError) {
       setError(firstError.message)
       return
@@ -138,6 +148,7 @@ function App() {
     setRecipes((recipeResult.data || []) as Recipe[])
     setRoster((rosterResult.data || []) as RosterEntry[])
     setQueue((queueResult.data || []) as QueueEntry[])
+    setVocabulary((vocabularyResult.data || []) as VocabularyIngredient[])
   }, [household])
 
   useEffect(() => {
@@ -149,7 +160,7 @@ function App() {
       timer = window.setTimeout(() => void loadData(), 180)
     }
     const channel = supabase.channel(`household:${household.id}`)
-    ;['recipes', 'recipe_ingredients', 'roster_entries', 'shopping_queue'].forEach((table) => {
+    ;['recipes', 'recipe_ingredients', 'roster_entries', 'shopping_queue', 'ingredients'].forEach((table) => {
       channel.on(
         'postgres_changes',
         { event: '*', schema: 'public', table, filter: `household_id=eq.${household.id}` },
@@ -394,19 +405,39 @@ function App() {
     }
   }
 
-  const shoppingIngredients = useMemo(() => {
-    const grouped = new Map<string, { item: string; recipes: Set<string> }>()
+  const sectionByIngredient = useMemo(
+    () => new Map(vocabulary.map((entry) => [entry.name.trim().toLocaleLowerCase(), entry.section])),
+    [vocabulary],
+  )
+
+  const shoppingSections = useMemo(() => {
+    const grouped = new Map<string, { item: string; section: IngredientSection; recipes: Set<string> }>()
     queue.forEach((entry) => {
       const recipe = recipeById.get(entry.recipe_id)
       recipe?.recipe_ingredients.forEach((ingredient) => {
         const key = ingredient.item.trim().toLocaleLowerCase()
-        const group = grouped.get(key) || { item: ingredient.item.trim(), recipes: new Set<string>() }
+        const group = grouped.get(key) || {
+          item: ingredient.item.trim(),
+          section: sectionByIngredient.get(key) || 'Other',
+          recipes: new Set<string>(),
+        }
         group.recipes.add(recipe.title)
         grouped.set(key, group)
       })
     })
-    return [...grouped.values()].sort((a, b) => a.item.localeCompare(b.item, 'lt'))
-  }, [queue, recipeById])
+    const items = [...grouped.values()]
+    return SECTION_ORDER
+      .map((section) => ({
+        section,
+        items: items.filter((item) => item.section === section).sort((a, b) => a.item.localeCompare(b.item, 'lt')),
+      }))
+      .filter((group) => group.items.length > 0)
+  }, [queue, recipeById, sectionByIngredient])
+
+  const shoppingCount = useMemo(
+    () => shoppingSections.reduce((total, group) => total + group.items.length, 0),
+    [shoppingSections],
+  )
 
   if (!authReady) return <Splash />
   if (!session) return <AuthScreen />
@@ -453,7 +484,8 @@ function App() {
           <ShoppingView
             queue={queue}
             recipeById={recipeById}
-            ingredients={shoppingIngredients}
+            sections={shoppingSections}
+            count={shoppingCount}
             loading={loading}
             onAdd={() => setPickerOpen(true)}
             onRemove={(entry) => void removeFromQueue(entry)}
@@ -472,6 +504,7 @@ function App() {
 
       {editor && (
         <RecipeEditor
+          vocabulary={vocabulary}
           recipe={editor.recipe}
           destination={editor.destination}
           loading={loading}
@@ -479,7 +512,7 @@ function App() {
           onSave={(draft) => void saveRecipe(draft, editor.recipe, editor.destination)}
         />
       )}
-      {importOpen && <ImportDialog loading={loading} onClose={() => setImportOpen(false)} onSave={(drafts) => void saveImported(drafts)} />}
+      {importOpen && <ImportDialog vocabulary={vocabulary} loading={loading} onClose={() => setImportOpen(false)} onSave={(drafts) => void saveImported(drafts)} />}
       {pickerOpen && (
         <MealPicker
           recipes={activeRecipes}
@@ -690,10 +723,11 @@ function LibraryView({ recipes, lastCooked, onAdd, onImport, onEdit, onQueue, on
   )
 }
 
-function ShoppingView({ queue, recipeById, ingredients, loading, onAdd, onRemove, onComplete }: {
+function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRemove, onComplete }: {
   queue: QueueEntry[]
   recipeById: Map<string, Recipe>
-  ingredients: { item: string; recipes: Set<string> }[]
+  sections: { section: IngredientSection; items: { item: string; recipes: Set<string> }[] }[]
+  count: number
   loading: boolean
   onAdd: () => void
   onRemove: (entry: QueueEntry) => void
@@ -711,14 +745,19 @@ function ShoppingView({ queue, recipeById, ingredients, loading, onAdd, onRemove
             })}
           </div>
           <section className="shopping-card">
-            <div className="section-heading"><div><p className="eyebrow">Combined list</p><h2>Ingredients</h2></div><span className="count-pill">{ingredients.length}</span></div>
-            {ingredients.length ? <ul className="ingredient-shopping-list">
-              {ingredients.map((group) => {
-                const titles = [...group.recipes]
-                const usage = titles.length === 1 ? `used by ${titles[0]}` : titles.length === 2 ? `used by ${titles[0]} and ${titles[1]}` : `used by ${titles.length} recipes`
-                return <li key={group.item}><a href={barboraUrl(group.item)} target="_blank" rel="noreferrer"><strong>{group.item}</strong><span>{usage} · search Barbora ↗</span></a></li>
-              })}
-            </ul> : <p className="muted">These recipes do not have ingredients yet.</p>}
+            <div className="section-heading"><div><p className="eyebrow">Combined list</p><h2>Ingredients</h2></div><span className="count-pill">{count}</span></div>
+            {count ? sections.map((group) => (
+              <div className="shop-section" key={group.section}>
+                <h3 className="shop-section-title">{group.section}<span>{group.items.length}</span></h3>
+                <ul className="ingredient-shopping-list">
+                  {group.items.map((item) => {
+                    const titles = [...item.recipes]
+                    const usage = titles.length === 1 ? `used by ${titles[0]}` : titles.length === 2 ? `used by ${titles[0]} and ${titles[1]}` : `used by ${titles.length} recipes`
+                    return <li key={item.item}><a href={barboraUrl(item.item)} target="_blank" rel="noreferrer"><strong>{item.item}</strong><span>{usage} · search Barbora ↗</span></a></li>
+                  })}
+                </ul>
+              </div>
+            )) : <p className="muted">These recipes do not have ingredients yet.</p>}
           </section>
           <button className="button success wide complete-button" disabled={loading} onClick={onComplete}>✓ Shopping complete</button>
           <p className="center-note">This moves every planned meal to Current and resets this list.</p>
@@ -739,9 +778,10 @@ function IngredientLine({ recipe }: { recipe: Recipe }) {
   return sorted.length ? <p className="ingredients">{sorted.map((ingredient) => ingredient.item).join(' · ')}</p> : <p className="ingredients empty">No ingredients added</p>
 }
 
-function RecipeEditor({ recipe, destination, loading, onClose, onSave }: {
+function RecipeEditor({ recipe, destination, vocabulary, loading, onClose, onSave }: {
   recipe?: Recipe
   destination: RecipeDestination
+  vocabulary: VocabularyIngredient[]
   loading: boolean
   onClose: () => void
   onSave: (draft: RecipeDraft) => void
@@ -752,15 +792,16 @@ function RecipeEditor({ recipe, destination, loading, onClose, onSave }: {
     notes: recipe.notes || '',
     sourceUrl: recipe.source_url || '',
   } : blankDraft())
-  const [ingredientText, setIngredientText] = useState(draft.ingredients.join(', '))
   return (
     <Modal title={recipe ? 'Edit recipe' : destination === 'queue' ? 'New meal' : 'New recipe'} onClose={onClose}>
       <form className="form-stack" onSubmit={(event) => {
         event.preventDefault()
-        onSave({ ...draft, ingredients: ingredientText.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean) })
+        onSave(draft)
       }}>
         <label>Dish name<input autoFocus required value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Pasta e ceci" /></label>
-        <label>Ingredients <span className="optional">comma or new line separated</span><textarea required rows={4} value={ingredientText} onChange={(event) => setIngredientText(event.target.value)} placeholder="pasta, chickpeas, tomatoes, garlic" /></label>
+        <div className="field"><span className="field-label">Ingredients <span className="optional">one at a time</span></span>
+          <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => setDraft({ ...draft, ingredients })} />
+        </div>
         <label>At-a-glance steps <span className="optional">optional</span><textarea rows={4} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder="Any details worth remembering…" /></label>
         <label>Source link <span className="optional">optional</span><input type="url" value={draft.sourceUrl} onChange={(event) => setDraft({ ...draft, sourceUrl: event.target.value })} placeholder="https://…" /></label>
         <button className="button primary wide" disabled={loading}>{loading ? 'Saving…' : recipe ? 'Save changes' : destination === 'queue' ? 'Save and add to shopping' : 'Save recipe'}</button>
@@ -769,7 +810,7 @@ function RecipeEditor({ recipe, destination, loading, onClose, onSave }: {
   )
 }
 
-function ImportDialog({ loading, onClose, onSave }: { loading: boolean; onClose: () => void; onSave: (drafts: RecipeDraft[]) => void }) {
+function ImportDialog({ vocabulary, loading, onClose, onSave }: { vocabulary: VocabularyIngredient[]; loading: boolean; onClose: () => void; onSave: (drafts: RecipeDraft[]) => void }) {
   const [raw, setRaw] = useState('')
   const [drafts, setDrafts] = useState<RecipeDraft[] | null>(null)
   if (!drafts) return (
@@ -786,7 +827,9 @@ function ImportDialog({ loading, onClose, onSave }: { loading: boolean; onClose:
         {drafts.map((draft, index) => <div className="preview-card" key={index}>
           <div className="preview-number">{index + 1}</div>
           <label>Dish<input value={draft.title} onChange={(event) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} /></label>
-          <label>Ingredients<textarea rows={3} value={draft.ingredients.join(', ')} onChange={(event) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, ingredients: event.target.value.split(/[,;\n]/).map((value) => value.trim()).filter(Boolean) } : item))} /></label>
+          <div className="field"><span className="field-label">Ingredients</span>
+            <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, ingredients } : item))} />
+          </div>
           <button className="text-button danger-text" onClick={() => setDrafts(drafts.filter((_, itemIndex) => itemIndex !== index))}>Remove</button>
         </div>)}
       </div>
@@ -878,4 +921,126 @@ function BasketIcon() {
 
 function TrashIcon() {
   return <svg {...iconProps}><path d="M4.5 6.6h15" /><path d="M9.6 6.6V5.1A1.6 1.6 0 0 1 11.2 3.5h1.6a1.6 1.6 0 0 1 1.6 1.6v1.5" /><path d="M6.6 6.6l.85 12.05a2 2 0 0 0 2 1.85h5.1a2 2 0 0 0 2-1.85L17.4 6.6" /></svg>
+}
+
+/**
+ * Shared ingredient editor. Typing filters the household vocabulary, first on
+ * plain substring matches and then on the same bigram similarity the importer
+ * uses, so "svogun" still reaches "Svogūnai" despite the declension. Anything
+ * unrecognised is kept as typed; the database links or creates the vocabulary
+ * entry when the recipe is saved.
+ */
+function IngredientChips({ value, vocabulary, onChange }: {
+  value: string[]
+  vocabulary: VocabularyIngredient[]
+  onChange: (next: string[]) => void
+}) {
+  const [entry, setEntry] = useState('')
+  const [highlight, setHighlight] = useState(0)
+  const [adding, setAdding] = useState(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const taken = useMemo(() => new Set(value.map((item) => item.trim().toLocaleLowerCase())), [value])
+
+  const suggestions = useMemo(() => {
+    const query = entry.trim()
+    if (!query) return []
+    const needle = query.toLocaleLowerCase()
+    return vocabulary
+      .filter((item) => !taken.has(item.name.trim().toLocaleLowerCase()))
+      .map((item) => {
+        const name = item.name.toLocaleLowerCase()
+        const score = name.startsWith(needle) ? 1 : name.includes(needle) ? 0.9 : titleSimilarity(query, item.name)
+        return { item, score }
+      })
+      .filter((row) => row.score >= 0.45)
+      .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, 'lt'))
+      .slice(0, 6)
+      .map((row) => row.item)
+  }, [entry, vocabulary, taken])
+
+  const exactMatch = suggestions.some((item) => item.name.toLocaleLowerCase() === entry.trim().toLocaleLowerCase())
+
+  function add(name: string) {
+    const cleaned = name.trim()
+    setEntry('')
+    setHighlight(0)
+    if (!cleaned || taken.has(cleaned.toLocaleLowerCase())) return
+    onChange([...value, cleaned])
+  }
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      add(suggestions[highlight] ? suggestions[highlight].name : entry)
+      return
+    }
+    if (event.key === 'ArrowDown' && suggestions.length) {
+      event.preventDefault()
+      setHighlight((current) => (current + 1) % suggestions.length)
+      return
+    }
+    if (event.key === 'ArrowUp' && suggestions.length) {
+      event.preventDefault()
+      setHighlight((current) => (current - 1 + suggestions.length) % suggestions.length)
+      return
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      setEntry('')
+      setAdding(false)
+      return
+    }
+    if (event.key === 'Backspace' && !entry && value.length) {
+      onChange(value.slice(0, -1))
+    }
+  }
+
+  return (
+    <div className="chip-field">
+      <div className="chip-row">
+        {value.map((item, index) => (
+          <span className="chip" key={`${item}-${index}`}>
+            {item}
+            <button type="button" aria-label={`Remove ${item}`} onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
+          </span>
+        ))}
+        {adding ? (
+          <div className="chip-input">
+            <input
+              ref={inputRef}
+              autoFocus
+              value={entry}
+              onChange={(event) => { setEntry(event.target.value); setHighlight(0) }}
+              onKeyDown={onKeyDown}
+              onBlur={() => { if (!entry.trim()) setAdding(false) }}
+              placeholder="Start typing…"
+              aria-label="Add an ingredient"
+            />
+            {suggestions.length > 0 && (
+              <ul className="chip-suggestions">
+                {suggestions.map((item, index) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className={index === highlight ? 'active' : ''}
+                      onMouseDown={(event) => { event.preventDefault(); add(item.name) }}
+                    >
+                      <strong>{item.name}</strong><span>{item.section}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {entry.trim() && !exactMatch && (
+              <p className="chip-hint">Enter adds <strong>{entry.trim()}</strong> as a new ingredient</p>
+            )}
+          </div>
+        ) : (
+          <button type="button" className="chip-add" onClick={() => setAdding(true)}>＋ Add</button>
+        )}
+      </div>
+      {value.length === 0 && !adding && <p className="chip-empty">No ingredients yet.</p>}
+    </div>
+  )
 }

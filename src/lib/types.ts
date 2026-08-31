@@ -9,8 +9,21 @@ export type Ingredient = {
   id: string
   household_id: string
   recipe_id: string
+  ingredient_id: string
   item: string
   position: number
+}
+
+export type IngredientSection =
+  'Produce' | 'Pantry' | 'Dairy & alternatives' | 'Bakery' | 'Frozen' | 'Spices' | 'Other'
+
+/** An entry in the household's shared ingredient vocabulary. */
+export type VocabularyIngredient = {
+  id: string
+  household_id: string
+  name: string
+  section: IngredientSection
+  food_type: string
 }
 
 export type Recipe = {
