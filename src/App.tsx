@@ -36,6 +36,43 @@ function barboraUrl(item: string) {
   return `https://barbora.lt/paieska?q=${encodeURIComponent(item)}`
 }
 
+function androidBarboraIntent(item: string) {
+  const fallback = encodeURIComponent(barboraUrl(item))
+  return `intent://barbora.lt/paieska?q=${encodeURIComponent(item)}#Intent;scheme=https;package=lt.barbora;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${fallback};end`
+}
+
+function isStandaloneApp() {
+  const iosNavigator = navigator as Navigator & { standalone?: boolean }
+  return window.matchMedia('(display-mode: standalone)').matches || Boolean(iosNavigator.standalone)
+}
+
+function BarboraLink({ item, children }: { item: string; children: ReactNode }) {
+  const url = barboraUrl(item)
+
+  async function open(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (!isStandaloneApp()) return
+
+    event.preventDefault()
+    if (/Android/i.test(navigator.userAgent)) {
+      window.location.href = androidBarboraIntent(item)
+      return
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `„${item}“ – Barbora`, text: `Ieškoti „${item}“ Barboroje`, url })
+        return
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+      }
+    }
+
+    window.location.href = url
+  }
+
+  return <a href={url} target="_blank" rel="noreferrer" onClick={(event) => void open(event)}>{children}</a>
+}
+
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
@@ -887,7 +924,7 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
                   {group.items.map((item) => {
                     const titles = [...item.recipes]
                     const usage = titles.length === 1 ? `reikia „${titles[0]}“` : titles.length === 2 ? `reikia „${titles[0]}“ ir „${titles[1]}“` : `reikia ${titles.length} receptams`
-                    return <li key={item.item}><a href={barboraUrl(item.item)} target="_blank" rel="noreferrer"><strong>{item.item}</strong><span>{usage} · ieškoti „Barboroje“ ↗</span></a></li>
+                    return <li key={item.item}><BarboraLink item={item.item}><strong>{item.item}</strong><span>{usage} · ieškoti „Barboroje“ ↗</span></BarboraLink></li>
                   })}
                 </ul>
               </div>
@@ -1026,12 +1063,51 @@ function SettingsDialog({ household, email, onClose }: { household: Household; e
 }
 
 function Modal({ title, onClose, wide = false, children }: { title: string; onClose: () => void; wide?: boolean; children: React.ReactNode }) {
+  const backdrop = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     const close = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
     window.addEventListener('keydown', close)
     return () => window.removeEventListener('keydown', close)
   }, [onClose])
-  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title}><header><h2>{title}</h2><button className="icon-button" aria-label="Uždaryti" onClick={onClose}>×</button></header><div className="modal-body">{children}</div></section></div>
+
+  useEffect(() => {
+    const body = document.body
+    const scrollY = window.scrollY
+    const previousBodyStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      right: body.style.right,
+      left: body.style.left,
+      overflow: body.style.overflow,
+    }
+    const viewport = window.visualViewport
+    const syncViewport = () => {
+      const element = backdrop.current
+      if (!element) return
+      element.style.setProperty('--modal-viewport-height', `${viewport?.height ?? window.innerHeight}px`)
+      element.style.setProperty('--modal-viewport-top', `${viewport?.offsetTop ?? 0}px`)
+    }
+
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.right = '0'
+    body.style.left = '0'
+    body.style.overflow = 'hidden'
+    syncViewport()
+    window.addEventListener('resize', syncViewport)
+    viewport?.addEventListener('resize', syncViewport)
+    viewport?.addEventListener('scroll', syncViewport)
+
+    return () => {
+      window.removeEventListener('resize', syncViewport)
+      viewport?.removeEventListener('resize', syncViewport)
+      viewport?.removeEventListener('scroll', syncViewport)
+      Object.assign(body.style, previousBodyStyles)
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+  return <div ref={backdrop} className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title}><header><h2>{title}</h2><button className="icon-button" aria-label="Uždaryti" onClick={onClose}>×</button></header><div className="modal-body">{children}</div></section></div>
 }
 
 function Banner({ tone = 'info', onClose, children }: { tone?: 'info' | 'error'; onClose: () => void; children: React.ReactNode }) {
