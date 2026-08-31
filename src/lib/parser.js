@@ -2,6 +2,30 @@ export function cleanIngredient(value) {
   return value.trim().replace(/[.;]+$/, '').replace(/\s+/g, ' ')
 }
 
+// A dash or a colon separates the dish from its ingredients. The colon needs
+// trailing whitespace so that a pasted URL is never mistaken for a divider.
+const DIVIDER = /\s+[—–-]\s+|\s*:\s+/
+// Some lines carry the ingredients in brackets instead, optionally followed by
+// a loose remark. A comma inside the brackets is what marks it as a list, so a
+// qualifier like "Sriuba (šalta)" stays part of the title.
+const BRACKETED = /^([^(]+)\(([^)]*)\)\s*(.*)$/
+
+function splitRecipeLine(cleaned) {
+  const divider = cleaned.search(DIVIDER)
+  if (divider >= 0) {
+    return {
+      title: cleaned.slice(0, divider).trim(),
+      ingredientText: cleaned.slice(divider).replace(/^\s*(?:[—–-]|:)\s*/, ''),
+      notes: '',
+    }
+  }
+  const bracketed = cleaned.match(BRACKETED)
+  if (bracketed && bracketed[2].includes(',')) {
+    return { title: bracketed[1].trim(), ingredientText: bracketed[2], notes: bracketed[3].trim() }
+  }
+  return { title: cleaned, ingredientText: '', notes: '' }
+}
+
 export function parseRecipeList(text) {
   return text
     .split(/\r?\n/)
@@ -12,14 +36,12 @@ export function parseRecipeList(text) {
         .replace(/^\[\s*[xXvV✓✔]?\s*\]\s*/, '')
         .replace(/^\d+[.)]\s*/, '')
         .trim()
-      const divider = cleaned.search(/\s+[—–-]\s+/)
-      const title = (divider >= 0 ? cleaned.slice(0, divider) : cleaned).trim()
-      const ingredientText = divider >= 0 ? cleaned.slice(divider).replace(/^\s*[—–-]\s*/, '') : ''
+      const { title, ingredientText, notes } = splitRecipeLine(cleaned)
       const ingredients = ingredientText
         .split(/[,;]\s*/)
         .map(cleanIngredient)
         .filter(Boolean)
-      return { title, ingredients, notes: '', sourceUrl: '' }
+      return { title, ingredients, notes, sourceUrl: '' }
     })
     .filter((recipe) => recipe.title)
 }
