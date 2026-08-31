@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { parseRecipeList, titleSimilarity } from './lib/parser'
@@ -334,7 +334,7 @@ function App() {
     setRoster((current) => current.map((item) => item.id === entry.id ? { ...item, status, resolved_at: new Date().toISOString() } : item))
     if (undoTimer.current) window.clearTimeout(undoTimer.current)
     setUndo({ entryId: entry.id, label: status === 'cooked' ? 'Marked cooked' : 'Skipped' })
-    undoTimer.current = window.setTimeout(() => setUndo(null), 30_000)
+    undoTimer.current = window.setTimeout(() => setUndo(null), 5_000)
   }
 
   async function undoResolution() {
@@ -464,10 +464,10 @@ function App() {
       </main>
 
       <nav className="bottom-nav" aria-label="Main navigation">
-        <NavButton active={tab === 'current'} label="Current" icon="⌂" onClick={() => setTab('current')} />
-        <NavButton active={tab === 'library'} label="Library" icon="□" onClick={() => setTab('library')} />
-        <NavButton active={tab === 'shop'} label="Shop" icon="⌑" badge={queue.length} onClick={() => setTab('shop')} />
-        <NavButton active={tab === 'deleted'} label="Deleted" icon="↶" onClick={() => setTab('deleted')} />
+        <NavButton active={tab === 'current'} label="Current" icon={<BowlIcon />} onClick={() => setTab('current')} />
+        <NavButton active={tab === 'library'} label="Library" icon={<BookIcon />} onClick={() => setTab('library')} />
+        <NavButton active={tab === 'shop'} label="Shop" icon={<BasketIcon />} badge={queue.length} onClick={() => setTab('shop')} />
+        <NavButton active={tab === 'deleted'} label="Deleted" icon={<TrashIcon />} onClick={() => setTab('deleted')} />
       </nav>
 
       {editor && (
@@ -846,8 +846,36 @@ function EmptyState({ title, text, action, onAction }: { title: string; text: st
   return <section className="empty-state"><div className="empty-icon">◇</div><h2>{title}</h2><p>{text}</p>{action && onAction && <button className="button secondary" onClick={onAction}>{action}</button>}</section>
 }
 
-function NavButton({ active, label, icon, badge, onClick }: { active: boolean; label: string; icon: string; badge?: number; onClick: () => void }) {
+function NavButton({ active, label, icon, badge, onClick }: { active: boolean; label: string; icon: ReactNode; badge?: number; onClick: () => void }) {
   return <button className={active ? 'active' : ''} onClick={onClick}><span className="nav-icon">{icon}{badge ? <i>{badge}</i> : null}</span><span>{label}</span></button>
 }
 
 export default App
+
+const iconProps = {
+  width: 22,
+  height: 22,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.75,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+  'aria-hidden': true,
+}
+
+function BowlIcon() {
+  return <svg {...iconProps}><path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0Z" /><path d="M9.5 8.2c0-1.5 1.5-1.5 1.5-3.2" /><path d="M13.5 8.2c0-1.5 1.5-1.5 1.5-3.2" /></svg>
+}
+
+function BookIcon() {
+  return <svg {...iconProps}><path d="M5 4.5h11.5a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2V4.5Z" /><path d="M5 17.5a2 2 0 0 1 2-2h11.5" /></svg>
+}
+
+function BasketIcon() {
+  return <svg {...iconProps}><path d="M4.6 8.5h14.8l-1.2 10.1a2 2 0 0 1-2 1.8H7.8a2 2 0 0 1-2-1.8L4.6 8.5Z" /><path d="M9 8.5v-2a3 3 0 0 1 6 0v2" /></svg>
+}
+
+function TrashIcon() {
+  return <svg {...iconProps}><path d="M4.5 6.6h15" /><path d="M9.6 6.6V5.1A1.6 1.6 0 0 1 11.2 3.5h1.6a1.6 1.6 0 0 1 1.6 1.6v1.5" /><path d="M6.6 6.6l.85 12.05a2 2 0 0 0 2 1.85h5.1a2 2 0 0 0 2-1.85L17.4 6.6" /></svg>
+}
