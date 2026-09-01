@@ -698,7 +698,7 @@ function App() {
     setMessage(`Importuota receptų: ${drafts.length}`)
   }
 
-  async function createIngredient(name: string, section: IngredientSection, manualPath?: string | null) {
+  async function createIngredient(name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) {
     if (!household) return false
     const cleaned = ingredientNameWithoutQuantity(name)
     if (!cleaned) return false
@@ -706,6 +706,7 @@ function App() {
       household_id: household.id,
       name: cleaned,
       section,
+      barbora_direct_url: directUrl || null,
       ...mappingFields(cleaned, section, categoryIndex, manualPath),
     })
     if (createError) {
@@ -726,12 +727,13 @@ function App() {
     name: string,
     section: IngredientSection,
     manualPath?: string | null,
+    directUrl?: string | null,
   ) {
     const cleaned = ingredientNameWithoutQuantity(name)
     if (!cleaned) return false
     const { error: updateError } = await supabase
       .from('ingredients')
-      .update({ name: cleaned, section, ...mappingFields(cleaned, section, categoryIndex, manualPath) })
+      .update({ name: cleaned, section, barbora_direct_url: directUrl || null, ...mappingFields(cleaned, section, categoryIndex, manualPath) })
       .eq('id', ingredient.id)
     if (updateError) {
       setError(updateError.code === '23505' ? 'Toks ingredientas jau yra.' : updateError.message)
@@ -936,6 +938,7 @@ function App() {
    * category the catalogue no longer carries falls back too.
    */
   const shoppingHref = useCallback((entry: VocabularyIngredient | undefined, section: IngredientSection) => {
+    if (entry?.barbora_direct_url) return entry.barbora_direct_url
     const path = entry?.barbora_category_path
     if (path && categoryIndex.byPath.has(path)) return shoppingUrl(path)
     return SECTION_BARBORA_URLS[section] ?? null
@@ -1487,8 +1490,8 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, cat
   recipes: Recipe[]
   categories: HouseholdTag[]
   categoryIndex: CategoryIndex
-  onCreateIngredient: (name: string, section: IngredientSection, manualPath?: string | null) => Promise<boolean>
-  onUpdateIngredient: (ingredient: VocabularyIngredient, name: string, section: IngredientSection, manualPath?: string | null) => Promise<boolean>
+  onCreateIngredient: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
+  onUpdateIngredient: (ingredient: VocabularyIngredient, name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
   onDeleteIngredient: (ingredient: VocabularyIngredient) => Promise<void>
   onCreateCategory: (name: string) => Promise<boolean>
   onUpdateCategory: (category: HouseholdTag, name: string) => Promise<boolean>
@@ -1611,8 +1614,8 @@ function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUp
   vocabulary: VocabularyIngredient[]
   recipes: Recipe[]
   categoryIndex: CategoryIndex
-  onCreate: (name: string, section: IngredientSection, manualPath?: string | null) => Promise<boolean>
-  onUpdate: (ingredient: VocabularyIngredient, name: string, section: IngredientSection, manualPath?: string | null) => Promise<boolean>
+  onCreate: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
+  onUpdate: (ingredient: VocabularyIngredient, name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
   onDelete: (ingredient: VocabularyIngredient) => Promise<void>
 }) {
   const [search, setSearch] = useState('')
@@ -1624,6 +1627,8 @@ function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUp
   // `null` means "leave it to the mapper"; a path means the household chose.
   const [newPath, setNewPath] = useState<string | null>(null)
   const [editPath, setEditPath] = useState<string | null>(null)
+  const [newDirectUrl, setNewDirectUrl] = useState('')
+  const [editDirectUrl, setEditDirectUrl] = useState('')
   const [picking, setPicking] = useState<'new' | 'edit' | null>(null)
   const hasCatalogue = categoryIndex.byPath.size > 0
   const categoryName = (path: string | null) => (path === null ? null : categoryIndex.byPath.get(path)?.name ?? path)
@@ -1642,12 +1647,13 @@ function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUp
     // Only a manual choice is carried into the form; an automatic one is left
     // to be recomputed, so editing a name cannot freeze a stale proposal.
     setEditPath(ingredient.barbora_mapping_source === 'manual' ? ingredient.barbora_category_path : null)
+    setEditDirectUrl(ingredient.barbora_direct_url ?? '')
   }
 
   return <div className="manager-stack">
     <form className="manager-create" onSubmit={(event) => {
       event.preventDefault()
-      void onCreate(newName, newSection, newPath).then((saved) => { if (saved) { setNewName(''); setNewPath(null) } })
+      void onCreate(newName, newSection, newPath, newDirectUrl || null).then((saved) => { if (saved) { setNewName(''); setNewPath(null); setNewDirectUrl('') } })
     }}>
       <input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Naujas ingredientas" aria-label="Naujas ingredientas" />
       <select value={newSection} onChange={(event) => setNewSection(event.target.value as IngredientSection)} aria-label="Ingrediento skyrius">{SECTION_ORDER.map((section) => <option value={section} key={section}>{SECTION_LABELS[section]}</option>)}</select>
@@ -1659,12 +1665,13 @@ function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUp
       </button>
       {newPath !== null && <button type="button" className="text-button" onClick={() => setNewPath(null)}>Atkurti automatinį parinkimą</button>}
     </div>}
+    <input className="direct-url-field" type="url" value={newDirectUrl} onChange={(event) => setNewDirectUrl(event.target.value)} placeholder="Tiesioginis produkto URL (neprivaloma)" aria-label="Tiesioginis produkto URL" />
     <input className="search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Ieškoti (${vocabulary.length})`} />
     <div className="manager-list">
       {filtered.map((ingredient) => editing === ingredient.id ? (
         <form className="manager-edit" key={ingredient.id} onSubmit={(event) => {
           event.preventDefault()
-          void onUpdate(ingredient, editName, editSection, editPath).then((saved) => { if (saved) setEditing(null) })
+          void onUpdate(ingredient, editName, editSection, editPath, editDirectUrl || null).then((saved) => { if (saved) setEditing(null) })
         }}>
           <input value={editName} onChange={(event) => setEditName(event.target.value)} aria-label="Ingrediento pavadinimas" />
           <select value={editSection} onChange={(event) => setEditSection(event.target.value as IngredientSection)} aria-label="Ingrediento skyrius">{SECTION_ORDER.map((section) => <option value={section} key={section}>{SECTION_LABELS[section]}</option>)}</select>
@@ -1676,6 +1683,7 @@ function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUp
               <button type="button" className="text-button" onClick={() => setEditPath(null)}>Atkurti automatinį parinkimą</button>
             )}
           </div>}
+          <input className="direct-url-field" type="url" value={editDirectUrl} onChange={(event) => setEditDirectUrl(event.target.value)} placeholder="Tiesioginis produkto URL (neprivaloma)" aria-label="Tiesioginis produkto URL" />
           <div><button className="button primary" disabled={!editName.trim()}>Išsaugoti</button><button type="button" className="button secondary" onClick={() => setEditing(null)}>Atšaukti</button></div>
         </form>
       ) : (
@@ -1688,6 +1696,9 @@ function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUp
                 {categoryName(ingredient.barbora_category_path)}
                 {ingredient.barbora_mapping_source === 'manual' ? ' · pasirinkta' : ''}
               </small>
+            )}
+            {ingredient.barbora_direct_url && (
+              <small className="category-hint">Tiesioginis URL</small>
             )}
           </div>
           <button className="text-button" onClick={() => beginEdit(ingredient)}>Keisti</button>

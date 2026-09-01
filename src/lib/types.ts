@@ -50,6 +50,7 @@ export type VocabularyIngredient = {
   barbora_mapping_reason: BarboraMappingReason | null
   barbora_mapping_source: BarboraMappingSource | null
   barbora_mapping_updated_at: string | null
+  barbora_direct_url: string | null
 }
 
 export type Recipe = {

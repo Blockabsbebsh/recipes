@@ -67,6 +67,12 @@ export const CATEGORY_ALIASES = {
   // The shop files these proteins outside the dairy-alternatives aisle.
   seitanas: '/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/augaliniai-mesos-pakaitalai',
   tempe: '/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/augaliniai-mesos-pakaitalai',
+  // Dry-vs-canned disambiguation for ingredients the tree sells both ways.
+  avinzirniai: '/bakaleja/kruopos/lesiai-avinzirniai-zirniai-ir-pupeles',
+  'konservuoti avinzirniai': '/bakaleja/konservuotas-maistas/konservuoti-lesiai-ir-avinzirniai',
+  'konservuoti kukuruzai': '/bakaleja/konservuotas-maistas/konservuoti-zirneliai-ir-kukuruzai',
+  'skaldyti pomidorai': '/bakaleja/konservuotas-maistas/konservuoti-pomidorai',
+  'sauleje dziovinti pomidorai': '/bakaleja/konservuotas-maistas/konservuoti-sauleje-dziovinti-pomidorai',
   // Individual frozen vegetables share one honest shelf.
   edamame: '/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos/saldytos-darzoves-grybai-ir-ju-misiniai',
   'saldyti kukuruzai': '/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos/saldytos-darzoves-grybai-ir-ju-misiniai',

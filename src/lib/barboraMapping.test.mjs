@@ -112,9 +112,20 @@ test('retreats to the parent when the shop sells it in two places', () => {
 })
 
 test('refuses to choose when the branches share nothing but the section', () => {
-  // Chickpeas are sold tinned and dry, in different aisles. Guessing either
-  // sends someone to the wrong end of the shop.
-  assert.equal(map('Avinžirniai', 'Pantry'), null)
+  // Cereal flakes are sold as breakfast cereal and as oat flakes, in different
+  // aisles. Guessing either sends someone to the wrong end of the shop.
+  assert.equal(map('Dribsniai', 'Pantry'), null)
+})
+
+test('resolves chickpeas to dry via alias and canned via a specific name', () => {
+  assert.deepEqual(map('Avinžirniai', 'Pantry'), {
+    path: '/bakaleja/kruopos/lesiai-avinzirniai-zirniai-ir-pupeles',
+    reason: 'alias',
+  })
+  assert.deepEqual(map('Konservuoti avinžirniai', 'Pantry'), {
+    path: '/bakaleja/konservuotas-maistas/konservuoti-lesiai-ir-avinzirniai',
+    reason: 'alias',
+  })
 })
 
 test('leaves an ingredient alone when nothing matches', () => {
