@@ -71,7 +71,7 @@ export const CATEGORY_ALIASES = {
   avinzirniai: '/bakaleja/kruopos/lesiai-avinzirniai-zirniai-ir-pupeles',
   'konservuoti avinzirniai': '/bakaleja/konservuotas-maistas/konservuoti-lesiai-ir-avinzirniai',
   'konservuoti kukuruzai': '/bakaleja/konservuotas-maistas/konservuoti-zirneliai-ir-kukuruzai',
-  'skaldyti pomidorai': '/bakaleja/konservuotas-maistas/konservuoti-pomidorai',
+  'konservuoti pomidorai': '/bakaleja/konservuotas-maistas/konservuoti-pomidorai',
   'sauleje dziovinti pomidorai': '/bakaleja/konservuotas-maistas/konservuoti-sauleje-dziovinti-pomidorai',
   // Individual frozen vegetables share one honest shelf.
   edamame: '/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos/saldytos-darzoves-grybai-ir-ju-misiniai',
