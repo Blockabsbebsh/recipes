@@ -45,35 +45,40 @@ For confirmation links, set the Supabase **Authentication → URL Configuration 
 
 The workflow in `.github/workflows/deploy-pages.yml` builds every push to `main`. In GitHub, open **Settings → Pages** and choose **GitHub Actions** as the source. The production build uses `/recipes/` as its base path.
 
-If Pages is unavailable for this private repository on the current GitHub plan, the same `dist` folder can be deployed unchanged to Cloudflare Pages, Netlify, or Vercel.
+The repository is public because GitHub Pages needs a paid plan to serve a private one. If Pages is ever unavailable, the same `dist` folder deploys unchanged to Cloudflare Pages, Netlify, or Vercel.
+
+Being public matters for Actions secrets: logs and artifacts are world-readable, so no workflow holding a Supabase secret key may ever gain a trigger that runs pull-request code. See [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
 
 ## Database
 
 The live schema is in Supabase project `recipes` (`malrgdecuaqtkwnloixa`). The reproducible SQL lives in `supabase/migrations/`, applied in filename order. Ingredients are a per-household vocabulary with two independent axes: `section` is the part of a shop it is bought in, `food_type` is what the food actually is. Recipes carry free-form tags through `recipe_tags`.
 
-Every public table has RLS. Policies authorize through `household_members`, not user-editable JWT metadata. The two privileged RPCs authenticate the caller and have execution revoked from `PUBLIC` and `anon`.
+Every public table has RLS. Policies authorize through `household_members`, not user-editable JWT metadata. The two household RPCs authenticate the caller and have execution revoked from `PUBLIC` and `anon`; `publish_barbora_categories` is revoked from browser clients entirely and granted only to the server-side role.
 
 Recipe classifications reuse the existing normalized tag relation. Machine-readable names use `Tipas: ` for the single dish-type axis and `Virtuvė: ` for cuisine; the UI removes those prefixes. Dish type controls library grouping, while both axes participate in search. New recipes are classified locally with deterministic Lithuanian/English keyword rules and can be corrected in the editor.
 
-## Barbora category catalogue
+## Barbora shopping links
 
-`data/barbora-categories.json` is the reviewed snapshot of Barbora's shopping hierarchy: 636 categories under 11 top-level aisles, three levels deep. It is rebuilt by the category-only crawler in `scripts/barbora/`, which reads one page per top-level aisle because each of those pages already renders its whole child and grandchild tree. Nothing about products, prices, or stock is crawled.
+An ingredient links to the Barbora category it is sold in, so a tap opens the shop's app at the right shelf. Four pieces make that work, each documented in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md):
+
+- **The catalogue.** `data/barbora-categories.json` is the reviewed snapshot of Barbora's hierarchy — 636 categories under 11 aisles, three levels deep — mirrored in `public.barbora_categories`. It is global reference data rather than household data: signed-in members read active rows and cannot write them, and publication is a single transaction through a function only the server-side key can execute.
+- **The crawler**, in `scripts/barbora/`. Category-only; nothing about products, prices, or stock is read. It needs one page load per aisle, because each aisle page already renders its whole subtree.
+- **The mapper**, `src/lib/barboraMapping.js`. Deterministic and deliberately timid: it descends only where Barbora's own wording makes the answer obvious, and otherwise leaves an ingredient on its section's aisle. It proposed 66 of the 217 vocabulary ingredients.
+- **The picker**, in **Ingredientai**. Any ingredient's category can be set by hand, at any depth, and a hand-picked one survives every later refresh.
 
 ```bash
 npm i --no-save playwright@1.62.1
-npx playwright install chromium
+npx playwright install chromium   # add --with-deps on Linux only
 npm run crawl:barbora
 ```
 
-Barbora's bot protection currently refuses the crawler, so the catalogue is refreshed rarely and by hand; nothing in the app depends on a successful run. A run that is blocked, or that fails any validation check, writes nothing and leaves the previous catalogue in place. The **Crawl Barbora categories** workflow runs the same crawl on demand, uploads the result and its diff as an artifact, and publishes it to Supabase once the `SUPABASE_URL` and `SUPABASE_SECRET_KEY` repository secrets are configured.
-
-The catalogue lives in `public.barbora_categories`, which is global reference data rather than household data: signed-in members may read active rows and may not write them, and publication is a single transaction through a function only the server-side key can execute. `public.ingredients` carries four nullable mapping columns alongside the untouched `section` and `food_type`. Details are in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
+Barbora's bot protection currently refuses the crawler, so the catalogue is refreshed rarely and by hand. Nothing in the app depends on a successful run: a blocked run, or one failing any validation check, writes nothing and leaves the published catalogue in place. The **Crawl Barbora categories** workflow runs the same crawl on demand and publishes the result.
 
 ## Current MVP limits
 
 - The importer parses checkboxes, numbering, dish names, and comma-separated ingredients, but preserves the source language. Automated translation needs a separate model/API and review rules.
 - Ingredient quantities and shopping-item checkboxes are intentionally absent.
-- Ingredient links are ordinary Barbora category URLs on both platforms. Two quirks of Barbora's app-link files decide whether they open the app rather than a browser: top-level aisles need a trailing slash, and the dairy aisle is claimed only under the path it used before being renamed. Both are handled in `shoppingUrl`, and the test suite checks every category against Barbora's claim list. Device testing confirmed these open the Android app directly; on iOS, choosing **Open in Barbora** once from a long-pressed category link in Notes restores the Universal Link preference, after which they open the app from this PWA too.
-- 66 of the 217 vocabulary ingredients carry an automatic category. The rest link to their section's aisle, which is as specific as the shop's own wording allows without guessing; any of them can be set by hand in **Ingredientai**.
-- PWA tab and scroll restoration is still planned, in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
+- Two thirds of ingredients link to their section's aisle rather than a specific shelf. That is as narrow as Barbora's own category names allow without guessing; the picker closes the gap for anything worth the trouble.
+- Whether a link opens the Barbora app or a browser is decided by Barbora's app-link files, not by this app. Two quirks are handled in `shoppingUrl` and asserted by the tests: top-level aisles need a trailing slash, and the dairy aisle is claimed only under the path it used before Barbora renamed it. On iOS the preference also has to be granted once — long-press a category link in Notes and choose **Open in Barbora**.
+- PWA tab and scroll restoration is not built, so an iOS app eviction loses the current tab and scroll position.
 - No recipe images or licensing machinery.
