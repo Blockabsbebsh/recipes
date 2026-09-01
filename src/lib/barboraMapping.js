@@ -12,41 +12,30 @@
 import { ingredientNameWithoutQuantity, normalizeTitle, titleSimilarity } from './parser.js'
 
 export const BARBORA_ORIGIN = 'https://barbora.lt'
+export const BARBORA_ANDROID_PACKAGE = 'lt.barbora'
 
 /**
- * Aisles the app claims under a path the website no longer navigates to.
+ * The live shopping URL for a path discovered by the crawler.
  *
- * Barbora renamed the dairy aisle and never updated the app-link files, which
- * still claim `/pieno-gaminiai-ir-kiausiniai/*`. Both prefixes serve the same
- * aisle and the same children, so the two sources of truth simply disagree:
- * the catalogue keeps what the shop navigates to, since that is what the
- * crawler can verify, and the link uses what the app actually answers for.
- *
- * Remove an entry once Barbora claims the current path; the link is then the
- * catalogue's own, and nothing else has to change.
- */
-const APP_LINK_PREFIXES = [
-  ['/pieno-gaminiai-kiausiniai-ir-majonezas', '/pieno-gaminiai-ir-kiausiniai'],
-]
-
-/**
- * The shopping URL for a stored category path.
- *
- * Barbora claims top-level aisles as `/<aisle>/*`, and a bare `/<aisle>` does
- * not match that pattern — the trailing slash is the whole difference between
- * a link opening the Barbora app and opening a browser tab. Deeper paths
- * already match, so they keep the shape the catalogue stored.
+ * Do not rewrite this using Barbora's association files. Those files currently
+ * contain some retired routes which launch the mobile app but then return a
+ * 404. A working web URL is the source of truth, even when Barbora has not yet
+ * registered it as an App/Universal Link.
  */
 export function shoppingUrl(path) {
-  const claimed = APP_LINK_PREFIXES.reduce(
-    (current, [live, appLink]) =>
-      current === live || current.startsWith(`${live}/`)
-        ? appLink + current.slice(live.length)
-        : current,
-    path,
-  )
-  const segments = claimed.split('/').filter(Boolean)
-  return `${BARBORA_ORIGIN}${claimed}${segments.length === 1 ? '/' : ''}`
+  return `${BARBORA_ORIGIN}${path}`
+}
+
+/**
+ * Ask Chrome on Android to deliver a live Barbora URL directly to its app.
+ * Chrome opens the encoded HTTPS fallback when the package or route cannot
+ * handle the intent, so this experiment never substitutes a known-dead path.
+ */
+export function androidShoppingIntentUrl(url) {
+  const target = new URL(url)
+  if (target.origin !== BARBORA_ORIGIN) return url
+  const route = `${target.host}${target.pathname}${target.search}`
+  return `intent://${route}#Intent;scheme=https;package=${BARBORA_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(target.href)};end`
 }
 
 /**

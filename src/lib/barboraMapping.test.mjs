@@ -4,9 +4,11 @@ import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 
 import {
+  BARBORA_ANDROID_PACKAGE,
   BARBORA_ORIGIN,
   CATEGORY_ALIASES,
   SECTION_ROOTS,
+  androidShoppingIntentUrl,
   buildCategoryIndex,
   categoryTerms,
   descendantsOf,
@@ -22,74 +24,39 @@ const catalogue = JSON.parse(
 const index = buildCategoryIndex(catalogue.categories)
 const map = (name, section) => mapIngredient(name, section, index)
 
-/**
- * The category path patterns Barbora's app claims, copied from
- * https://barbora.lt/.well-known/apple-app-site-association on 2026-09-01.
- * A link outside these opens a browser tab instead of the Barbora app, which
- * is the entire point of pointing at categories rather than searches.
- *
- * Note `/pieno-gaminiai-ir-kiausiniai/*`: the dairy aisle's former path, and
- * the reason `shoppingUrl` rewrites that one prefix.
- */
-const CLAIMED_PATTERNS = [
-  '/darzoves-ir-vaisiai/*',
-  '/pieno-gaminiai-ir-kiausiniai/*',
-  '/duonos-gaminiai-ir-konditerija/*',
-  '/mesa-zuvis-ir-kulinarija/*',
-  '/bakaleja/*',
-  '/saldytas-maistas/*',
-  '/gerimai/*',
-  '/kudikiu-ir-vaiku-prekes/*',
-  '/kosmetika-ir-higiena/*',
-  '/svaros-ir-gyvunu-prekes/*',
-  '/namai-ir-laisvalaikis/*',
-]
-
-/** Apple matches these as a literal prefix with `*` standing for any suffix. */
-function isClaimed(url) {
-  const path = new URL(url).pathname
-  return CLAIMED_PATTERNS.some((pattern) => path.startsWith(pattern.slice(0, -1)))
-}
-
-test('every category in the catalogue produces a link the app claims', () => {
-  const missed = catalogue.categories
-    .map((category) => category.path)
-    .filter((path) => !isClaimed(shoppingUrl(path)))
-  assert.deepEqual(missed, [], 'these would open a browser tab instead of Barbora')
+test('uses every exact live path discovered by the crawler', () => {
+  for (const category of catalogue.categories) {
+    assert.equal(shoppingUrl(category.path), `${BARBORA_ORIGIN}${category.path}`)
+  }
 })
 
-test('links the dairy aisle by the path the app answers for', () => {
-  // Barbora renamed the aisle and left the app-link file behind; both prefixes
-  // serve the same shelves, so the link uses the one that opens the app.
+test('keeps the live dairy aisle instead of the retired app-link alias', () => {
   assert.equal(
     shoppingUrl('/pieno-gaminiai-kiausiniai-ir-majonezas'),
-    `${BARBORA_ORIGIN}/pieno-gaminiai-ir-kiausiniai/`,
+    `${BARBORA_ORIGIN}/pieno-gaminiai-kiausiniai-ir-majonezas`,
   )
   assert.equal(
     shoppingUrl('/pieno-gaminiai-kiausiniai-ir-majonezas/suris'),
-    `${BARBORA_ORIGIN}/pieno-gaminiai-ir-kiausiniai/suris`,
+    `${BARBORA_ORIGIN}/pieno-gaminiai-kiausiniai-ir-majonezas/suris`,
   )
   assert.equal(
     shoppingUrl('/pieno-gaminiai-kiausiniai-ir-majonezas/grietine-ir-grietinele/grietine-ir-kastinys'),
-    `${BARBORA_ORIGIN}/pieno-gaminiai-ir-kiausiniai/grietine-ir-grietinele/grietine-ir-kastinys`,
+    `${BARBORA_ORIGIN}/pieno-gaminiai-kiausiniai-ir-majonezas/grietine-ir-grietinele/grietine-ir-kastinys`,
   )
   // The catalogue itself keeps the path the shop navigates to.
   assert.ok(index.byPath.has('/pieno-gaminiai-kiausiniai-ir-majonezas/suris'))
   assert.equal(index.byPath.has('/pieno-gaminiai-ir-kiausiniai/suris'), false)
 })
 
-test('leaves an aisle the app already claims untouched', () => {
+test('keeps deeper live paths untouched', () => {
   assert.equal(shoppingUrl('/bakaleja/kruopos'), `${BARBORA_ORIGIN}/bakaleja/kruopos`)
   assert.equal(shoppingUrl('/darzoves-ir-vaisiai/darzoves-ir-grybai/grybai'),
     `${BARBORA_ORIGIN}/darzoves-ir-vaisiai/darzoves-ir-grybai/grybai`)
 })
 
-test('gives a top-level aisle the trailing slash its app link needs', () => {
-  // Barbora claims `/<aisle>/*` in its app-link files, and a bare `/<aisle>`
-  // does not match that pattern: without the slash the link opens a browser.
-  assert.equal(shoppingUrl('/bakaleja'), `${BARBORA_ORIGIN}/bakaleja/`)
-  assert.equal(shoppingUrl('/darzoves-ir-vaisiai'), `${BARBORA_ORIGIN}/darzoves-ir-vaisiai/`)
-  // Deeper paths already match the pattern and are left alone.
+test('keeps crawler root paths unchanged', () => {
+  assert.equal(shoppingUrl('/bakaleja'), `${BARBORA_ORIGIN}/bakaleja`)
+  assert.equal(shoppingUrl('/darzoves-ir-vaisiai'), `${BARBORA_ORIGIN}/darzoves-ir-vaisiai`)
   assert.equal(shoppingUrl('/bakaleja/kruopos'), `${BARBORA_ORIGIN}/bakaleja/kruopos`)
   assert.equal(
     shoppingUrl('/bakaleja/kruopos/grikiai'),
@@ -97,11 +64,20 @@ test('gives a top-level aisle the trailing slash its app link needs', () => {
   )
 })
 
-test('every section aisle produces a link Barbora claims', () => {
+test('every section fallback is a real catalogue path', () => {
   for (const root of Object.values(SECTION_ROOTS)) {
     if (root === null) continue
-    assert.ok(isClaimed(shoppingUrl(root)), `${root} would not open the app`)
+    assert.ok(index.byPath.has(root), `${root} is absent from the crawled catalogue`)
   }
+})
+
+test('builds an Android intent around the live URL with an HTTPS fallback', () => {
+  const live = `${BARBORA_ORIGIN}/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai`
+  assert.equal(
+    androidShoppingIntentUrl(live),
+    `intent://barbora.lt/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai#Intent;scheme=https;package=${BARBORA_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(live)};end`,
+  )
+  assert.equal(androidShoppingIntentUrl('https://example.com/category'), 'https://example.com/category')
 })
 
 test('reads a category label as the several answers it holds', () => {

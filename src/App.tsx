@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { ingredientLookupKey, ingredientNameWithoutQuantity, parseRecipeList, titleSimilarity } from './lib/parser'
 import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
-import { SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
+import { SECTION_ROOTS, androidShoppingIntentUrl, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
 import type { CategoryIndex } from './lib/barboraMapping'
 import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
@@ -65,7 +65,8 @@ const SECTION_LABELS: Record<IngredientSection, string> = {
 }
 
 // The aisle each section falls back to, read from the same crawled catalogue
-// the mapper walks. Hardcoding them here is how the dairy link went stale.
+// the mapper walks. Association-file aliases are deliberately not used here:
+// some open Barbora but point its app at a retired, 404ing route.
 const SECTION_BARBORA_URLS = Object.fromEntries(
   Object.entries(SECTION_ROOTS)
     .filter(([, path]) => path !== null)
@@ -85,16 +86,22 @@ function formatRelative(dateValue: string | null) {
 }
 
 /**
- * An ordinary category link on both platforms. Device testing showed these
- * open the Barbora app directly, while search URLs do not, so there is no
- * platform-specific branch to maintain any more.
+ * iOS receives Barbora's exact live HTTPS URL. On Android, a user click tries
+ * an explicit intent for the Barbora package and carries that same URL as the
+ * browser fallback. This may bypass a stale App Link path filter without ever
+ * replacing a working catalogue path with an obsolete one.
  *
  * With no category to point at, the name stays plain text rather than becoming
  * a link to somewhere invented.
  */
 function BarboraLink({ href, children }: { href: string | null; children: ReactNode }) {
   if (href === null) return <>{children}</>
-  return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+  const android = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+  return <a
+    href={android ? androidShoppingIntentUrl(href) : href}
+    target={android ? undefined : '_blank'}
+    rel="noopener noreferrer"
+  >{children}</a>
 }
 
 /**
@@ -1332,9 +1339,9 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
             {count ? sections.map((group) => (
               <div className="shop-section" key={group.section}>
                 <h3 className="shop-section-title">
-                  {SECTION_BARBORA_URLS[group.section]
-                    ? <a href={SECTION_BARBORA_URLS[group.section]} target="_blank" rel="noopener noreferrer">{SECTION_LABELS[group.section]} <small aria-hidden="true">↗</small></a>
-                    : SECTION_LABELS[group.section]}
+                  <BarboraLink href={SECTION_BARBORA_URLS[group.section] ?? null}>
+                    {SECTION_LABELS[group.section]} {SECTION_BARBORA_URLS[group.section] && <small aria-hidden="true">↗</small>}
+                  </BarboraLink>
                   <span>{group.items.length}</span>
                 </h3>
                 <ul className="ingredient-shopping-list">
