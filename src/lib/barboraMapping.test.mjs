@@ -4,11 +4,14 @@ import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 
 import {
+  BARBORA_ORIGIN,
   CATEGORY_ALIASES,
+  SECTION_ROOTS,
   buildCategoryIndex,
   categoryTerms,
   descendantsOf,
   mapIngredient,
+  shoppingUrl,
   suggestCategories,
   trailTo,
 } from './barboraMapping.js'
@@ -18,6 +21,27 @@ const catalogue = JSON.parse(
 )
 const index = buildCategoryIndex(catalogue.categories)
 const map = (name, section) => mapIngredient(name, section, index)
+
+test('gives a top-level aisle the trailing slash its app link needs', () => {
+  // Barbora claims `/<aisle>/*` in its app-link files, and a bare `/<aisle>`
+  // does not match that pattern: without the slash the link opens a browser.
+  assert.equal(shoppingUrl('/bakaleja'), `${BARBORA_ORIGIN}/bakaleja/`)
+  assert.equal(shoppingUrl('/darzoves-ir-vaisiai'), `${BARBORA_ORIGIN}/darzoves-ir-vaisiai/`)
+  // Deeper paths already match the pattern and are left alone.
+  assert.equal(shoppingUrl('/bakaleja/kruopos'), `${BARBORA_ORIGIN}/bakaleja/kruopos`)
+  assert.equal(
+    shoppingUrl('/bakaleja/kruopos/grikiai'),
+    `${BARBORA_ORIGIN}/bakaleja/kruopos/grikiai`,
+  )
+})
+
+test('every section aisle produces a link Barbora claims', () => {
+  const claimed = /^https:\/\/barbora\.lt\/[a-z0-9-]+\/.*$/
+  for (const root of Object.values(SECTION_ROOTS)) {
+    if (root === null) continue
+    assert.match(shoppingUrl(root), claimed, `${root} would not open the app`)
+  }
+})
 
 test('reads a category label as the several answers it holds', () => {
   // Normalizing strips the comma, so the split has to happen first.

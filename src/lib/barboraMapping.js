@@ -11,6 +11,21 @@
 
 import { ingredientNameWithoutQuantity, normalizeTitle, titleSimilarity } from './parser.js'
 
+export const BARBORA_ORIGIN = 'https://barbora.lt'
+
+/**
+ * The shopping URL for a stored category path.
+ *
+ * Barbora's app-link files claim top-level aisles as `/<aisle>/*`, and a bare
+ * `/<aisle>` does not match that pattern — the trailing slash is the whole
+ * difference between a link opening the Barbora app and opening a browser tab.
+ * Deeper paths already match, so they are left exactly as stored.
+ */
+export function shoppingUrl(path) {
+  const segments = path.split('/').filter(Boolean)
+  return `${BARBORA_ORIGIN}${path}${segments.length === 1 ? '/' : ''}`
+}
+
 /**
  * Where to begin descending for each shop section. `Other` has no honest
  * starting point, so ingredients there are left unmapped rather than guessed
