@@ -136,7 +136,9 @@ The 17 broad fallbacks on 2026-09-01 are: artišokai; avinžirniai; baltosios, j
 - Nothing is written until **Gerai**. **Atšaukti** discards; **Atkurti automatinį parinkimą** hands the choice back to the mapper.
 - Automatic versus manual is marked quietly in the ingredient row; no confidence scores are exposed.
 
-Verified by driving it in Chromium against the real catalogue: the eleven roots, descending two levels, breadcrumbs, choosing a non-leaf, and confirming. Two layout faults were found and fixed — a sticky footer that list rows scrolled through, and a descent that left the list scrolled where the previous one had been.
+Verified by mounting the component on its own — a scratch entry point, the catalogue read from disk, no Supabase and no auth — and driving it in Chromium: the eleven roots, descending two levels, breadcrumbs, choosing a non-leaf, and confirming. Two layout faults were found and fixed that way: a sticky footer that list rows scrolled through, and a descent that left the list scrolled where the previous one had been.
+
+That covers the picker's own behaviour and its CSS, and nothing beyond it. Opening it from the ingredient form, opening it at an existing mapping, and the write that follows **Gerai** are typechecked but have never been exercised in a browser; they need the manual acceptance below.
 
 An optional tree search may be added later, but it must navigate to a result inside the hierarchy rather than replacing the hierarchy with an opaque flat select.
 
