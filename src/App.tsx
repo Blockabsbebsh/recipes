@@ -381,7 +381,10 @@ function App() {
       }
     }
     const rememberScroll = () => { scrollByTab.current[tabRef.current] = window.scrollY }
-    const saveWhenHidden = () => { if (document.visibilityState === 'hidden') save() }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') save()
+      else window.requestAnimationFrame(() => window.scrollTo(0, scrollByTab.current[tabRef.current] ?? 0))
+    }
     const restoreOnReturn = (event: PageTransitionEvent) => {
       if (event.persisted) {
         window.requestAnimationFrame(() => window.scrollTo(0, scrollByTab.current[tabRef.current] ?? 0))
@@ -390,13 +393,13 @@ function App() {
     window.addEventListener('scroll', rememberScroll, { passive: true })
     window.addEventListener('pagehide', save)
     window.addEventListener('pageshow', restoreOnReturn)
-    document.addEventListener('visibilitychange', saveWhenHidden)
+    document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       save()
       window.removeEventListener('scroll', rememberScroll)
       window.removeEventListener('pagehide', save)
       window.removeEventListener('pageshow', restoreOnReturn)
-      document.removeEventListener('visibilitychange', saveWhenHidden)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [persistedViewKey, viewStateReady])
 
@@ -1065,7 +1068,7 @@ function App() {
           onCreateIngredient={createIngredient}
         />
       )}
-      {importOpen && <ImportDialog vocabulary={vocabulary} loading={loading} onClose={() => setImportOpen(false)} onSave={(drafts) => void saveImported(drafts)} />}
+      {importOpen && <ImportDialog vocabulary={vocabulary} recipes={activeRecipes} loading={loading} onClose={() => setImportOpen(false)} onSave={(drafts) => void saveImported(drafts)} />}
       {pickerOpen && (
         <MealPicker
           recipes={activeRecipes}
@@ -1457,7 +1460,7 @@ function RecipeEditor({ recipe, destination, vocabulary, categories, recipes: al
   )
 }
 
-function ImportDialog({ vocabulary, loading, onClose, onSave }: { vocabulary: VocabularyIngredient[]; loading: boolean; onClose: () => void; onSave: (drafts: RecipeDraft[]) => void }) {
+function ImportDialog({ vocabulary, recipes: allRecipes, loading, onClose, onSave }: { vocabulary: VocabularyIngredient[]; recipes: Recipe[]; loading: boolean; onClose: () => void; onSave: (drafts: RecipeDraft[]) => void }) {
   const [raw, setRaw] = useState('')
   const [drafts, setDrafts] = useState<RecipeDraft[] | null>(null)
   if (!drafts) return (
@@ -1491,14 +1494,21 @@ function ImportDialog({ vocabulary, loading, onClose, onSave }: { vocabulary: Vo
   return (
     <Modal title={`Peržiūrėti receptus (${drafts.length})`} onClose={onClose} wide>
       <div className="import-preview">
-        {drafts.map((draft, index) => <div className="preview-card" key={index}>
+        {drafts.map((draft, index) => {
+          const similar = draft.title.trim().length >= 3
+            ? allRecipes.find((r) => normalizeTitle(r.title) === normalizeTitle(draft.title))?.title
+              ?? allRecipes.filter((r) => titleSimilarity(draft.title, r.title) >= 0.7).sort((a, b) => titleSimilarity(draft.title, b.title) - titleSimilarity(draft.title, a.title))[0]?.title
+              ?? null
+            : null
+          return <div className="preview-card" key={index}>
           <div className="preview-number">{index + 1}</div>
           <label>Patiekalas<input value={draft.title} onChange={(event) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} /></label>
+          {similar && <p className="form-notice">Panašus receptas jau yra: <strong>{similar}</strong></p>}
           <div className="field"><span className="field-label">Produktai</span>
             <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, ingredients } : item))} />
           </div>
           <button className="text-button danger-text" onClick={() => setDrafts(drafts.filter((_, itemIndex) => itemIndex !== index))}>Pašalinti</button>
-        </div>)}
+        </div>})}
       </div>
       <div className="button-row sticky-actions"><button className="button secondary" onClick={() => setDrafts(null)}>Atgal</button><button className="button primary" disabled={loading || drafts.length === 0 || drafts.some((draft) => !draft.title.trim())} onClick={() => onSave(drafts)}>{loading ? 'Importuojama…' : `Importuoti (${drafts.length})`}</button></div>
     </Modal>
