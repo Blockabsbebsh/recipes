@@ -1053,6 +1053,8 @@ function App() {
           loading={loading}
           onClose={() => setEditor(null)}
           onSave={(draft) => void saveRecipe(draft, editor.recipe, editor.destination)}
+          categoryIndex={categoryIndex}
+          onCreateIngredient={createIngredient}
         />
       )}
       {importOpen && <ImportDialog vocabulary={vocabulary} loading={loading} onClose={() => setImportOpen(false)} onSave={(drafts) => void saveImported(drafts)} />}
@@ -1376,7 +1378,7 @@ function RecipeTags({ recipe }: { recipe: Recipe }) {
   return <div className="recipe-tags"><span>{cuisine}</span></div>
 }
 
-function RecipeEditor({ recipe, destination, vocabulary, categories, loading, onClose, onSave }: {
+function RecipeEditor({ recipe, destination, vocabulary, categories, loading, onClose, onSave, categoryIndex, onCreateIngredient }: {
   recipe?: Recipe
   destination: RecipeDestination
   vocabulary: VocabularyIngredient[]
@@ -1384,6 +1386,8 @@ function RecipeEditor({ recipe, destination, vocabulary, categories, loading, on
   loading: boolean
   onClose: () => void
   onSave: (draft: RecipeDraft) => void
+  categoryIndex?: CategoryIndex
+  onCreateIngredient?: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
 }) {
   const fallbackCategory = categories.includes('Kita') ? 'Kita' : categories[0] || 'Kita'
   const selectableCategories = categories.length ? categories : [fallbackCategory]
@@ -1414,7 +1418,7 @@ function RecipeEditor({ recipe, destination, vocabulary, categories, loading, on
       }}>
         <label>Patiekalo pavadinimas<input autoFocus required value={draft.title} onChange={(event) => updateContent({ title: event.target.value, ingredients: draft.ingredients })} placeholder="Pasta e ceci" /></label>
         <div className="field"><span className="field-label">Produktai <span className="optional">po vieną</span></span>
-          <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => updateContent({ title: draft.title, ingredients })} />
+          <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => updateContent({ title: draft.title, ingredients })} categoryIndex={categoryIndex} onCreateIngredient={onCreateIngredient} />
         </div>
         <div className="category-grid">
           <label>Patiekalo tipas<select value={draft.dishType} onChange={(event) => { setCategoriesTouched(true); setDraft({ ...draft, dishType: event.target.value }) }}>{selectableCategories.map((value) => <option key={value}>{value}</option>)}</select></label>
@@ -1610,6 +1614,55 @@ function CategoryPicker({ index, ingredientName, initialPath, onCancel, onConfir
   </Modal>
 }
 
+function IngredientFormModal({ ingredient, categoryIndex, recipes, initialName, onSave, onDelete, onClose }: {
+  ingredient?: VocabularyIngredient
+  categoryIndex: CategoryIndex
+  recipes?: Recipe[]
+  initialName?: string
+  onSave: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
+  onDelete?: (ingredient: VocabularyIngredient) => Promise<void>
+  onClose: () => void
+}) {
+  const [name, setName] = useState(ingredient?.name ?? initialName ?? '')
+  const [section, setSection] = useState<IngredientSection>(ingredient?.section ?? 'Other')
+  const [path, setPath] = useState<string | null>(ingredient?.barbora_mapping_source === 'manual' ? ingredient.barbora_category_path : null)
+  const [directUrl, setDirectUrl] = useState(ingredient?.barbora_direct_url ?? '')
+  const [picking, setPicking] = useState(false)
+  const hasCatalogue = categoryIndex.byPath.size > 0
+  const label = (p: string | null) => (p === null ? null : categoryIndex.byPath.get(p)?.name ?? p)
+
+  const usage = useMemo(() => {
+    if (!ingredient || !recipes) return 0
+    return recipes.reduce((n, r) => n + (r.recipe_ingredients.some((i) => i.ingredient_id === ingredient.id) ? 1 : 0), 0)
+  }, [ingredient, recipes])
+
+  return <>
+    <Modal title={ingredient ? 'Redaguoti ingredientą' : 'Naujas ingredientas'} onClose={onClose}>
+      <form className="form-stack" onSubmit={(e) => {
+        e.preventDefault()
+        void onSave(name, section, path, directUrl || null).then((ok) => { if (ok) onClose() })
+      }}>
+        <label>Pavadinimas<input autoFocus required value={name} onChange={(e) => setName(e.target.value)} /></label>
+        <label>Skyrius parduotuvėje<select value={section} onChange={(e) => setSection(e.target.value as IngredientSection)}>{SECTION_ORDER.map((s) => <option value={s} key={s}>{SECTION_LABELS[s]}</option>)}</select></label>
+        {hasCatalogue && <div className="category-field">
+          <button type="button" className="category-field-button" onClick={() => setPicking(true)}>
+            <span><strong>Barbora kategorija</strong><small>{label(path) ?? (ingredient ? label(ingredient.barbora_category_path) : null) ?? 'Parenkama automatiškai'}</small></span><b>›</b>
+          </button>
+          {(path !== null || ingredient?.barbora_mapping_source === 'manual') && <button type="button" className="text-button" onClick={() => setPath(null)}>Atkurti automatinį parinkimą</button>}
+        </div>}
+        <label>Tiesioginis produkto URL <span className="optional">nebūtina</span><input type="url" value={directUrl} onChange={(e) => setDirectUrl(e.target.value)} placeholder="https://barbora.lt/produktai/..." /></label>
+        {ingredient && <p className="muted ingredient-form-meta">Naudojamas receptuose: {usage}</p>}
+        <div className="ingredient-form-actions">
+          <button className="button primary" disabled={!name.trim()}>{ingredient ? 'Išsaugoti' : 'Pridėti'}</button>
+          <button type="button" className="button secondary" onClick={onClose}>Atšaukti</button>
+        </div>
+        {ingredient && onDelete && <button type="button" className="text-button danger-text ingredient-form-delete" onClick={() => void onDelete(ingredient)}>Ištrinti ingredientą</button>}
+      </form>
+    </Modal>
+    {picking && <CategoryPicker index={categoryIndex} ingredientName={name} initialPath={path} onCancel={() => setPicking(false)} onConfirm={(p) => { setPath(p); setPicking(false) }} />}
+  </>
+}
+
 function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUpdate, onDelete }: {
   vocabulary: VocabularyIngredient[]
   recipes: Recipe[]
@@ -1619,103 +1672,42 @@ function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUp
   onDelete: (ingredient: VocabularyIngredient) => Promise<void>
 }) {
   const [search, setSearch] = useState('')
-  const [newName, setNewName] = useState('')
-  const [newSection, setNewSection] = useState<IngredientSection>('Other')
-  const [editing, setEditing] = useState<string | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editSection, setEditSection] = useState<IngredientSection>('Other')
-  // `null` means "leave it to the mapper"; a path means the household chose.
-  const [newPath, setNewPath] = useState<string | null>(null)
-  const [editPath, setEditPath] = useState<string | null>(null)
-  const [newDirectUrl, setNewDirectUrl] = useState('')
-  const [editDirectUrl, setEditDirectUrl] = useState('')
-  const [picking, setPicking] = useState<'new' | 'edit' | null>(null)
-  const hasCatalogue = categoryIndex.byPath.size > 0
-  const categoryName = (path: string | null) => (path === null ? null : categoryIndex.byPath.get(path)?.name ?? path)
+  const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<VocabularyIngredient | null>(null)
   const usage = useMemo(() => {
     const counts = new Map<string, number>()
-    recipes.forEach((recipe) => recipe.recipe_ingredients.forEach((item) => counts.set(item.ingredient_id, (counts.get(item.ingredient_id) || 0) + 1)))
+    recipes.forEach((r) => r.recipe_ingredients.forEach((i) => counts.set(i.ingredient_id, (counts.get(i.ingredient_id) || 0) + 1)))
     return counts
   }, [recipes])
   const needle = ingredientLookupKey(search)
-  const filtered = vocabulary.filter((ingredient) => ingredientLookupKey(ingredient.name).includes(needle))
-
-  function beginEdit(ingredient: VocabularyIngredient) {
-    setEditing(ingredient.id)
-    setEditName(ingredient.name)
-    setEditSection(ingredient.section)
-    // Only a manual choice is carried into the form; an automatic one is left
-    // to be recomputed, so editing a name cannot freeze a stale proposal.
-    setEditPath(ingredient.barbora_mapping_source === 'manual' ? ingredient.barbora_category_path : null)
-    setEditDirectUrl(ingredient.barbora_direct_url ?? '')
-  }
+  const filtered = vocabulary.filter((i) => ingredientLookupKey(i.name).includes(needle))
+  const label = (p: string | null) => (p === null ? null : categoryIndex.byPath.get(p)?.name ?? p)
 
   return <div className="manager-stack">
-    <form className="manager-create" onSubmit={(event) => {
-      event.preventDefault()
-      void onCreate(newName, newSection, newPath, newDirectUrl || null).then((saved) => { if (saved) { setNewName(''); setNewPath(null); setNewDirectUrl('') } })
-    }}>
-      <input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Naujas ingredientas" aria-label="Naujas ingredientas" />
-      <select value={newSection} onChange={(event) => setNewSection(event.target.value as IngredientSection)} aria-label="Ingrediento skyrius">{SECTION_ORDER.map((section) => <option value={section} key={section}>{SECTION_LABELS[section]}</option>)}</select>
-      <button className="button primary" disabled={!newName.trim()}>Pridėti</button>
-    </form>
-    {hasCatalogue && <div className="category-field">
-      <button type="button" className="category-field-button" onClick={() => setPicking('new')}>
-        <span><strong>Barbora kategorija</strong><small>{categoryName(newPath) ?? 'Parenkama automatiškai'}</small></span><b>›</b>
-      </button>
-      {newPath !== null && <button type="button" className="text-button" onClick={() => setNewPath(null)}>Atkurti automatinį parinkimą</button>}
-    </div>}
-    <input className="direct-url-field" type="url" value={newDirectUrl} onChange={(event) => setNewDirectUrl(event.target.value)} placeholder="Tiesioginis produkto URL (neprivaloma)" aria-label="Tiesioginis produkto URL" />
-    <input className="search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Ieškoti (${vocabulary.length})`} />
+    <input className="search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Ieškoti (${vocabulary.length})`} />
+    <button type="button" className="ingredient-add-chip" onClick={() => setCreating(true)}>＋ Pridėti naują ingredientą</button>
     <div className="manager-list">
-      {filtered.map((ingredient) => editing === ingredient.id ? (
-        <form className="manager-edit" key={ingredient.id} onSubmit={(event) => {
-          event.preventDefault()
-          void onUpdate(ingredient, editName, editSection, editPath, editDirectUrl || null).then((saved) => { if (saved) setEditing(null) })
-        }}>
-          <input value={editName} onChange={(event) => setEditName(event.target.value)} aria-label="Ingrediento pavadinimas" />
-          <select value={editSection} onChange={(event) => setEditSection(event.target.value as IngredientSection)} aria-label="Ingrediento skyrius">{SECTION_ORDER.map((section) => <option value={section} key={section}>{SECTION_LABELS[section]}</option>)}</select>
-          {hasCatalogue && <div className="category-field">
-            <button type="button" className="category-field-button" onClick={() => setPicking('edit')}>
-              <span><strong>Barbora kategorija</strong><small>{categoryName(editPath) ?? categoryName(ingredient.barbora_category_path) ?? 'Parenkama automatiškai'}</small></span><b>›</b>
-            </button>
-            {(editPath !== null || ingredient.barbora_mapping_source === 'manual') && (
-              <button type="button" className="text-button" onClick={() => setEditPath(null)}>Atkurti automatinį parinkimą</button>
-            )}
-          </div>}
-          <input className="direct-url-field" type="url" value={editDirectUrl} onChange={(event) => setEditDirectUrl(event.target.value)} placeholder="Tiesioginis produkto URL (neprivaloma)" aria-label="Tiesioginis produkto URL" />
-          <div><button className="button primary" disabled={!editName.trim()}>Išsaugoti</button><button type="button" className="button secondary" onClick={() => setEditing(null)}>Atšaukti</button></div>
-        </form>
-      ) : (
+      {filtered.map((ingredient) => (
         <div className="manager-row" key={ingredient.id}>
           <div>
             <strong>{ingredient.name}</strong>
             <small>{SECTION_LABELS[ingredient.section]} · receptų: {usage.get(ingredient.id) || 0}</small>
-            {ingredient.barbora_category_path && (
-              <small className="category-hint">
-                {categoryName(ingredient.barbora_category_path)}
-                {ingredient.barbora_mapping_source === 'manual' ? ' · pasirinkta' : ''}
-              </small>
-            )}
-            {ingredient.barbora_direct_url && (
-              <small className="category-hint">Tiesioginis URL</small>
-            )}
+            {ingredient.barbora_category_path && <small className="category-hint">{label(ingredient.barbora_category_path)}{ingredient.barbora_mapping_source === 'manual' ? ' · pasirinkta' : ''}</small>}
+            {ingredient.barbora_direct_url && <small className="category-hint">Tiesioginis URL</small>}
           </div>
-          <button className="text-button" onClick={() => beginEdit(ingredient)}>Keisti</button>
+          <button className="text-button" onClick={() => setEditing(ingredient)}>Keisti</button>
           <button className="text-button danger-text" onClick={() => void onDelete(ingredient)}>Ištrinti</button>
         </div>
       ))}
     </div>
-    {picking !== null && <CategoryPicker
-      index={categoryIndex}
-      ingredientName={picking === 'new' ? newName : editName}
-      initialPath={picking === 'new' ? newPath : editPath}
-      onCancel={() => setPicking(null)}
-      onConfirm={(path) => {
-        if (picking === 'new') setNewPath(path)
-        else setEditPath(path)
-        setPicking(null)
-      }}
+    {creating && <IngredientFormModal categoryIndex={categoryIndex} onSave={onCreate} onClose={() => setCreating(false)} />}
+    {editing && <IngredientFormModal
+      ingredient={editing}
+      categoryIndex={categoryIndex}
+      recipes={recipes}
+      onSave={(name, section, path, url) => onUpdate(editing, name, section, path, url)}
+      onDelete={onDelete}
+      onClose={() => setEditing(null)}
     />}
   </div>
 }
@@ -1766,7 +1758,11 @@ function Modal({ title, onClose, wide = false, children }: { title: string; onCl
   const backdrop = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const close = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    const close = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      const backdrops = document.querySelectorAll('.modal-backdrop')
+      if (backdrops[backdrops.length - 1] === backdrop.current) onClose()
+    }
     window.addEventListener('keydown', close)
     return () => window.removeEventListener('keydown', close)
   }, [onClose])
@@ -1859,14 +1855,17 @@ function TrashIcon() {
  * unrecognised is kept as typed; the database links or creates the vocabulary
  * entry when the recipe is saved.
  */
-function IngredientChips({ value, vocabulary, onChange }: {
+function IngredientChips({ value, vocabulary, onChange, categoryIndex, onCreateIngredient }: {
   value: string[]
   vocabulary: VocabularyIngredient[]
   onChange: (next: string[]) => void
+  categoryIndex?: CategoryIndex
+  onCreateIngredient?: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
 }) {
   const [entry, setEntry] = useState('')
   const [highlight, setHighlight] = useState(0)
   const [adding, setAdding] = useState(false)
+  const [pendingNew, setPendingNew] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   const taken = useMemo(() => new Set(value.map(ingredientLookupKey)), [value])
@@ -1895,6 +1894,11 @@ function IngredientChips({ value, vocabulary, onChange }: {
     setEntry('')
     setHighlight(0)
     if (!cleaned || taken.has(ingredientLookupKey(cleaned))) return
+    const isKnown = vocabulary.some((item) => ingredientLookupKey(item.name) === ingredientLookupKey(cleaned))
+    if (!isKnown && categoryIndex && onCreateIngredient) {
+      setPendingNew(cleaned)
+      return
+    }
     onChange([...value, cleaned])
   }
 
@@ -1926,12 +1930,13 @@ function IngredientChips({ value, vocabulary, onChange }: {
   }
 
   return (
+    <>
     <div className="chip-field">
       <div className="chip-row">
         {value.map((item, index) => (
           <span className="chip" key={`${item}-${index}`}>
             {item}
-            <button type="button" aria-label={`Pašalinti „${item}“`} onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
+            <button type="button" aria-label={`Pašalinti „${item}"`} onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
           </span>
         ))}
         {adding ? (
@@ -1962,7 +1967,7 @@ function IngredientChips({ value, vocabulary, onChange }: {
               </ul>
             )}
             {entry.trim() && !exactMatch && (
-              <p className="chip-hint">„Enter“ pridės <strong>{entry.trim()}</strong> kaip naują produktą</p>
+              <p className="chip-hint">„Enter" pridės <strong>{entry.trim()}</strong> kaip naują produktą</p>
             )}
           </div>
         ) : (
@@ -1971,5 +1976,23 @@ function IngredientChips({ value, vocabulary, onChange }: {
       </div>
       {value.length === 0 && !adding && <p className="chip-empty">Produktų dar nėra.</p>}
     </div>
+    {pendingNew && categoryIndex && onCreateIngredient && (
+      <IngredientFormModal
+        categoryIndex={categoryIndex}
+        initialName={pendingNew}
+        onSave={async (name, section, manualPath, directUrl) => {
+          const saved = await onCreateIngredient(name, section, manualPath, directUrl)
+          if (saved) {
+            const chipName = ingredientNameWithoutQuantity(name) || name
+            onChange([...value, chipName])
+            setPendingNew(null)
+            setAdding(false)
+          }
+          return saved
+        }}
+        onClose={() => setPendingNew(null)}
+      />
+    )}
+    </>
   )
 }
