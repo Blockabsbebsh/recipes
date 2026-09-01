@@ -194,6 +194,17 @@ textarea { resize: vertical; line-height: 1.5; }
 .settings-back { margin: -2px 0 16px; padding: 0; border: 0; background: transparent; color: var(--orange-dark); font-size: .78rem; font-weight: 800; cursor: pointer; }
 .settings-meta { display: grid; gap: 4px; margin: 20px 0; padding: 14px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
 .settings-meta strong { color: var(--ink); overflow-wrap: anywhere; }
+.link-test { display: grid; gap: 16px; }
+.link-test > p { margin: 0; line-height: 1.5; }
+.link-test-query { display: grid; gap: 7px; font-size: .79rem; font-weight: 700; }
+.link-test-list { display: grid; overflow: hidden; border: 1px solid var(--line); border-radius: 15px; }
+.link-test-list > a, .link-test-list > button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 14px; border: 0; background: #fff; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer; }
+.link-test-list > * + * { border-top: 1px solid var(--line); }
+.link-test-list > a:hover, .link-test-list > button:hover { background: #fbf5ec; }
+.link-test-list strong, .link-test-list small { display: block; }
+.link-test-list strong { font-size: .84rem; }
+.link-test-list small { margin-top: 4px; color: var(--muted); font-size: .69rem; line-height: 1.35; }
+.link-test-list b { flex: 0 0 auto; color: var(--orange-dark); font-size: 1rem; }
 .manager-stack { display: grid; gap: 12px; }
 .manager-create { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .7fr) auto; gap: 8px; }
 .manager-create.category-create { grid-template-columns: 1fr auto; }
@@ -254,6 +265,9 @@ textarea { resize: vertical; line-height: 1.5; }
 
 .shop-section + .shop-section { margin-top: 18px; }
 .shop-section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.shop-section-title a { color: inherit; text-decoration-color: rgba(113, 116, 108, .45); text-underline-offset: 3px; }
+.shop-section-title a:hover { color: var(--orange-dark); }
+.shop-section-title a small { font-size: .72rem; }
 .shop-section-title span { display: grid; min-width: 18px; height: 18px; padding: 0 5px; place-items: center; border-radius: 99px; background: #eee9df; font-size: .68rem; font-weight: 700; letter-spacing: 0; }
 
 .meal-head { display: flex; align-items: baseline; justify-content: flex-end; gap: 10px; }

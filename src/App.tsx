@@ -24,6 +24,21 @@ const SECTION_LABELS: Record<IngredientSection, string> = {
   Other: 'Kita',
 }
 
+// These paths are included in Barbora's iOS Universal Links and Android App
+// Links configuration. A trailing slash also keeps the top-level categories
+// within Barbora's declared `/<category>/*` patterns.
+const SECTION_BARBORA_URLS: Partial<Record<IngredientSection, string>> = {
+  Produce: 'https://barbora.lt/darzoves-ir-vaisiai/',
+  Bakery: 'https://barbora.lt/duonos-gaminiai-ir-konditerija/',
+  'Dairy & alternatives': 'https://barbora.lt/pieno-gaminiai-ir-kiausiniai/',
+  Frozen: 'https://barbora.lt/saldytas-maistas/',
+  Pantry: 'https://barbora.lt/bakaleja/',
+  Spices: 'https://barbora.lt/bakaleja/prieskoniai-marinatai-ir-sultiniai',
+}
+
+const TEST_CATEGORY_URL = 'https://barbora.lt/darzoves-ir-vaisiai/darzoves-ir-grybai/pomidorai-ir-agurkai'
+const TEST_PRODUCT_URL = 'https://barbora.lt/produktai/lietuviski-pomidorai-1-kg'
+
 function formatRelative(dateValue: string | null) {
   if (!dateValue) return 'Niekada'
   const now = new Date()
@@ -38,6 +53,11 @@ function formatRelative(dateValue: string | null) {
 
 function barboraUrl(item: string) {
   return `https://barbora.lt/paieska?q=${encodeURIComponent(item)}`
+}
+
+function androidBarboraIntent(item: string) {
+  const fallback = encodeURIComponent(barboraUrl(item))
+  return `intent://barbora.lt/paieska?q=${encodeURIComponent(item)}#Intent;scheme=https;package=lt.barbora;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${fallback};end`
 }
 
 function BarboraLink({ item, children }: { item: string; children: ReactNode }) {
@@ -1077,7 +1097,12 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
             <div className="section-heading"><h2>Pirkinių sąrašas</h2><span className="count-pill">{count}</span></div>
             {count ? sections.map((group) => (
               <div className="shop-section" key={group.section}>
-                <h3 className="shop-section-title">{SECTION_LABELS[group.section]}<span>{group.items.length}</span></h3>
+                <h3 className="shop-section-title">
+                  {SECTION_BARBORA_URLS[group.section]
+                    ? <a href={SECTION_BARBORA_URLS[group.section]} target="_blank" rel="noreferrer">{SECTION_LABELS[group.section]} <small aria-hidden="true">↗</small></a>
+                    : SECTION_LABELS[group.section]}
+                  <span>{group.items.length}</span>
+                </h3>
                 <ul className="ingredient-shopping-list">
                   {group.items.map((item) => <li key={item.item}><BarboraLink item={item.item}><strong>{item.item}</strong></BarboraLink><div className="ingredient-recipe-tags">{[...item.recipes].map((title) => <span key={title}>{title}</span>)}</div></li>)}
                 </ul>
@@ -1229,14 +1254,14 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, onC
   onDeleteCategory: (category: HouseholdTag) => Promise<void>
   onClose: () => void
 }) {
-  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories'>('menu')
+  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories' | 'links'>('menu')
   const [copied, setCopied] = useState(false)
   async function copyCode() {
     await navigator.clipboard.writeText(household.invite_code)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
-  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : 'Nustatymai'
+  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : view === 'links' ? 'Nuorodų testas' : 'Nustatymai'
   return (
     <Modal title={title} onClose={onClose} wide={view === 'ingredients'}>
       {view === 'menu' && <>
@@ -1244,6 +1269,7 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, onC
           <button onClick={() => setView('invite')}><span><strong>Pakviesti prisijungti</strong><small>Virtuvės kodas kitam žmogui</small></span><b>›</b></button>
           <button onClick={() => setView('ingredients')}><span><strong>Ingredientai</strong><small>Pavadinimai ir skyriai parduotuvėje</small></span><b>›</b></button>
           <button onClick={() => setView('categories')}><span><strong>Receptų kategorijos</strong><small>Grupės receptų bibliotekoje</small></span><b>›</b></button>
+          <button onClick={() => setView('links')}><span><strong>Nuorodų testas</strong><small>Patikrinti naršyklę ir „Barbora“ programėlę</small></span><b>›</b></button>
         </div>
         <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
         <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Atsijungti</button>
@@ -1261,8 +1287,42 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, onC
         <SettingsBack onClick={() => setView('menu')} />
         <RecipeCategoriesManager categories={categories} recipes={recipes} onCreate={onCreateCategory} onUpdate={onUpdateCategory} onDelete={onDeleteCategory} />
       </>}
+      {view === 'links' && <>
+        <SettingsBack onClick={() => setView('menu')} />
+        <LinkTestPanel />
+      </>}
     </Modal>
   )
+}
+
+function LinkTestPanel() {
+  const [item, setItem] = useState('Pomidorai')
+  const [copied, setCopied] = useState(false)
+  const iosNavigator = navigator as Navigator & { standalone?: boolean }
+  const platform = /Android/i.test(navigator.userAgent) ? 'Android' : /iPad|iPhone|iPod/i.test(navigator.userAgent) ? 'iOS' : 'Kita sistema'
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean(iosNavigator.standalone)
+  const searchUrl = barboraUrl(item.trim() || 'Pomidorai')
+
+  async function copySearchUrl() {
+    await navigator.clipboard.writeText(searchUrl)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1800)
+  }
+
+  return <div className="link-test">
+    <p className="muted">Aplinka: <strong>{platform}</strong> · {standalone ? 'įdiegta programėlė' : 'naršyklė'}. Išbandykite kiekvieną nuorodą ir pasižymėkite, kuri atveria išorinę naršyklę arba „Barbora“ programėlę.</p>
+    <label className="link-test-query"><span>Bandymo produktas</span><input value={item} onChange={(event) => setItem(event.target.value)} /></label>
+    <div className="link-test-list">
+      <a href={searchUrl} target="_blank" rel="noreferrer"><span><strong>Paieška naujame lange</strong><small>Dabartinis krepšelio variantas</small></span><b>↗</b></a>
+      <a href={searchUrl} target="_self"><span><strong>Paieška tame pačiame lange</strong><small>Grįžti reikės sistemos mygtuku „Atgal“</small></span><b>→</b></a>
+      <a href={androidBarboraIntent(item.trim() || 'Pomidorai')}><span><strong>„Barbora“ Android bandymas</strong><small>Tiesioginis kreipimasis į lt.barbora</small></span><b>↗</b></a>
+      <a href={TEST_CATEGORY_URL} target="_blank" rel="noreferrer"><span><strong>Pomidorų kategorija naujame lange</strong><small>Kategorijos nuoroda, ne konkretus produktas</small></span><b>↗</b></a>
+      <a href={TEST_CATEGORY_URL} target="_self"><span><strong>Pomidorų kategorija tame pačiame lange</strong><small>Patikrina, ar lango tipas keičia programėlės atidarymą</small></span><b>→</b></a>
+      <a href={TEST_PRODUCT_URL} target="_blank" rel="noreferrer"><span><strong>Tikslus pomidorų produktas</strong><small>Vienas konkretus 1 kg produktas; gali būti išparduotas</small></span><b>↗</b></a>
+      <button onClick={() => void copySearchUrl()}><span><strong>Kopijuoti paieškos nuorodą</strong><small>{copied ? 'Nukopijuota!' : 'Patikimas atsarginis variantas'}</small></span><b>⧉</b></button>
+    </div>
+    <p className="form-notice">iOS „Barbora“ konfigūracijoje paieškos kelias neįtrauktas, todėl būtent kategorijos ir tikslaus produkto bandymai yra svarbiausi.</p>
+  </div>
 }
 
 function SettingsBack({ onClick }: { onClick: () => void }) {

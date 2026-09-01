@@ -10,7 +10,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Current recipes with Cooked/Skipped actions and a 30-second Undo
 - Recently cooked section for the last five days and per-recipe last-cooked dates
 - Temporary meal batch and a deduplicated ingredient list showing which recipes use each item
-- Barbora search links for individual ingredients
+- Barbora search links for individual ingredients, native-link category shortcuts, and a device link test in Settings
 - One-tap shopping completion that atomically moves planned meals to Current
 - Soft deletion and recovery
 - Live refresh when the other person edits data
@@ -59,5 +59,5 @@ Recipe classifications reuse the existing normalized tag relation. Machine-reada
 
 - The importer parses checkboxes, numbering, dish names, and comma-separated ingredients, but preserves the source language. Automated translation needs a separate model/API and review rules.
 - Ingredient quantities and shopping-item checkboxes are intentionally absent.
-- Barbora links use HTTPS search URLs. Whether the native app opens is controlled by Barbora's iOS/Android link configuration; otherwise they open in the browser.
+- Barbora ingredient links use HTTPS search URLs. The Settings link test compares search, Android intent, category, and exact-product routes because native-app opening is controlled by Barbora's iOS/Android association files and the device. Basket aisle headings use Barbora category URLs, which are more stable than exact product SKUs.
 - No recipe images or licensing machinery.
