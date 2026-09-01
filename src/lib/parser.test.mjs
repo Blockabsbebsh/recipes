@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseRecipeList, titleSimilarity } from './parser.js'
+import { ingredientLookupKey, ingredientNameWithoutQuantity, parseRecipeList, titleSimilarity } from './parser.js'
 
 test('parses a numbered checked Lithuanian recipe line', () => {
   const [recipe] = parseRecipeList('[v] 2. Enchiladas — tortilijos, pupelės, sūris.')
@@ -48,4 +48,10 @@ test('does not mistake a url colon for a divider', () => {
   const [recipe] = parseRecipeList('Pasta e ceci — makaronai, avinžirniai')
   assert.equal(recipe.title, 'Pasta e ceci')
   assert.deepEqual(recipe.ingredients, ['makaronai', 'avinžirniai'])
+})
+
+test('normalizes capitalization and trailing ingredient quantities', () => {
+  assert.equal(ingredientLookupKey('Pomidorai'), ingredientLookupKey('pomidorai 2x'))
+  assert.equal(ingredientLookupKey('POMIDORAI'), ingredientLookupKey('pomidorai x2'))
+  assert.equal(ingredientNameWithoutQuantity('Pomidorai 2 vnt.'), 'Pomidorai')
 })

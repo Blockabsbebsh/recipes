@@ -46,6 +46,10 @@ export type RecipeTag = {
   name: string
 }
 
+export type HouseholdTag = RecipeTag & {
+  household_id: string
+}
+
 export type RecipeTagLink = {
   tag: RecipeTag
 }

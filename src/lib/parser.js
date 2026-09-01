@@ -2,6 +2,25 @@ export function cleanIngredient(value) {
   return value.trim().replace(/[.;]+$/, '').replace(/\s+/g, ' ')
 }
 
+/**
+ * Recipe imports often carry shopping quantities even though the app tracks
+ * ingredients rather than amounts. Removing a simple trailing quantity lets
+ * `pomidorai`, `Pomidorai` and `pomidorai 2x` resolve to the same vocabulary
+ * entry instead of creating three shopping-list rows.
+ */
+export function ingredientNameWithoutQuantity(value) {
+  const cleaned = cleanIngredient(value)
+  const withoutQuantity = cleaned.replace(
+    /\s*[([]?\s*(?:x\s*)?\d+(?:[.,]\d+)?\s*(?:x|vnt|vnt\.|vienet(?:as|ai|ų)?|g|kg|ml|l)?\s*[)\]]?\s*$/iu,
+    '',
+  ).trim()
+  return withoutQuantity || cleaned
+}
+
+export function ingredientLookupKey(value) {
+  return normalizeTitle(ingredientNameWithoutQuantity(value))
+}
+
 // A dash or a colon separates the dish from its ingredients. The colon needs
 // trailing whitespace so that a pasted URL is never mistaken for a divider.
 const DIVIDER = /\s+[—–-]\s+|\s*:\s+/

@@ -5,8 +5,8 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 ## What works
 
 - Separate email/password accounts sharing one household through an invite code
-- Recipe library with optional notes and source links
-- Checklist importer with editable previews
+- Compact, dish-type-grouped recipe library with expandable details, actions, notes, and source links
+- Checklist importer with editable previews and case/quantity-tolerant ingredient matching
 - Current recipes with Cooked/Skipped actions and a 30-second Undo
 - Recently cooked section for the last five days and per-recipe last-cooked dates
 - Temporary meal batch and a deduplicated ingredient list showing which recipes use each item
@@ -19,6 +19,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Automatic dish-type and cuisine classification with manual editing
 - Library search across recipe names, ingredients, dish types, and cuisines
 - Library sections grouped by dish type, with cuisine shown as an extra tag
+- Household ingredient and recipe-category management from the settings menu
 
 ## Run locally
 

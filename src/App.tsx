@@ -1,9 +1,9 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
-import { parseRecipeList, titleSimilarity } from './lib/parser'
+import { ingredientLookupKey, ingredientNameWithoutQuantity, parseRecipeList, titleSimilarity } from './lib/parser'
 import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
-import type { Household, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
+import type { Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
 type Tab = 'current' | 'library' | 'shop' | 'deleted'
 type RecipeDestination = 'library' | 'queue'
@@ -26,7 +26,11 @@ const SECTION_LABELS: Record<IngredientSection, string> = {
 
 function formatRelative(dateValue: string | null) {
   if (!dateValue) return 'Niekada'
-  const days = Math.floor((Date.now() - new Date(dateValue).getTime()) / 86_400_000)
+  const now = new Date()
+  const date = new Date(dateValue)
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const target = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+  const days = Math.max(0, Math.round((today - target) / 86_400_000))
   if (days <= 0) return 'Šiandien'
   if (days === 1) return 'Vakar'
   return `Prieš ${days} d.`
@@ -36,41 +40,8 @@ function barboraUrl(item: string) {
   return `https://barbora.lt/paieska?q=${encodeURIComponent(item)}`
 }
 
-function androidBarboraIntent(item: string) {
-  const fallback = encodeURIComponent(barboraUrl(item))
-  return `intent://barbora.lt/paieska?q=${encodeURIComponent(item)}#Intent;scheme=https;package=lt.barbora;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${fallback};end`
-}
-
-function isStandaloneApp() {
-  const iosNavigator = navigator as Navigator & { standalone?: boolean }
-  return window.matchMedia('(display-mode: standalone)').matches || Boolean(iosNavigator.standalone)
-}
-
 function BarboraLink({ item, children }: { item: string; children: ReactNode }) {
-  const url = barboraUrl(item)
-
-  async function open(event: React.MouseEvent<HTMLAnchorElement>) {
-    if (!isStandaloneApp()) return
-
-    event.preventDefault()
-    if (/Android/i.test(navigator.userAgent)) {
-      window.location.href = androidBarboraIntent(item)
-      return
-    }
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `„${item}“ – Barbora`, text: `Ieškoti „${item}“ Barboroje`, url })
-        return
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-      }
-    }
-
-    window.location.href = url
-  }
-
-  return <a href={url} target="_blank" rel="noreferrer" onClick={(event) => void open(event)}>{children}</a>
+  return <a href={barboraUrl(item)} target="_blank" rel="noreferrer">{children}</a>
 }
 
 function App() {
@@ -78,6 +49,7 @@ function App() {
   const [authReady, setAuthReady] = useState(false)
   const [household, setHousehold] = useState<Household | null>(null)
   const [vocabulary, setVocabulary] = useState<VocabularyIngredient[]>([])
+  const [tags, setTags] = useState<HouseholdTag[]>([])
   const [setupChecked, setSetupChecked] = useState(false)
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [roster, setRoster] = useState<RosterEntry[]>([])
@@ -171,7 +143,7 @@ function App() {
 
   const loadData = useCallback(async () => {
     if (!household) return
-    const [recipeResult, rosterResult, queueResult, vocabularyResult] = await Promise.all([
+    const [recipeResult, rosterResult, queueResult, vocabularyResult, tagResult] = await Promise.all([
       supabase
         .from('recipes')
         .select('*, recipe_ingredients(*), recipe_tags(tag:tags(id, name))')
@@ -192,8 +164,13 @@ function App() {
         .select('*')
         .eq('household_id', household.id)
         .order('name', { ascending: true }),
+      supabase
+        .from('tags')
+        .select('id, household_id, name')
+        .eq('household_id', household.id)
+        .order('name', { ascending: true }),
     ])
-    const firstError = recipeResult.error || rosterResult.error || queueResult.error || vocabularyResult.error
+    const firstError = recipeResult.error || rosterResult.error || queueResult.error || vocabularyResult.error || tagResult.error
     if (firstError) {
       setError(firstError.message)
       return
@@ -213,6 +190,7 @@ function App() {
     setRoster((rosterResult.data || []) as RosterEntry[])
     setQueue((queueResult.data || []) as QueueEntry[])
     setVocabulary(vocabularyRows)
+    setTags((tagResult.data || []) as HouseholdTag[])
   }, [household])
 
   useEffect(() => {
@@ -242,6 +220,14 @@ function App() {
   const deletedRecipes = useMemo(() => recipes.filter((recipe) => recipe.deleted_at), [recipes])
   const recipeById = useMemo(() => new Map(recipes.map((recipe) => [recipe.id, recipe])), [recipes])
   const readyEntries = useMemo(() => roster.filter((entry) => entry.status === 'ready'), [roster])
+  const recipeCategories = useMemo(() => {
+    const configured = tags
+      .filter((tag) => tag.name.startsWith(DISH_TAG_PREFIX))
+      .map((tag) => tag.name.slice(DISH_TAG_PREFIX.length))
+    const preferred = DISH_TYPES.filter((name) => configured.includes(name))
+    const custom = configured.filter((name) => !DISH_TYPES.includes(name)).sort((a, b) => a.localeCompare(b, 'lt'))
+    return [...preferred, ...custom]
+  }, [tags])
   const recentCooked = useMemo(() => {
     const cutoff = Date.now() - 5 * 86_400_000
     return roster.filter(
@@ -300,7 +286,12 @@ function App() {
     if (!household || !session) return
     setLoading(true)
     setError(null)
-    const cleanedIngredients = [...new Set(draft.ingredients.map((item) => item.trim()).filter(Boolean))]
+    const cleanedIngredients = [...new Map(
+      draft.ingredients
+        .map((item) => ingredientNameWithoutQuantity(item))
+        .filter(Boolean)
+        .map((item) => [ingredientLookupKey(item), item]),
+    ).values()]
     let recipeId = existing?.id
     if (existing) {
       const { error: updateError } = await supabase
@@ -385,12 +376,12 @@ function App() {
       setError(readError.message)
       return null
     }
-    const idByName = new Map((existing || []).map((row) => [row.name.trim().toLocaleLowerCase(), row.id as string]))
+    const idByName = new Map((existing || []).map((row) => [ingredientLookupKey(row.name), row.id as string]))
     const missing = [...new Map(
       names
-        .map((name) => name.trim())
-        .filter((name) => name && !idByName.has(name.toLocaleLowerCase()))
-        .map((name) => [name.toLocaleLowerCase(), name]),
+        .map(ingredientNameWithoutQuantity)
+        .filter((name) => name && !idByName.has(ingredientLookupKey(name)))
+        .map((name) => [ingredientLookupKey(name), name]),
     ).values()]
     if (missing.length) {
       const { data: created, error: createError } = await supabase
@@ -401,11 +392,11 @@ function App() {
         setError(createError.message)
         return null
       }
-      ;(created || []).forEach((row) => idByName.set(row.name.trim().toLocaleLowerCase(), row.id as string))
+      ;(created || []).forEach((row) => idByName.set(ingredientLookupKey(row.name), row.id as string))
     }
-    return names
-      .map((name) => idByName.get(name.trim().toLocaleLowerCase()))
-      .filter((id): id is string => Boolean(id))
+    return [...new Set(names
+      .map((name) => idByName.get(ingredientLookupKey(name)))
+      .filter((id): id is string => Boolean(id)))]
   }
 
   async function saveRecipeClassification(recipeId: string, draft: RecipeDraft) {
@@ -468,9 +459,143 @@ function App() {
   }
 
   async function saveImported(drafts: RecipeDraft[]) {
-    for (const draft of drafts) await saveRecipe(draft)
+    const fallbackCategory = recipeCategories.includes('Kita') ? 'Kita' : recipeCategories[0] || 'Kita'
+    for (const draft of drafts) {
+      const detected = classifyRecipe(draft.title, draft.ingredients)
+      await saveRecipe({
+        ...draft,
+        dishType: recipeCategories.includes(detected.dishType) ? detected.dishType : fallbackCategory,
+        cuisine: detected.cuisine,
+      })
+    }
     setImportOpen(false)
     setMessage(`Importuota receptų: ${drafts.length}`)
+  }
+
+  async function createIngredient(name: string, section: IngredientSection) {
+    if (!household) return false
+    const cleaned = ingredientNameWithoutQuantity(name)
+    if (!cleaned) return false
+    const { error: createError } = await supabase.from('ingredients').insert({ household_id: household.id, name: cleaned, section })
+    if (createError) {
+      setError(createError.code === '23505' ? 'Toks ingredientas jau yra.' : createError.message)
+      return false
+    }
+    await loadData()
+    setMessage('Ingredientas pridėtas')
+    return true
+  }
+
+  async function updateIngredient(ingredient: VocabularyIngredient, name: string, section: IngredientSection) {
+    const cleaned = ingredientNameWithoutQuantity(name)
+    if (!cleaned) return false
+    const { error: updateError } = await supabase
+      .from('ingredients')
+      .update({ name: cleaned, section })
+      .eq('id', ingredient.id)
+    if (updateError) {
+      setError(updateError.code === '23505' ? 'Toks ingredientas jau yra.' : updateError.message)
+      return false
+    }
+    await loadData()
+    setMessage('Ingredientas atnaujintas')
+    return true
+  }
+
+  async function deleteIngredient(ingredient: VocabularyIngredient) {
+    const uses = recipes.reduce(
+      (count, recipe) => count + (recipe.recipe_ingredients.some((item) => item.ingredient_id === ingredient.id) ? 1 : 0),
+      0,
+    )
+    const warning = uses
+      ? `„${ingredient.name}“ naudojamas ${uses} receptuose. Pašalinti jį ir iš šių receptų?`
+      : `Pašalinti ingredientą „${ingredient.name}“?`
+    if (!window.confirm(warning)) return
+    if (uses) {
+      const { error: linkError } = await supabase.from('recipe_ingredients').delete().eq('ingredient_id', ingredient.id)
+      if (linkError) {
+        setError(linkError.message)
+        return
+      }
+    }
+    const { error: deleteError } = await supabase.from('ingredients').delete().eq('id', ingredient.id)
+    if (deleteError) setError(deleteError.message)
+    else {
+      await loadData()
+      setMessage('Ingredientas pašalintas')
+    }
+  }
+
+  async function createRecipeCategory(name: string) {
+    if (!household) return false
+    const cleaned = name.replace(DISH_TAG_PREFIX, '').trim()
+    if (!cleaned) return false
+    const { error: createError } = await supabase.from('tags').insert({ household_id: household.id, name: `${DISH_TAG_PREFIX}${cleaned}` })
+    if (createError) {
+      setError(createError.code === '23505' ? 'Tokia kategorija jau yra.' : createError.message)
+      return false
+    }
+    await loadData()
+    setMessage('Kategorija pridėta')
+    return true
+  }
+
+  async function updateRecipeCategory(category: HouseholdTag, name: string) {
+    const cleaned = name.replace(DISH_TAG_PREFIX, '').trim()
+    if (!cleaned) return false
+    const { error: updateError } = await supabase
+      .from('tags')
+      .update({ name: `${DISH_TAG_PREFIX}${cleaned}` })
+      .eq('id', category.id)
+    if (updateError) {
+      setError(updateError.code === '23505' ? 'Tokia kategorija jau yra.' : updateError.message)
+      return false
+    }
+    await loadData()
+    setMessage('Kategorija atnaujinta')
+    return true
+  }
+
+  async function deleteRecipeCategory(category: HouseholdTag) {
+    if (!household) return
+    const affected = recipes.filter((recipe) => recipe.recipe_tags.some((link) => link.tag.id === category.id))
+    const label = category.name.slice(DISH_TAG_PREFIX.length)
+    const warning = affected.length
+      ? `Kategorijoje „${label}“ yra ${affected.length} receptai. Perkelti juos į „Kita“ ir pašalinti kategoriją?`
+      : `Pašalinti kategoriją „${label}“?`
+    if (!window.confirm(warning)) return
+
+    if (affected.length) {
+      const fallbackName = `${DISH_TAG_PREFIX}${label === 'Kita' ? 'Be kategorijos' : 'Kita'}`
+      let fallback = tags.find((tag) => tag.name.toLocaleLowerCase('lt') === fallbackName.toLocaleLowerCase('lt'))
+      if (!fallback) {
+        const { data, error: fallbackError } = await supabase
+          .from('tags')
+          .insert({ household_id: household.id, name: fallbackName })
+          .select('id, household_id, name')
+          .single()
+        if (fallbackError) {
+          setError(fallbackError.message)
+          return
+        }
+        fallback = data as HouseholdTag
+      }
+      const { error: linkError } = await supabase.from('recipe_tags').upsert(
+        affected.map((recipe) => ({ household_id: household.id, recipe_id: recipe.id, tag_id: fallback.id })),
+        { onConflict: 'recipe_id,tag_id', ignoreDuplicates: true },
+      )
+      if (linkError) {
+        setError(linkError.message)
+        return
+      }
+    }
+
+    const { error: deleteError } = await supabase.from('tags').delete().eq('id', category.id)
+    if (deleteError) setError(deleteError.message)
+    else {
+      await loadData()
+      setMessage('Kategorija pašalinta')
+    }
   }
 
   async function planRecipe(recipe: Recipe, destination: 'queue' | 'roster') {
@@ -620,12 +745,13 @@ function App() {
             onSkipped={(entry) => void resolveEntry(entry, 'skipped')}
             onEdit={(recipe) => setEditor({ recipe, destination: 'library' })}
             onQueue={(recipe) => void planRecipe(recipe, 'queue')}
-            onAdd={() => { setTab('shop'); setPickerOpen(true) }}
+            onAdd={() => setPickerOpen(true)}
           />
         )}
         {tab === 'library' && (
           <LibraryView
             recipes={activeRecipes}
+            categories={recipeCategories}
             lastCooked={lastCooked}
             onAdd={() => setEditor({ destination: 'library' })}
             onImport={() => setImportOpen(true)}
@@ -660,6 +786,7 @@ function App() {
       {editor && (
         <RecipeEditor
           vocabulary={vocabulary}
+          categories={recipeCategories}
           recipe={editor.recipe}
           destination={editor.destination}
           loading={loading}
@@ -673,11 +800,29 @@ function App() {
           recipes={activeRecipes}
           queuedIds={new Set(queue.map((entry) => entry.recipe_id))}
           onClose={() => setPickerOpen(false)}
-          onPick={(recipe) => void planRecipe(recipe, 'queue')}
+          onPick={(recipe) => {
+            if (tab === 'current') setTab('shop')
+            void planRecipe(recipe, 'queue')
+          }}
           onNew={() => { setPickerOpen(false); setEditor({ destination: 'queue' }) }}
         />
       )}
-      {settingsOpen && <SettingsDialog household={household} email={session.user.email || ''} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <SettingsDialog
+          household={household}
+          email={session.user.email || ''}
+          vocabulary={vocabulary}
+          recipes={recipes}
+          categories={tags.filter((tag) => tag.name.startsWith(DISH_TAG_PREFIX))}
+          onCreateIngredient={createIngredient}
+          onUpdateIngredient={updateIngredient}
+          onDeleteIngredient={deleteIngredient}
+          onCreateCategory={createRecipeCategory}
+          onUpdateCategory={updateRecipeCategory}
+          onDeleteCategory={deleteRecipeCategory}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
       {undo && (
         <div className="undo-toast" role="status">
           <span>{undo.label}</span>
@@ -786,9 +931,9 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
 }) {
   return (
     <div className="page-stack">
-      <button className="button primary add-meals" onClick={onAdd}>＋ Pridėti patiekalų</button>
+      <button className="button primary add-meals" onClick={onAdd}>＋ Pridėti</button>
       {entries.length === 0 ? (
-        <EmptyState title="Nėra laukiančių receptų" text="Pridėkite kelis patiekalus, apsipirkite, ir jie atsiras čia." action="Planuoti patiekalus" onAction={onAdd} />
+        <EmptyState title="Nėra laukiančių receptų" text="Pridėkite kelis patiekalus, apsipirkite, ir jie atsiras čia." action="Pridėti" onAction={onAdd} />
       ) : (
         <section className="card-grid">
           {entries.map((entry) => {
@@ -835,8 +980,9 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
   )
 }
 
-function LibraryView({ recipes, lastCooked, onAdd, onImport, onEdit, onQueue, onCurrent, onDelete }: {
+function LibraryView({ recipes, categories, lastCooked, onAdd, onImport, onEdit, onQueue, onCurrent, onDelete }: {
   recipes: Recipe[]
+  categories: string[]
   lastCooked: (id: string) => string | null
   onAdd: () => void
   onImport: () => void
@@ -846,13 +992,16 @@ function LibraryView({ recipes, lastCooked, onAdd, onImport, onEdit, onQueue, on
   onDelete: (recipe: Recipe) => void
 }) {
   const [search, setSearch] = useState('')
+  const [expanded, setExpanded] = useState<string | null>(null)
   const needle = search.trim().toLocaleLowerCase('lt')
   const filtered = recipes.filter((recipe) => {
     const tags = recipeTagNames(recipe).map((name) => name.replace(DISH_TAG_PREFIX, '').replace(CUISINE_TAG_PREFIX, ''))
     const haystack = `${recipe.title} ${recipe.recipe_ingredients.map((item) => item.item).join(' ')} ${tags.join(' ')}`.toLocaleLowerCase('lt')
     return haystack.includes(needle)
   })
-  const groups = DISH_TYPES
+  const usedCategories = [...new Set(filtered.map(dishTypeFor))]
+  const groupOrder = [...categories, ...usedCategories.filter((name) => !categories.includes(name))]
+  const groups = groupOrder
     .map((dishType) => ({ dishType, recipes: filtered.filter((recipe) => dishTypeFor(recipe) === dishType) }))
     .filter((group) => group.recipes.length > 0)
   return (
@@ -861,30 +1010,39 @@ function LibraryView({ recipes, lastCooked, onAdd, onImport, onEdit, onQueue, on
         <input className="search" type="search" placeholder="Ieškoti receptų, produktų ar virtuvių" value={search} onChange={(event) => setSearch(event.target.value)} />
         <button className="button primary" onClick={onAdd}>＋ Naujas</button>
       </div>
-      <button className="text-button import-button" onClick={onImport}>Importuoti įklijuotą receptų sąrašą</button>
+      <button className="text-button import-button" onClick={onImport}>Importuoti receptus</button>
       {filtered.length === 0 ? <EmptyState title={recipes.length ? 'Nieko nerasta' : 'Receptų nėra'} text={recipes.length ? 'Pabandykite kitą paiešką.' : 'Pridėkite receptą arba įklijuokite turimą savaitės sąrašą.'} action={recipes.length ? undefined : 'Pridėti receptą'} onAction={recipes.length ? undefined : onAdd} /> : (
         <div className="library-groups">
           {groups.map((group) => (
             <section className="library-group" key={group.dishType}>
               <div className="library-group-heading"><h2>{group.dishType}</h2><span>{group.recipes.length}</span></div>
-              <div className="library-list">
-                {group.recipes.map((recipe) => (
-                  <article className="library-card" key={recipe.id}>
-                    <div className="library-main">
-                      <div><p className="eyebrow">Gaminta · {formatRelative(lastCooked(recipe.id))}</p><h2>{recipe.title}</h2></div>
-                      <RecipeTags recipe={recipe} />
-                      <IngredientLine recipe={recipe} />
-                      {recipe.notes && <p className="notes">{recipe.notes}</p>}
-                      {recipe.source_url && <a className="source-link" href={recipe.source_url} target="_blank" rel="noreferrer">Atverti originalų receptą ↗</a>}
-                    </div>
-                    <div className="library-actions">
-                      <button onClick={() => onQueue(recipe)}>Į krepšelį</button>
-                      <button onClick={() => onCurrent(recipe)}>Gaminti dabar</button>
-                      <button onClick={() => onEdit(recipe)}>Redaguoti</button>
-                      <button className="danger-text" onClick={() => onDelete(recipe)}>Ištrinti</button>
-                    </div>
-                  </article>
-                ))}
+              <div className="recipe-tile-grid">
+                {group.recipes.map((recipe) => {
+                  const isExpanded = expanded === recipe.id
+                  const cookedAt = lastCooked(recipe.id)
+                  return (
+                    <article className={`recipe-tile ${isExpanded ? 'expanded' : ''}`} key={recipe.id}>
+                      <button className="recipe-tile-summary" aria-expanded={isExpanded} onClick={() => setExpanded(isExpanded ? null : recipe.id)}>
+                        <span className="recipe-tile-copy"><strong>{recipe.title}</strong><small>{cookedAt ? `Gaminta ${formatRelative(cookedAt).toLocaleLowerCase('lt')}` : 'Dar negaminta'}</small></span>
+                        <span className="recipe-tile-meta"><span>{cuisineFor(recipe)}</span><i>{recipe.recipe_ingredients.length}</i></span>
+                        <span className="recipe-tile-chevron" aria-hidden="true">⌄</span>
+                      </button>
+                      {isExpanded && (
+                        <div className="recipe-tile-detail">
+                          <IngredientLine recipe={recipe} />
+                          {recipe.notes && <p className="notes">{recipe.notes}</p>}
+                          {recipe.source_url && <a className="source-link" href={recipe.source_url} target="_blank" rel="noreferrer">Atverti originalų receptą ↗</a>}
+                          <div className="library-actions">
+                            <button onClick={() => onQueue(recipe)}>Į krepšelį</button>
+                            <button onClick={() => onCurrent(recipe)}>Gaminti dabar</button>
+                            <button onClick={() => onEdit(recipe)}>Redaguoti</button>
+                            <button className="danger-text" onClick={() => onDelete(recipe)}>Ištrinti</button>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  )
+                })}
               </div>
             </section>
           ))}
@@ -906,8 +1064,8 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
 }) {
   return (
     <div className="page-stack shop-page">
-      <div className="section-heading"><div><p className="eyebrow">Laikinas planas</p><h2>Suplanuota patiekalų: {queue.length}</h2></div><button className="button primary" onClick={onAdd}>＋ Pridėti</button></div>
-      {queue.length === 0 ? <EmptyState title="Krepšelis tuščias" text="Pasirinkite visus norimus patiekalus ir gausite vieną bendrą sąrašą." action="Pridėti patiekalų" onAction={onAdd} /> : (
+      <div className="section-heading"><h2>Suplanuoti patiekalai</h2><button className="button primary" onClick={onAdd}>＋ Pridėti</button></div>
+      {queue.length === 0 ? <EmptyState title="Krepšelis tuščias" text="Pasirinkite visus norimus patiekalus ir gausite vieną bendrą sąrašą." action="Pridėti" onAction={onAdd} /> : (
         <>
           <div className="queue-chips">
             {queue.map((entry) => {
@@ -916,16 +1074,12 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
             })}
           </div>
           <section className="shopping-card">
-            <div className="section-heading"><div><p className="eyebrow">Bendras sąrašas</p><h2>Produktai</h2></div><span className="count-pill">{count}</span></div>
+            <div className="section-heading"><h2>Pirkinių sąrašas</h2><span className="count-pill">{count}</span></div>
             {count ? sections.map((group) => (
               <div className="shop-section" key={group.section}>
                 <h3 className="shop-section-title">{SECTION_LABELS[group.section]}<span>{group.items.length}</span></h3>
                 <ul className="ingredient-shopping-list">
-                  {group.items.map((item) => {
-                    const titles = [...item.recipes]
-                    const usage = titles.length === 1 ? `reikia „${titles[0]}“` : titles.length === 2 ? `reikia „${titles[0]}“ ir „${titles[1]}“` : `reikia ${titles.length} receptams`
-                    return <li key={item.item}><BarboraLink item={item.item}><strong>{item.item}</strong><span>{usage} · ieškoti „Barboroje“ ↗</span></BarboraLink></li>
-                  })}
+                  {group.items.map((item) => <li key={item.item}><BarboraLink item={item.item}><strong>{item.item}</strong></BarboraLink><div className="ingredient-recipe-tags">{[...item.recipes].map((title) => <span key={title}>{title}</span>)}</div></li>)}
                 </ul>
               </div>
             )) : <p className="muted">Šiuose receptuose produktų dar nėra.</p>}
@@ -954,27 +1108,34 @@ function RecipeTags({ recipe }: { recipe: Recipe }) {
   return <div className="recipe-tags"><span>{cuisine}</span></div>
 }
 
-function RecipeEditor({ recipe, destination, vocabulary, loading, onClose, onSave }: {
+function RecipeEditor({ recipe, destination, vocabulary, categories, loading, onClose, onSave }: {
   recipe?: Recipe
   destination: RecipeDestination
   vocabulary: VocabularyIngredient[]
+  categories: string[]
   loading: boolean
   onClose: () => void
   onSave: (draft: RecipeDraft) => void
 }) {
+  const fallbackCategory = categories.includes('Kita') ? 'Kita' : categories[0] || 'Kita'
+  const selectableCategories = categories.length ? categories : [fallbackCategory]
   const [draft, setDraft] = useState<RecipeDraft>(() => recipe ? {
     title: recipe.title,
     ingredients: [...recipe.recipe_ingredients].sort((a, b) => a.position - b.position).map((item) => item.item),
     notes: recipe.notes || '',
     sourceUrl: recipe.source_url || '',
-    dishType: dishTypeFor(recipe),
+    dishType: categories.includes(dishTypeFor(recipe)) ? dishTypeFor(recipe) : fallbackCategory,
     cuisine: cuisineFor(recipe),
-  } : blankDraft())
+  } : { ...blankDraft(), dishType: fallbackCategory })
   const [categoriesTouched, setCategoriesTouched] = useState(Boolean(recipe))
 
   function updateContent(next: Pick<RecipeDraft, 'title' | 'ingredients'>) {
-    const detected = categoriesTouched ? {} : classifyRecipe(next.title, next.ingredients)
-    setDraft((current) => ({ ...current, ...next, ...detected }))
+    const detected = categoriesTouched ? null : classifyRecipe(next.title, next.ingredients)
+    const classification = detected ? {
+      ...detected,
+      dishType: categories.includes(detected.dishType) ? detected.dishType : fallbackCategory,
+    } : {}
+    setDraft((current) => ({ ...current, ...next, ...classification }))
   }
 
   return (
@@ -988,7 +1149,7 @@ function RecipeEditor({ recipe, destination, vocabulary, loading, onClose, onSav
           <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => updateContent({ title: draft.title, ingredients })} />
         </div>
         <div className="category-grid">
-          <label>Patiekalo tipas<select value={draft.dishType} onChange={(event) => { setCategoriesTouched(true); setDraft({ ...draft, dishType: event.target.value }) }}>{DISH_TYPES.map((value) => <option key={value}>{value}</option>)}</select></label>
+          <label>Patiekalo tipas<select value={draft.dishType} onChange={(event) => { setCategoriesTouched(true); setDraft({ ...draft, dishType: event.target.value }) }}>{selectableCategories.map((value) => <option key={value}>{value}</option>)}</select></label>
           <label>Virtuvė<select value={draft.cuisine} onChange={(event) => { setCategoriesTouched(true); setDraft({ ...draft, cuisine: event.target.value }) }}>{CUISINES.map((value) => <option key={value}>{value}</option>)}</select></label>
         </div>
         {!categoriesTouched && <p className="category-hint">Kategorijos parenkamos automatiškai pagal pavadinimą ir produktus.</p>}
@@ -1008,7 +1169,16 @@ function ImportDialog({ vocabulary, loading, onClose, onSave }: { vocabulary: Vo
       <p className="muted">Įklijuokite po vieną patiekalą eilutėje. Brūkšnys atskiria pavadinimą nuo kableliais išvardytų produktų. Žymimieji langeliai ir numeracija bus pašalinti.</p>
       <textarea className="import-area" rows={10} value={raw} onChange={(event) => setRaw(event.target.value)} placeholder="[ ] 1. Pasta e ceci — makaronai, avinžirniai, pomidorai" />
       <p className="fine-print">Kalba nekeičiama. Prieš išsaugodami galėsite pataisyti kiekvieną receptą.</p>
-      <button className="button primary wide" disabled={!raw.trim()} onClick={() => setDrafts(parseRecipeList(raw))}>Peržiūrėti receptus</button>
+      <button className="button primary wide" disabled={!raw.trim()} onClick={() => {
+        const vocabularyByKey = new Map(vocabulary.map((item) => [ingredientLookupKey(item.name), item.name]))
+        setDrafts(parseRecipeList(raw).map((draft) => ({
+          ...draft,
+          ingredients: [...new Map(draft.ingredients.map((item) => {
+            const key = ingredientLookupKey(item)
+            return [key, vocabularyByKey.get(key) || ingredientNameWithoutQuantity(item)]
+          })).values()],
+        })))
+      }}>Peržiūrėti receptus</button>
     </Modal>
   )
   return (
@@ -1045,21 +1215,158 @@ function MealPicker({ recipes, queuedIds, onClose, onPick, onNew }: {
   )
 }
 
-function SettingsDialog({ household, email, onClose }: { household: Household; email: string; onClose: () => void }) {
+function SettingsDialog({ household, email, vocabulary, recipes, categories, onCreateIngredient, onUpdateIngredient, onDeleteIngredient, onCreateCategory, onUpdateCategory, onDeleteCategory, onClose }: {
+  household: Household
+  email: string
+  vocabulary: VocabularyIngredient[]
+  recipes: Recipe[]
+  categories: HouseholdTag[]
+  onCreateIngredient: (name: string, section: IngredientSection) => Promise<boolean>
+  onUpdateIngredient: (ingredient: VocabularyIngredient, name: string, section: IngredientSection) => Promise<boolean>
+  onDeleteIngredient: (ingredient: VocabularyIngredient) => Promise<void>
+  onCreateCategory: (name: string) => Promise<boolean>
+  onUpdateCategory: (category: HouseholdTag, name: string) => Promise<boolean>
+  onDeleteCategory: (category: HouseholdTag) => Promise<void>
+  onClose: () => void
+}) {
+  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories'>('menu')
   const [copied, setCopied] = useState(false)
   async function copyCode() {
     await navigator.clipboard.writeText(household.invite_code)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
+  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : 'Nustatymai'
   return (
-    <Modal title="Jūsų virtuvė" onClose={onClose}>
-      <p className="muted">Kai kitas žmogus susikurs paskyrą, pasidalykite su juo šiuo kodu.</p>
-      <button className="invite-code" onClick={() => void copyCode()}><span>{household.invite_code}</span><small>{copied ? 'Nukopijuota!' : 'Paliesti ir kopijuoti'}</small></button>
-      <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
-      <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Atsijungti</button>
+    <Modal title={title} onClose={onClose} wide={view === 'ingredients'}>
+      {view === 'menu' && <>
+        <div className="settings-options">
+          <button onClick={() => setView('invite')}><span><strong>Pakviesti prisijungti</strong><small>Virtuvės kodas kitam žmogui</small></span><b>›</b></button>
+          <button onClick={() => setView('ingredients')}><span><strong>Ingredientai</strong><small>Pavadinimai ir skyriai parduotuvėje</small></span><b>›</b></button>
+          <button onClick={() => setView('categories')}><span><strong>Receptų kategorijos</strong><small>Grupės receptų bibliotekoje</small></span><b>›</b></button>
+        </div>
+        <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
+        <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Atsijungti</button>
+      </>}
+      {view === 'invite' && <>
+        <SettingsBack onClick={() => setView('menu')} />
+        <p className="muted">Kai kitas žmogus susikurs paskyrą, pasidalinkite su juo šiuo kodu.</p>
+        <button className="invite-code" onClick={() => void copyCode()}><span>{household.invite_code}</span><small>{copied ? 'Nukopijuota!' : 'Paliesti ir kopijuoti'}</small></button>
+      </>}
+      {view === 'ingredients' && <>
+        <SettingsBack onClick={() => setView('menu')} />
+        <IngredientsManager vocabulary={vocabulary} recipes={recipes} onCreate={onCreateIngredient} onUpdate={onUpdateIngredient} onDelete={onDeleteIngredient} />
+      </>}
+      {view === 'categories' && <>
+        <SettingsBack onClick={() => setView('menu')} />
+        <RecipeCategoriesManager categories={categories} recipes={recipes} onCreate={onCreateCategory} onUpdate={onUpdateCategory} onDelete={onDeleteCategory} />
+      </>}
     </Modal>
   )
+}
+
+function SettingsBack({ onClick }: { onClick: () => void }) {
+  return <button className="settings-back" onClick={onClick}>← Visi nustatymai</button>
+}
+
+function IngredientsManager({ vocabulary, recipes, onCreate, onUpdate, onDelete }: {
+  vocabulary: VocabularyIngredient[]
+  recipes: Recipe[]
+  onCreate: (name: string, section: IngredientSection) => Promise<boolean>
+  onUpdate: (ingredient: VocabularyIngredient, name: string, section: IngredientSection) => Promise<boolean>
+  onDelete: (ingredient: VocabularyIngredient) => Promise<void>
+}) {
+  const [search, setSearch] = useState('')
+  const [newName, setNewName] = useState('')
+  const [newSection, setNewSection] = useState<IngredientSection>('Other')
+  const [editing, setEditing] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editSection, setEditSection] = useState<IngredientSection>('Other')
+  const usage = useMemo(() => {
+    const counts = new Map<string, number>()
+    recipes.forEach((recipe) => recipe.recipe_ingredients.forEach((item) => counts.set(item.ingredient_id, (counts.get(item.ingredient_id) || 0) + 1)))
+    return counts
+  }, [recipes])
+  const needle = ingredientLookupKey(search)
+  const filtered = vocabulary.filter((ingredient) => ingredientLookupKey(ingredient.name).includes(needle))
+
+  function beginEdit(ingredient: VocabularyIngredient) {
+    setEditing(ingredient.id)
+    setEditName(ingredient.name)
+    setEditSection(ingredient.section)
+  }
+
+  return <div className="manager-stack">
+    <form className="manager-create" onSubmit={(event) => {
+      event.preventDefault()
+      void onCreate(newName, newSection).then((saved) => { if (saved) setNewName('') })
+    }}>
+      <input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Naujas ingredientas" aria-label="Naujas ingredientas" />
+      <select value={newSection} onChange={(event) => setNewSection(event.target.value as IngredientSection)} aria-label="Ingrediento skyrius">{SECTION_ORDER.map((section) => <option value={section} key={section}>{SECTION_LABELS[section]}</option>)}</select>
+      <button className="button primary" disabled={!newName.trim()}>Pridėti</button>
+    </form>
+    <input className="search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Ieškoti (${vocabulary.length})`} />
+    <div className="manager-list">
+      {filtered.map((ingredient) => editing === ingredient.id ? (
+        <form className="manager-edit" key={ingredient.id} onSubmit={(event) => {
+          event.preventDefault()
+          void onUpdate(ingredient, editName, editSection).then((saved) => { if (saved) setEditing(null) })
+        }}>
+          <input value={editName} onChange={(event) => setEditName(event.target.value)} aria-label="Ingrediento pavadinimas" />
+          <select value={editSection} onChange={(event) => setEditSection(event.target.value as IngredientSection)} aria-label="Ingrediento skyrius">{SECTION_ORDER.map((section) => <option value={section} key={section}>{SECTION_LABELS[section]}</option>)}</select>
+          <div><button className="button primary" disabled={!editName.trim()}>Išsaugoti</button><button type="button" className="button secondary" onClick={() => setEditing(null)}>Atšaukti</button></div>
+        </form>
+      ) : (
+        <div className="manager-row" key={ingredient.id}>
+          <div><strong>{ingredient.name}</strong><small>{SECTION_LABELS[ingredient.section]} · receptų: {usage.get(ingredient.id) || 0}</small></div>
+          <button className="text-button" onClick={() => beginEdit(ingredient)}>Keisti</button>
+          <button className="text-button danger-text" onClick={() => void onDelete(ingredient)}>Ištrinti</button>
+        </div>
+      ))}
+    </div>
+  </div>
+}
+
+function RecipeCategoriesManager({ categories, recipes, onCreate, onUpdate, onDelete }: {
+  categories: HouseholdTag[]
+  recipes: Recipe[]
+  onCreate: (name: string) => Promise<boolean>
+  onUpdate: (category: HouseholdTag, name: string) => Promise<boolean>
+  onDelete: (category: HouseholdTag) => Promise<void>
+}) {
+  const [newName, setNewName] = useState('')
+  const [editing, setEditing] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const ordered = [...categories].sort((a, b) => {
+    const left = a.name.slice(DISH_TAG_PREFIX.length)
+    const right = b.name.slice(DISH_TAG_PREFIX.length)
+    const leftIndex = DISH_TYPES.indexOf(left)
+    const rightIndex = DISH_TYPES.indexOf(right)
+    if (leftIndex >= 0 || rightIndex >= 0) return (leftIndex < 0 ? 999 : leftIndex) - (rightIndex < 0 ? 999 : rightIndex)
+    return left.localeCompare(right, 'lt')
+  })
+  const countFor = (category: HouseholdTag) => recipes.filter((recipe) => recipe.recipe_tags.some((link) => link.tag.id === category.id)).length
+
+  return <div className="manager-stack">
+    <p className="muted">Šios kategorijos sudaro receptų grupes. Virtuvės, pavyzdžiui, italų ar japonų, lieka atskiromis žymomis.</p>
+    <form className="manager-create category-create" onSubmit={(event) => {
+      event.preventDefault()
+      void onCreate(newName).then((saved) => { if (saved) setNewName('') })
+    }}><input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Nauja kategorija" /><button className="button primary" disabled={!newName.trim()}>Pridėti</button></form>
+    <div className="manager-list">
+      {ordered.map((category) => {
+        const label = category.name.slice(DISH_TAG_PREFIX.length)
+        return editing === category.id ? (
+          <form className="manager-edit category-edit" key={category.id} onSubmit={(event) => {
+            event.preventDefault()
+            void onUpdate(category, editName).then((saved) => { if (saved) setEditing(null) })
+          }}><input value={editName} onChange={(event) => setEditName(event.target.value)} /><div><button className="button primary" disabled={!editName.trim()}>Išsaugoti</button><button type="button" className="button secondary" onClick={() => setEditing(null)}>Atšaukti</button></div></form>
+        ) : (
+          <div className="manager-row" key={category.id}><div><strong>{label}</strong><small>Receptų: {countFor(category)}</small></div><button className="text-button" onClick={() => { setEditing(category.id); setEditName(label) }}>Keisti</button><button className="text-button danger-text" onClick={() => void onDelete(category)}>Ištrinti</button></div>
+        )
+      })}
+    </div>
+  </div>
 }
 
 function Modal({ title, onClose, wide = false, children }: { title: string; onClose: () => void; wide?: boolean; children: React.ReactNode }) {
@@ -1169,16 +1476,16 @@ function IngredientChips({ value, vocabulary, onChange }: {
   const [adding, setAdding] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  const taken = useMemo(() => new Set(value.map((item) => item.trim().toLocaleLowerCase())), [value])
+  const taken = useMemo(() => new Set(value.map(ingredientLookupKey)), [value])
 
   const suggestions = useMemo(() => {
     const query = entry.trim()
     if (!query) return []
-    const needle = query.toLocaleLowerCase()
+    const needle = ingredientLookupKey(query)
     return vocabulary
-      .filter((item) => !taken.has(item.name.trim().toLocaleLowerCase()))
+      .filter((item) => !taken.has(ingredientLookupKey(item.name)))
       .map((item) => {
-        const name = item.name.toLocaleLowerCase()
+        const name = ingredientLookupKey(item.name)
         const score = name.startsWith(needle) ? 1 : name.includes(needle) ? 0.9 : titleSimilarity(query, item.name)
         return { item, score }
       })
@@ -1188,13 +1495,13 @@ function IngredientChips({ value, vocabulary, onChange }: {
       .map((row) => row.item)
   }, [entry, vocabulary, taken])
 
-  const exactMatch = suggestions.some((item) => item.name.toLocaleLowerCase() === entry.trim().toLocaleLowerCase())
+  const exactMatch = suggestions.some((item) => ingredientLookupKey(item.name) === ingredientLookupKey(entry))
 
   function add(name: string) {
-    const cleaned = name.trim()
+    const cleaned = ingredientNameWithoutQuantity(name)
     setEntry('')
     setHighlight(0)
-    if (!cleaned || taken.has(cleaned.toLocaleLowerCase())) return
+    if (!cleaned || taken.has(ingredientLookupKey(cleaned))) return
     onChange([...value, cleaned])
   }
 
