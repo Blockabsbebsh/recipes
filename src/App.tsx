@@ -1,7 +1,7 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
-import { ingredientLookupKey, ingredientNameWithoutQuantity, parseRecipeList, titleSimilarity } from './lib/parser'
+import { ingredientLookupKey, ingredientNameWithoutQuantity, normalizeTitle, parseRecipeList, titleSimilarity } from './lib/parser'
 import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
 import { SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
 import type { CategoryIndex } from './lib/barboraMapping'
@@ -382,13 +382,20 @@ function App() {
     }
     const rememberScroll = () => { scrollByTab.current[tabRef.current] = window.scrollY }
     const saveWhenHidden = () => { if (document.visibilityState === 'hidden') save() }
+    const restoreOnReturn = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.requestAnimationFrame(() => window.scrollTo(0, scrollByTab.current[tabRef.current] ?? 0))
+      }
+    }
     window.addEventListener('scroll', rememberScroll, { passive: true })
     window.addEventListener('pagehide', save)
+    window.addEventListener('pageshow', restoreOnReturn)
     document.addEventListener('visibilitychange', saveWhenHidden)
     return () => {
       save()
       window.removeEventListener('scroll', rememberScroll)
       window.removeEventListener('pagehide', save)
+      window.removeEventListener('pageshow', restoreOnReturn)
       document.removeEventListener('visibilitychange', saveWhenHidden)
     }
   }, [persistedViewKey, viewStateReady])
@@ -928,7 +935,7 @@ function App() {
   const categoryIndex = useMemo(() => buildCategoryIndex(barboraCategories), [barboraCategories])
 
   const vocabularyByName = useMemo(
-    () => new Map(vocabulary.map((entry) => [entry.name.trim().toLocaleLowerCase(), entry])),
+    () => new Map(vocabulary.map((entry) => [ingredientLookupKey(entry.name), entry])),
     [vocabulary],
   )
 
@@ -949,7 +956,7 @@ function App() {
     queue.forEach((entry) => {
       const recipe = recipeById.get(entry.recipe_id)
       recipe?.recipe_ingredients.forEach((ingredient) => {
-        const key = ingredient.item.trim().toLocaleLowerCase()
+        const key = ingredientLookupKey(ingredient.item)
         const known = vocabularyByName.get(key)
         const section = known?.section ?? 'Other'
         const group = grouped.get(key) || {
@@ -1048,6 +1055,7 @@ function App() {
         <RecipeEditor
           vocabulary={vocabulary}
           categories={recipeCategories}
+          recipes={activeRecipes}
           recipe={editor.recipe}
           destination={editor.destination}
           loading={loading}
@@ -1258,10 +1266,11 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
   onDelete: (recipe: Recipe) => void
 }) {
   const [search, setSearch] = useState('')
-  const needle = search.trim().toLocaleLowerCase('lt')
+  const needle = normalizeTitle(search)
   const filtered = recipes.filter((recipe) => {
+    if (!needle) return true
     const tags = recipeTagNames(recipe).map((name) => name.replace(DISH_TAG_PREFIX, '').replace(CUISINE_TAG_PREFIX, ''))
-    const haystack = `${recipe.title} ${recipe.recipe_ingredients.map((item) => item.item).join(' ')} ${tags.join(' ')}`.toLocaleLowerCase('lt')
+    const haystack = normalizeTitle(`${recipe.title} ${recipe.recipe_ingredients.map((item) => item.item).join(' ')} ${tags.join(' ')}`)
     return haystack.includes(needle)
   })
   const usedCategories = [...new Set(filtered.map(dishTypeFor))]
@@ -1378,11 +1387,12 @@ function RecipeTags({ recipe }: { recipe: Recipe }) {
   return <div className="recipe-tags"><span>{cuisine}</span></div>
 }
 
-function RecipeEditor({ recipe, destination, vocabulary, categories, loading, onClose, onSave, categoryIndex, onCreateIngredient }: {
+function RecipeEditor({ recipe, destination, vocabulary, categories, recipes: allRecipes, loading, onClose, onSave, categoryIndex, onCreateIngredient }: {
   recipe?: Recipe
   destination: RecipeDestination
   vocabulary: VocabularyIngredient[]
   categories: string[]
+  recipes: Recipe[]
   loading: boolean
   onClose: () => void
   onSave: (draft: RecipeDraft) => void
@@ -1401,6 +1411,19 @@ function RecipeEditor({ recipe, destination, vocabulary, categories, loading, on
   } : { ...blankDraft(), dishType: fallbackCategory })
   const [categoriesTouched, setCategoriesTouched] = useState(Boolean(recipe))
 
+  const similarRecipe = useMemo(() => {
+    const title = draft.title.trim()
+    if (!title || title.length < 3) return null
+    const candidates = allRecipes.filter((r) => r.id !== recipe?.id)
+    const exact = candidates.find((r) => normalizeTitle(r.title) === normalizeTitle(title))
+    if (exact) return exact.title
+    const best = candidates
+      .map((r) => ({ title: r.title, score: titleSimilarity(title, r.title) }))
+      .filter((r) => r.score >= 0.7)
+      .sort((a, b) => b.score - a.score)[0]
+    return best ? best.title : null
+  }, [draft.title, allRecipes, recipe?.id])
+
   function updateContent(next: Pick<RecipeDraft, 'title' | 'ingredients'>) {
     const detected = categoriesTouched ? null : classifyRecipe(next.title, next.ingredients)
     const classification = detected ? {
@@ -1417,6 +1440,7 @@ function RecipeEditor({ recipe, destination, vocabulary, categories, loading, on
         onSave(draft)
       }}>
         <label>Patiekalo pavadinimas<input autoFocus required value={draft.title} onChange={(event) => updateContent({ title: event.target.value, ingredients: draft.ingredients })} placeholder="Pasta e ceci" /></label>
+        {similarRecipe && <p className="form-notice">Panašus receptas jau yra: <strong>{similarRecipe}</strong></p>}
         <div className="field"><span className="field-label">Produktai <span className="optional">po vieną</span></span>
           <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => updateContent({ title: draft.title, ingredients })} categoryIndex={categoryIndex} onCreateIngredient={onCreateIngredient} />
         </div>
@@ -1443,11 +1467,22 @@ function ImportDialog({ vocabulary, loading, onClose, onSave }: { vocabulary: Vo
       <p className="fine-print">Kalba nekeičiama. Prieš išsaugodami galėsite pataisyti kiekvieną receptą.</p>
       <button className="button primary wide" disabled={!raw.trim()} onClick={() => {
         const vocabularyByKey = new Map(vocabulary.map((item) => [ingredientLookupKey(item.name), item.name]))
+        function resolveIngredient(raw: string) {
+          const key = ingredientLookupKey(raw)
+          const exact = vocabularyByKey.get(key)
+          if (exact) return exact
+          const cleaned = ingredientNameWithoutQuantity(raw)
+          const best = vocabulary
+            .map((item) => ({ name: item.name, score: titleSimilarity(cleaned, item.name) }))
+            .filter((row) => row.score >= 0.65)
+            .sort((a, b) => b.score - a.score)[0]
+          return best ? best.name : cleaned
+        }
         setDrafts(parseRecipeList(raw).map((draft) => ({
           ...draft,
           ingredients: [...new Map(draft.ingredients.map((item) => {
-            const key = ingredientLookupKey(item)
-            return [key, vocabularyByKey.get(key) || ingredientNameWithoutQuantity(item)]
+            const resolved = resolveIngredient(item)
+            return [ingredientLookupKey(resolved), resolved]
           })).values()],
         })))
       }}>Peržiūrėti receptus</button>
@@ -1478,7 +1513,8 @@ function MealPicker({ recipes, queuedIds, onClose, onPick, onNew }: {
   onNew: () => void
 }) {
   const [search, setSearch] = useState('')
-  const filtered = recipes.filter((recipe) => `${recipe.title} ${cuisineFor(recipe)} ${dishTypeFor(recipe)}`.toLocaleLowerCase('lt').includes(search.toLocaleLowerCase('lt')))
+  const mealNeedle = normalizeTitle(search)
+  const filtered = recipes.filter((recipe) => !mealNeedle || normalizeTitle(`${recipe.title} ${cuisineFor(recipe)} ${dishTypeFor(recipe)}`).includes(mealNeedle))
   return (
     <Modal title="Pridėti patiekalų" onClose={onClose}>
       <div className="picker-actions"><input autoFocus className="search" type="search" placeholder="Rasti receptą" value={search} onChange={(event) => setSearch(event.target.value)} /><button className="button secondary" onClick={onNew}>＋ Naujas</button></div>
@@ -1684,8 +1720,10 @@ function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUp
   const label = (p: string | null) => (p === null ? null : categoryIndex.byPath.get(p)?.name ?? p)
 
   return <div className="manager-stack">
-    <input className="search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Ieškoti (${vocabulary.length})`} />
-    <button type="button" className="ingredient-add-chip" onClick={() => setCreating(true)}>＋ Pridėti naują ingredientą</button>
+    <div className="manager-sticky-header">
+      <input className="search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Ieškoti (${vocabulary.length})`} />
+      <button type="button" className="ingredient-add-chip" onClick={() => setCreating(true)}>＋ Pridėti naują ingredientą</button>
+    </div>
     <div className="manager-list">
       {filtered.map((ingredient) => (
         <div className="manager-row" key={ingredient.id}>
@@ -1894,8 +1932,22 @@ function IngredientChips({ value, vocabulary, onChange, categoryIndex, onCreateI
     setEntry('')
     setHighlight(0)
     if (!cleaned || taken.has(ingredientLookupKey(cleaned))) return
-    const isKnown = vocabulary.some((item) => ingredientLookupKey(item.name) === ingredientLookupKey(cleaned))
-    if (!isKnown && categoryIndex && onCreateIngredient) {
+    const key = ingredientLookupKey(cleaned)
+    const exactVocab = vocabulary.find((item) => ingredientLookupKey(item.name) === key)
+    if (exactVocab) {
+      onChange([...value, exactVocab.name])
+      return
+    }
+    const fuzzyMatch = vocabulary
+      .filter((item) => !taken.has(ingredientLookupKey(item.name)))
+      .map((item) => ({ item, score: titleSimilarity(cleaned, item.name) }))
+      .filter((row) => row.score >= 0.65)
+      .sort((a, b) => b.score - a.score)[0]
+    if (fuzzyMatch) {
+      onChange([...value, fuzzyMatch.item.name])
+      return
+    }
+    if (categoryIndex && onCreateIngredient) {
       setPendingNew(cleaned)
       return
     }

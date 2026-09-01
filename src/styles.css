@@ -79,6 +79,7 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .recent-chip small { margin-top: 2px; color: var(--muted); font-size: .7rem; }
 
 .toolbar, .picker-actions { display: flex; gap: 10px; }
+.picker-actions { position: sticky; z-index: 1; top: -8px; margin: -8px -20px 0; padding: 8px 20px 10px; background: var(--paper); }
 .search { width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; outline: none; background: rgba(255,255,255,.7); }
 .search:focus, input:focus, textarea:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(217, 121, 60, .12); }
 .import-button { justify-self: start; margin: -4px 0 2px; }
@@ -195,9 +196,10 @@ textarea { resize: vertical; line-height: 1.5; }
 .settings-meta { display: grid; gap: 4px; margin: 20px 0; padding: 14px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
 .settings-meta strong { color: var(--ink); overflow-wrap: anywhere; }
 .manager-stack { display: grid; gap: 12px; }
+.manager-sticky-header { position: sticky; z-index: 1; top: -8px; display: grid; gap: 12px; margin: -8px -20px 0; padding: 8px 20px 12px; background: var(--paper); }
 .manager-create { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .7fr) auto; gap: 8px; }
 .manager-create.category-create { grid-template-columns: 1fr auto; }
-.manager-list { display: grid; max-height: min(50vh, 430px); overflow-y: auto; border-top: 1px solid var(--line); }
+.manager-list { display: grid; border-top: 1px solid var(--line); }
 .manager-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
 .manager-row strong, .manager-row small { display: block; }
 .manager-row strong { overflow-wrap: anywhere; font-size: .84rem; }
