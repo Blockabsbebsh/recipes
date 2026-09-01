@@ -12,8 +12,6 @@
 import { ingredientNameWithoutQuantity, normalizeTitle, titleSimilarity } from './parser.js'
 
 export const BARBORA_ORIGIN = 'https://barbora.lt'
-export const BARBORA_ANDROID_PACKAGE = 'lt.barbora'
-
 /**
  * The live shopping URL for a path discovered by the crawler.
  *
@@ -24,18 +22,6 @@ export const BARBORA_ANDROID_PACKAGE = 'lt.barbora'
  */
 export function shoppingUrl(path) {
   return `${BARBORA_ORIGIN}${path}`
-}
-
-/**
- * Ask Chrome on Android to deliver a live Barbora URL directly to its app.
- * Chrome opens the encoded HTTPS fallback when the package or route cannot
- * handle the intent, so this experiment never substitutes a known-dead path.
- */
-export function androidShoppingIntentUrl(url) {
-  const target = new URL(url)
-  if (target.origin !== BARBORA_ORIGIN) return url
-  const route = `${target.host}${target.pathname}${target.search}`
-  return `intent://${route}#Intent;scheme=https;package=${BARBORA_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(target.href)};end`
 }
 
 /**
@@ -81,6 +67,12 @@ export const CATEGORY_ALIASES = {
   // The shop files these proteins outside the dairy-alternatives aisle.
   seitanas: '/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/augaliniai-mesos-pakaitalai',
   tempe: '/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/augaliniai-mesos-pakaitalai',
+  // Dry-vs-canned disambiguation for ingredients the tree sells both ways.
+  avinzirniai: '/bakaleja/kruopos/lesiai-avinzirniai-zirniai-ir-pupeles',
+  'konservuoti avinzirniai': '/bakaleja/konservuotas-maistas/konservuoti-lesiai-ir-avinzirniai',
+  'konservuoti kukuruzai': '/bakaleja/konservuotas-maistas/konservuoti-zirneliai-ir-kukuruzai',
+  'skaldyti pomidorai': '/bakaleja/konservuotas-maistas/konservuoti-pomidorai',
+  'sauleje dziovinti pomidorai': '/bakaleja/konservuotas-maistas/konservuoti-sauleje-dziovinti-pomidorai',
   // Individual frozen vegetables share one honest shelf.
   edamame: '/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos/saldytos-darzoves-grybai-ir-ju-misiniai',
   'saldyti kukuruzai': '/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos/saldytos-darzoves-grybai-ir-ju-misiniai',

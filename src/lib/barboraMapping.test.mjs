@@ -4,11 +4,9 @@ import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 
 import {
-  BARBORA_ANDROID_PACKAGE,
   BARBORA_ORIGIN,
   CATEGORY_ALIASES,
   SECTION_ROOTS,
-  androidShoppingIntentUrl,
   buildCategoryIndex,
   categoryTerms,
   descendantsOf,
@@ -71,15 +69,6 @@ test('every section fallback is a real catalogue path', () => {
   }
 })
 
-test('builds an Android intent around the live URL with an HTTPS fallback', () => {
-  const live = `${BARBORA_ORIGIN}/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai`
-  assert.equal(
-    androidShoppingIntentUrl(live),
-    `intent://barbora.lt/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai#Intent;scheme=https;package=${BARBORA_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(live)};end`,
-  )
-  assert.equal(androidShoppingIntentUrl('https://example.com/category'), 'https://example.com/category')
-})
-
 test('reads a category label as the several answers it holds', () => {
   // Normalizing strips the comma, so the split has to happen first.
   assert.deepEqual(categoryTerms('Bulvės, morkos ir kopūstai'), ['bulves', 'morkos', 'kopustai'])
@@ -123,9 +112,20 @@ test('retreats to the parent when the shop sells it in two places', () => {
 })
 
 test('refuses to choose when the branches share nothing but the section', () => {
-  // Chickpeas are sold tinned and dry, in different aisles. Guessing either
-  // sends someone to the wrong end of the shop.
-  assert.equal(map('Avinžirniai', 'Pantry'), null)
+  // Cereal flakes are sold as breakfast cereal and as oat flakes, in different
+  // aisles. Guessing either sends someone to the wrong end of the shop.
+  assert.equal(map('Dribsniai', 'Pantry'), null)
+})
+
+test('resolves chickpeas to dry via alias and canned via a specific name', () => {
+  assert.deepEqual(map('Avinžirniai', 'Pantry'), {
+    path: '/bakaleja/kruopos/lesiai-avinzirniai-zirniai-ir-pupeles',
+    reason: 'alias',
+  })
+  assert.deepEqual(map('Konservuoti avinžirniai', 'Pantry'), {
+    path: '/bakaleja/konservuotas-maistas/konservuoti-lesiai-ir-avinzirniai',
+    reason: 'alias',
+  })
 })
 
 test('leaves an ingredient alone when nothing matches', () => {
