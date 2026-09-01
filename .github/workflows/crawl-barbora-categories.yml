@@ -1,0 +1,76 @@
+# Rebuilds the Barbora category catalogue.
+#
+# Manual only for now. The schedule is added after two successful production
+# runs, per docs/barbora-category-integration.md, and the Supabase publication
+# step is added together with the catalogue table. Until then the run produces
+# a reviewed artifact and changes nothing.
+
+name: Crawl Barbora categories
+
+on:
+  workflow_dispatch:
+    inputs:
+      dump-html:
+        description: Keep the fetched HTML in the artifact for debugging
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Two catalogue runs must never overlap, and a running crawl is worth more
+# than a newer request for one.
+concurrency:
+  group: barbora-catalogue
+  cancel-in-progress: false
+
+env:
+  PLAYWRIGHT_VERSION: 1.62.1
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # The parser, tree, validation, and robots tests run before the crawl so
+      # a broken build fails without touching Barbora.
+      - run: npm test
+
+      # Playwright is installed here rather than in package.json so the Pages
+      # deployment does not carry a browser automation dependency.
+      - name: Install Playwright
+        run: |
+          npm i --no-save "playwright@${PLAYWRIGHT_VERSION}"
+          npx playwright install --with-deps chromium
+
+      - name: Crawl
+        env:
+          DUMP_HTML: ${{ inputs.dump-html && '--dump-html crawl/html' || '' }}
+        run: >-
+          node scripts/barbora/crawl.js
+          --out crawl/barbora-categories.json
+          --previous data/barbora-categories.json
+          --report crawl/report.json
+          $DUMP_HTML
+
+      - name: Summarise the run
+        if: always()
+        run: node scripts/barbora/summarise.js crawl/report.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the catalogue and diff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: barbora-categories
+          path: crawl/
+          if-no-files-found: warn
+          retention-days: 30

@@ -55,9 +55,23 @@ Every public table has RLS. Policies authorize through `household_members`, not 
 
 Recipe classifications reuse the existing normalized tag relation. Machine-readable names use `Tipas: ` for the single dish-type axis and `Virtuvė: ` for cuisine; the UI removes those prefixes. Dish type controls library grouping, while both axes participate in search. New recipes are classified locally with deterministic Lithuanian/English keyword rules and can be corrected in the editor.
 
+## Barbora category catalogue
+
+`data/barbora-categories.json` is the reviewed snapshot of Barbora's shopping hierarchy: 636 categories under 11 top-level aisles, three levels deep. It is rebuilt by the category-only crawler in `scripts/barbora/`, which reads one page per top-level aisle because each of those pages already renders its whole child and grandchild tree. Nothing about products, prices, or stock is crawled.
+
+```bash
+npm i --no-save playwright@1.62.1
+npx playwright install --with-deps chromium
+npm run crawl:barbora
+```
+
+A run that Barbora blocks, or that fails any validation check, writes nothing and leaves the previous catalogue in place. The **Crawl Barbora categories** workflow runs the same crawl on demand and uploads the result and its diff as an artifact. Details are in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
+
 ## Current MVP limits
 
 - The importer parses checkboxes, numbering, dish names, and comma-separated ingredients, but preserves the source language. Automated translation needs a separate model/API and review rules.
 - Ingredient quantities and shopping-item checkboxes are intentionally absent.
 - Barbora ingredient links use HTTPS search URLs. The Settings link test compares search, Android intent, category, and exact-product routes because native-app opening is controlled by Barbora's iOS/Android association files and the device. Basket aisle headings use Barbora category URLs, which are more stable than exact product SKUs.
+- Device testing confirmed that ordinary Barbora category HTTPS URLs open the Android app directly. On iOS, choosing **Open in Barbora** once from a long-pressed category link in Notes restored the device's Universal Link preference, after which the same links opened Barbora from this PWA.
+- The crawled category catalogue exists, but nothing reads it yet: per-ingredient mappings, the manual tree picker, the switch away from search URLs, and PWA state restoration are still planned in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
 - No recipe images or licensing machinery.

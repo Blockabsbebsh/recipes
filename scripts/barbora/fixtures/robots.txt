@@ -1,0 +1,10 @@
+# Trimmed copy of the shape barbora.lt serves. Only used by the crawler's
+# robots test; the live file is read at crawl time.
+User-agent: *
+Disallow: /paieska
+Disallow: /krepselis
+Disallow: /produktai/*?
+Allow: /
+
+User-agent: SemrushBot
+Disallow: /
