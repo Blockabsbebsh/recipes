@@ -9,6 +9,12 @@
 //   node scripts/barbora/crawl.js --out data/barbora-categories.json \
 //     --previous data/barbora-categories.json
 //
+// If Barbora answers with a consent wall or a 403, borrow a real browser and
+// keep its profile, answering the cookie banner once by hand:
+//
+//   node scripts/barbora/crawl.js --headed --channel chrome \
+//     --profile tmp/barbora-profile --delay 5000
+//
 // The run fails, and writes no output, unless the result passes validation.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -41,21 +47,40 @@ const TREE_SELECTORS = [
   'main',
 ]
 
+/** Record a warning and say it out loud: a failed run still owes its reasons. */
+function warn(warnings, message) {
+  warnings.push(message)
+  log(`warning: ${message}`)
+}
+
 async function main(options, warnings) {
   const previous = await readJson(options.previous)
 
   const { chromium } = await importPlaywright()
-  // Runners that ship their own Chromium (and Playwright's own installs on a
+
+  // Runners that ship their own Chromium (and Playwright installs on a
   // different build number) are handled by pointing at the binary directly.
-  const browser = await chromium.launch({
+  // `--channel chrome` uses the browser already on the machine instead, which
+  // a shop's bot protection treats far more kindly.
+  const launch = {
     headless: !options.headed,
-    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
-  })
-  const context = await browser.newContext({
-    userAgent: USER_AGENT,
+    channel: options.channel ?? undefined,
+    executablePath: options.channel ? undefined : process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
+  }
+  const contextOptions = {
+    userAgent: options.channel ? undefined : USER_AGENT,
     locale: 'lt-LT',
     viewport: { width: 1366, height: 900 },
-  })
+  }
+
+  // A persistent profile keeps the cookie banner answered between runs, so the
+  // second crawl sees the catalogue rather than the consent wall.
+  const browser = options.profile
+    ? null
+    : await chromium.launch(launch)
+  const context = browser
+    ? await browser.newContext(contextOptions)
+    : await chromium.launchPersistentContext(options.profile, { ...launch, ...contextOptions })
 
   try {
     const robots = await readRobots(context, options.origin, warnings)
@@ -69,13 +94,13 @@ async function main(options, warnings) {
     const pages = []
     for (const root of roots) {
       if (robots && !isAllowed(robots, root, USER_AGENT.toLowerCase())) {
-        warnings.push(`robots.txt disallows ${root}; it was not crawled`)
+        warn(warnings, `robots.txt disallows ${root}; it was not crawled`)
         continue
       }
 
       const links = await crawlRoot(page, root, options, warnings)
       if (links.length <= 1) {
-        warnings.push(`${root} exposed no child categories and was skipped`)
+        warn(warnings, `${root} exposed no child categories and was skipped`)
         continue
       }
       log(`  ${root} → ${links.length} categories`)
@@ -89,7 +114,7 @@ async function main(options, warnings) {
     const catalogue = serializeCatalogue(categories)
     const result = validateCatalogue(catalogue, { previous })
 
-    for (const warning of [...warnings, ...result.warnings]) log(`warning: ${warning}`)
+    for (const warning of result.warnings) log(`warning: ${warning}`)
 
     await writeReport(options, { catalogue, result, warnings, roots })
 
@@ -105,7 +130,7 @@ async function main(options, warnings) {
     log(`Diff against the previous catalogue: ${describeDiff(result.diff)}`)
   } finally {
     await context.close()
-    await browser.close()
+    await browser?.close()
   }
 }
 
@@ -124,12 +149,12 @@ async function crawlRoot(page, root, options, warnings) {
 
       const { selector, anchors } = await extractAnchors(page)
       if (selector === null) {
-        warnings.push(`No category tree container matched on ${root}; read the whole document`)
+        warn(warnings, `No category tree container matched on ${root}; read the whole document`)
       }
       return collectLinks(anchors, { root, base: url, hosts: hostsFor(options.origin) })
     } catch (error) {
       if (attempt > options.retries) throw error
-      warnings.push(`Retrying ${root} after: ${error.message}`)
+      warn(warnings, `Retrying ${root} after: ${error.message}`)
       await sleep(options.delay * attempt * 2)
     }
   }
@@ -159,7 +184,7 @@ async function discoverRoots(page, options, warnings) {
 
   const missing = REQUIRED_ROOTS.filter((root) => !discovered.includes(root))
   if (missing.length > 0) {
-    warnings.push(`Navigation did not list ${missing.join(', ')}; crawling them anyway`)
+    warn(warnings, `Navigation did not list ${missing.join(', ')}; crawling them anyway`)
   }
 
   return [...discovered, ...missing]
@@ -204,12 +229,12 @@ async function readRobots(context, origin, warnings) {
   try {
     const response = await context.request.get(`${origin}/robots.txt`)
     if (!response.ok()) {
-      warnings.push(`robots.txt returned HTTP ${response.status()}; continuing`)
+      warn(warnings, `robots.txt returned HTTP ${response.status()}; continuing`)
       return null
     }
     text = await response.text()
   } catch (error) {
-    warnings.push(`Could not read robots.txt (${error.message}); continuing`)
+    warn(warnings, `Could not read robots.txt (${error.message}); continuing`)
     return null
   }
 
@@ -273,6 +298,8 @@ async function importPlaywright() {
 function parseArgs(argv) {
   const options = {
     origin: BARBORA_ORIGIN,
+    channel: null,
+    profile: null,
     out: 'data/barbora-categories.json',
     previous: null,
     report: null,
@@ -300,6 +327,8 @@ function parseArgs(argv) {
       case '--report': options.report = value(); break
       case '--dump-html': options.dumpHtml = value(); break
       case '--roots': options.roots = value().split(',').map((root) => root.trim()).filter(Boolean); break
+      case '--channel': options.channel = value(); break
+      case '--profile': options.profile = value(); break
       case '--headed': options.headed = true; break
       case '--delay': options.delay = Number(value()); break
       case '--timeout': options.timeout = Number(value()); break
