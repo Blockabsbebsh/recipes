@@ -141,15 +141,31 @@ export async function appswitch(page, base) {
   await page.evaluate((y) => window.scrollTo(0, y), target)
   await page.waitForTimeout(600)
 
-  // Backgrounded, moved by the system while hidden, then reopened.
+  // iOS may move the web view before it reports the page as hidden. This is
+  // deliberately the opposite order from the next case: a guard that only
+  // ignores scroll events after visibilityState changes would otherwise pass
+  // the harness while still recording the system's transient zero.
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await page.waitForTimeout(200)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(200)
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(800)
+  let now = await scrollY(page)
+  if (Math.abs(now - target) > 40) findings.push(`switching away when the web view moved first left the library at ${now}px instead of ${target}px`)
+
+  // The inverse event order must work too: hidden first, then moved by the
+  // system, then reopened.
+  await page.evaluate((y) => window.scrollTo(0, y), target)
+  await page.waitForTimeout(400)
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(200)
   await page.evaluate(() => window.scrollTo(0, 0))
   await page.waitForTimeout(200)
   await setVisibility(page, 'visible')
   await page.waitForTimeout(800)
-  let now = await scrollY(page)
-  if (Math.abs(now - target) > 40) findings.push(`switching away and back left the library at ${now}px instead of ${target}px`)
+  now = await scrollY(page)
+  if (Math.abs(now - target) > 40) findings.push(`switching away after the page was hidden left the library at ${now}px instead of ${target}px`)
 
   // Backgrounded with a modal open, which parks the body at the top.
   await page.evaluate((y) => window.scrollTo(0, y), target)
