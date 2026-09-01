@@ -228,6 +228,7 @@ textarea { resize: vertical; line-height: 1.5; }
   .manager-edit { grid-template-columns: 1fr; }
   .manager-edit > div { grid-column: auto; }
   .manager-row { gap: 8px; }
+  input, textarea, select { font-size: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -272,7 +273,11 @@ textarea { resize: vertical; line-height: 1.5; }
 .category-field-button small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .category-field-button b { flex: 0 0 auto; color: var(--muted); font-weight: 400; }
 .category-hint { color: var(--muted); }
-.direct-url-field { grid-column: 1 / -1; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: inherit; font: inherit; font-size: .78rem; }
+.ingredient-add-chip { display: block; width: 100%; padding: 14px 18px; border: 1px dashed var(--line); border-radius: 14px; background: transparent; color: var(--muted); font-size: .88rem; font-weight: 700; text-align: center; cursor: pointer; transition: border-color .15s ease, color .15s ease; }
+.ingredient-add-chip:hover { border-color: var(--orange); color: var(--orange-dark); }
+.ingredient-form-actions { display: flex; gap: 10px; }
+.ingredient-form-meta { margin: -4px 0 0; font-size: .82rem; }
+.ingredient-form-delete { margin-top: -4px; font-size: .8rem; }
 .category-crumbs { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 10px; }
 .category-crumbs button { padding: 4px 6px; border: 0; background: none; color: var(--muted); font: inherit; font-size: .9rem; }
 .category-crumbs button:last-child { color: var(--ink); font-weight: 600; }
