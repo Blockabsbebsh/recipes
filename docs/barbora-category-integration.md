@@ -2,7 +2,7 @@
 
 How a shopping-list ingredient becomes a link that opens the right category in the Barbora app.
 
-Built and in use, apart from PWA state restoration; **Outstanding work** at the end lists what is left. Written against the state of the shop on 2026-09-01.
+Built and in use; **Outstanding work** at the end lists the remaining device checks and crawler limitation. Written against the state of the shop on 2026-09-01.
 
 ## Outcome
 
@@ -120,7 +120,9 @@ Worked examples:
 - `Sojų padažas` needs an alias: "Sojų, terijakio ir vorčesterio padažai" names the sauce, not the bean.
 - `Druska` needs an alias: salt is filed under sugar and baking, not spices.
 
-The mapper runs when an ingredient is created or renamed, and ran once as a reviewed backfill (`supabase/migrations/20260901132804_backfill_barbora_mappings.sql`) covering **66 of the household's 217 ingredients**. Only `automatic` mappings are ever recomputed; a `manual` one survives catalogue refreshes, backfills, and renames. With no catalogue loaded the mapper has no opinion and the columns are left alone, so a slow fetch cannot wipe a good mapping.
+The mapper runs when an ingredient is created or renamed. The original reviewed backfill covered 66 ingredients; `20260901135707_expand_reviewed_barbora_mappings.sql` adds reviewed synonyms and combined-category cases. The live household now has **200 of 217 ingredients mapped**, including olives, named cheeses, grains, sauces, produce, and spices. The remaining 17 are deliberately broad because the tree cannot distinguish them safely. Only `automatic` mappings are ever recomputed; a `manual` one survives catalogue refreshes, backfills, and renames. With no catalogue loaded the mapper has no opinion and the columns are left alone, so a slow fetch cannot wipe a good mapping.
+
+The 17 broad fallbacks on 2026-09-01 are: artišokai; avinžirniai; baltosios, juodosios, and sojos pupelės; ordinary and panko breadcrumbs; falafel; gnocchi; gochujang; curry and miso pastes; coconut milk and cream; yeast and nutritional yeast; and rice noodles. Those are split across several plausible Barbora branches or have no matching shelf in the published tree, so the app does not pretend to know which one is right.
 
 ## Category tree picker
 
@@ -157,25 +159,24 @@ Neither is discoverable by crawling, because the disagreement is between Barbora
 - iOS initially opened every tested URL in an embedded browser. Pasting a category URL into Notes, long-pressing it and choosing **Open in Barbora** restored the domain's Universal Link preference, after which the same links opened the app from this PWA.
 - **Whether the option appears at all is decided by Barbora's association file, not by anything in this app.** The two quirks above are the reason a link that looks correct can still open a browser.
 - `target="_blank"` matters: native links hand off to Barbora, and the browser fallback does not navigate the PWA away from its current screen.
-- **Nuorodų testas** in Settings keeps one representative category link and the iOS Notes recovery instructions. An ordinary category link falls back to a browser when Barbora is not installed or the association is unavailable.
+- The temporary **Nuorodų testas** screen was removed after device behavior was established. An ordinary category link falls back to a browser when Barbora is not installed or the association is unavailable.
 
 ## Outstanding work
 
-1. **PWA state restoration** — the only unbuilt part of the original plan; see below.
-2. **Device regression testing** on both phones, now that links go through `shoppingUrl`.
-3. **The crawler is parked**, so no `schedule` on the workflow and no successful production run of it yet. An offline mode parsing hand-saved pages is the likeliest way forward.
-4. **A migration-history drift predating this work**: the database's recorded history jumps from `20260831181818` to the Barbora migrations, while the repository carries three files from `20260831192512`–`20260831220714` whose effects are present in the data under different recorded names. `supabase db pull` is the way to reconcile the checked-in SQL with the live schema.
+1. **Device regression testing** on both phones, now that links go through `shoppingUrl` and more ingredients use deep paths.
+2. **The crawler is parked**, so no `schedule` on the workflow and no successful production run of it yet. An offline mode parsing hand-saved pages is the likeliest way forward.
+3. **A migration-history drift predating this work**: the database's recorded history jumps from `20260831181818` to the Barbora migrations, while the repository carries three files from `20260831192512`–`20260831220714` whose effects are present in the data under different recorded names. `supabase db pull` is the way to reconcile the checked-in SQL with the live schema.
 
 ### PWA state restoration
 
-The top-level `tab` and the library's expanded recipe are React-only state, lost if iOS discards and reloads the PWA. Persist a small versioned, non-sensitive object keyed by user and household:
+The app persists a small versioned, non-sensitive object in `localStorage`, keyed by user and household:
 
 - active top-level tab;
 - scroll position per tab;
 - expanded library recipe ID, if still present after data reload;
-- optionally the Settings subview, but never restore destructive confirmation dialogs.
+- no Settings subview, modal, destructive confirmation, secret, or whole Supabase record.
 
-Use `localStorage` rather than memory-only React state so a process eviction can be recovered. Save on state changes and on `pagehide`/`visibilitychange`; restore after auth, household, and data are ready. Set browser scroll restoration deliberately and restore scroll after the tab has rendered, usually with `requestAnimationFrame`. Clear or switch the keyed state on sign-out or household change. Do not persist secrets or whole Supabase records; unsaved recipe-editor drafts are separate future work.
+State is saved as it changes and on `pagehide`/`visibilitychange`, then restored only after auth, household, and the first successful data load are ready. Browser scroll restoration is set to manual and scrolling waits for the selected tab to render. A different account or household uses a different key. Unsaved recipe-editor drafts remain separate future work.
 
 ## Tests
 
@@ -191,7 +192,7 @@ Use `localStorage` rather than memory-only React state so a process eviction can
 Left to manual acceptance:
 
 - On Android, and on iOS with the preference set, a mapped ingredient opens the correct category in the Barbora app.
-- Without that preference, the browser fallback opens and closing it returns to the same tab and scroll position — which needs state restoration first.
+- Without that preference, the browser fallback opens and closing it returns to the same tab and scroll position.
 - Descending several levels, returning through breadcrumbs, cancelling without saving, and resetting to automatic.
 - A failed crawler run leaves every previously published link working.
 
