@@ -12,8 +12,6 @@
 import { ingredientNameWithoutQuantity, normalizeTitle, titleSimilarity } from './parser.js'
 
 export const BARBORA_ORIGIN = 'https://barbora.lt'
-export const BARBORA_ANDROID_PACKAGE = 'lt.barbora'
-
 /**
  * The live shopping URL for a path discovered by the crawler.
  *
@@ -24,18 +22,6 @@ export const BARBORA_ANDROID_PACKAGE = 'lt.barbora'
  */
 export function shoppingUrl(path) {
   return `${BARBORA_ORIGIN}${path}`
-}
-
-/**
- * Ask Chrome on Android to deliver a live Barbora URL directly to its app.
- * Chrome opens the encoded HTTPS fallback when the package or route cannot
- * handle the intent, so this experiment never substitutes a known-dead path.
- */
-export function androidShoppingIntentUrl(url) {
-  const target = new URL(url)
-  if (target.origin !== BARBORA_ORIGIN) return url
-  const route = `${target.host}${target.pathname}${target.search}`
-  return `intent://${route}#Intent;scheme=https;package=${BARBORA_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(target.href)};end`
 }
 
 /**

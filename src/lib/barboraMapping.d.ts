@@ -8,9 +8,7 @@ export type CategoryIndex = {
 export type CategoryProposal = { path: string; reason: BarboraMappingReason }
 
 export const BARBORA_ORIGIN: string
-export const BARBORA_ANDROID_PACKAGE: string
 export function shoppingUrl(path: string): string
-export function androidShoppingIntentUrl(url: string): string
 export const SECTION_ROOTS: Record<IngredientSection, string | null>
 export const CATEGORY_ALIASES: Record<string, string>
 export function categoryTerms(name: string): string[]

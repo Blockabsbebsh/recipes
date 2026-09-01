@@ -4,11 +4,9 @@ import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 
 import {
-  BARBORA_ANDROID_PACKAGE,
   BARBORA_ORIGIN,
   CATEGORY_ALIASES,
   SECTION_ROOTS,
-  androidShoppingIntentUrl,
   buildCategoryIndex,
   categoryTerms,
   descendantsOf,
@@ -69,15 +67,6 @@ test('every section fallback is a real catalogue path', () => {
     if (root === null) continue
     assert.ok(index.byPath.has(root), `${root} is absent from the crawled catalogue`)
   }
-})
-
-test('builds an Android intent around the live URL with an HTTPS fallback', () => {
-  const live = `${BARBORA_ORIGIN}/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai`
-  assert.equal(
-    androidShoppingIntentUrl(live),
-    `intent://barbora.lt/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai#Intent;scheme=https;package=${BARBORA_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(live)};end`,
-  )
-  assert.equal(androidShoppingIntentUrl('https://example.com/category'), 'https://example.com/category')
 })
 
 test('reads a category label as the several answers it holds', () => {

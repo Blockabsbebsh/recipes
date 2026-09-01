@@ -144,7 +144,7 @@ An optional tree search may be added later, but it must navigate to a result ins
 
 - An ingredient with an active mapping links to that category; otherwise to its section's aisle; otherwise it stays plain text rather than inventing a URL.
 - The ingredient name itself is the clickable text. Section headings link to their aisle.
-- iOS gets a plain user-clicked HTTPS link with `target="_blank"`. Android gets an explicit `intent://` link for package `lt.barbora`, carrying the exact same HTTPS URL as `browser_fallback_url`. There are no exact-product or `/paieska` links.
+- Every link is a plain HTTPS link with `target="_blank"`. There are no exact-product or `/paieska` links.
 
 **Every link goes through `shoppingUrl`**, and it preserves the crawler path exactly. Barbora's association files are not a catalogue and are no longer used to rewrite URLs:
 
@@ -156,15 +156,14 @@ An optional tree search may be added later, but it must navigate to a result ins
 
 ## Device behavior
 
-- Android tries an explicit package intent containing the current live category path. If Barbora does not accept the intent, Chrome opens the encoded live HTTPS fallback. This is intentionally an experiment and needs checking on a phone.
+- All links are plain HTTPS with `target="_blank"`. Whether the link opens the Barbora app or a browser tab is decided by the OS and Barbora's association files, not by anything in this app.
 - iOS initially opened every tested URL in an embedded browser. Pasting a category URL into Notes, long-pressing it and choosing **Open in Barbora** restored the domain's Universal Link preference, after which the same links opened the app from this PWA.
-- **Whether the option appears at all is decided by Barbora's association file, not by anything in this app.** The two quirks above are the reason a link that looks correct can still open a browser.
-- On iOS, `target="_blank"` keeps a browser fallback from navigating the PWA away from its current screen. Android intents are opened in the current browsing context because they hand off directly or use their own fallback.
+- The Android `intent://` experiment for package `lt.barbora` was removed because the app did not handle the intent. Plain HTTPS links let Android's own App Links or Digital Asset Links do the right thing when Barbora registers them.
 - The temporary **Nuorodų testas** screen was removed after device behavior was established. An ordinary category link falls back to a browser when Barbora is not installed or the association is unavailable.
 
 ## Outstanding work
 
-1. **Device regression testing** on both phones, especially the Android intent for the current dairy path and its browser fallback.
+1. **Device regression testing** on both phones, especially the iOS Universal Link preference for the current dairy path.
 2. **The crawler is parked**, so no `schedule` on the workflow and no successful production run of it yet. An offline mode parsing hand-saved pages is the likeliest way forward.
 3. **One pending migration-history entry**: the two recipe-import files have been renamed to the exact versions recorded remotely (`20260831181733` and `20260831181818`), after verifying their SQL hashes match the database. The classification backfill's effects are already present, but version `20260831220714` was never recorded. Reconcile it once with `supabase migration repair 20260831220714 --status applied --linked`, then verify with `supabase migration list --linked`. Do not use `db pull`, because this is data/migration history rather than missing schema. If repairing is unavailable, the migration is idempotent and may instead be replayed with `supabase db push --include-all`.
 

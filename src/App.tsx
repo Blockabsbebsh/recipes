@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { ingredientLookupKey, ingredientNameWithoutQuantity, parseRecipeList, titleSimilarity } from './lib/parser'
 import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
-import { SECTION_ROOTS, androidShoppingIntentUrl, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
+import { SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
 import type { CategoryIndex } from './lib/barboraMapping'
 import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
@@ -96,10 +96,9 @@ function formatRelative(dateValue: string | null) {
  */
 function BarboraLink({ href, children }: { href: string | null; children: ReactNode }) {
   if (href === null) return <>{children}</>
-  const android = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
   return <a
-    href={android ? androidShoppingIntentUrl(href) : href}
-    target={android ? undefined : '_blank'}
+    href={href}
+    target="_blank"
     rel="noopener noreferrer"
   >{children}</a>
 }
