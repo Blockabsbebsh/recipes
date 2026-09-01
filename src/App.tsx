@@ -10,6 +10,44 @@ import type { BarboraCategory, Household, HouseholdTag, IngredientSection, Queue
 type Tab = 'current' | 'library' | 'shop' | 'deleted'
 type RecipeDestination = 'library' | 'queue'
 
+type PersistedViewState = {
+  version: 1
+  tab: Tab
+  scrollByTab: Record<Tab, number>
+  expandedRecipeId: string | null
+}
+
+const EMPTY_SCROLL: Record<Tab, number> = { current: 0, library: 0, shop: 0, deleted: 0 }
+
+function viewStateKey(userId: string, householdId: string) {
+  return `recipes:view:v1:${userId}:${householdId}`
+}
+
+function readViewState(key: string): PersistedViewState | null {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) ?? 'null') as Partial<PersistedViewState> | null
+    if (!parsed || parsed.version !== 1 || !['current', 'library', 'shop', 'deleted'].includes(parsed.tab ?? '')) return null
+    const savedScroll = parsed.scrollByTab as Partial<Record<Tab, unknown>> | undefined
+    const scroll = (tab: Tab) => {
+      const value = savedScroll?.[tab]
+      return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0
+    }
+    return {
+      version: 1,
+      tab: parsed.tab as Tab,
+      scrollByTab: {
+        current: scroll('current'),
+        library: scroll('library'),
+        shop: scroll('shop'),
+        deleted: scroll('deleted'),
+      },
+      expandedRecipeId: typeof parsed.expandedRecipeId === 'string' ? parsed.expandedRecipeId : null,
+    }
+  } catch {
+    return null
+  }
+}
+
 const blankDraft = (): RecipeDraft => ({ title: '', ingredients: [], notes: '', sourceUrl: '', dishType: 'Kita', cuisine: 'Tarptautinė' })
 
 // Roughly the order a shop is walked, so the list reads top to bottom.
@@ -33,8 +71,6 @@ const SECTION_BARBORA_URLS = Object.fromEntries(
     .filter(([, path]) => path !== null)
     .map(([section, path]) => [section, shoppingUrl(path as string)]),
 ) as Partial<Record<IngredientSection, string>>
-
-const TEST_CATEGORY_URL = shoppingUrl('/darzoves-ir-vaisiai/darzoves-ir-grybai/pomidorai-ir-agurkai')
 
 function formatRelative(dateValue: string | null) {
   if (!dateValue) return 'Niekada'
@@ -113,6 +149,9 @@ function App() {
   const [roster, setRoster] = useState<RosterEntry[]>([])
   const [queue, setQueue] = useState<QueueEntry[]>([])
   const [tab, setTab] = useState<Tab>('current')
+  const [libraryExpanded, setLibraryExpanded] = useState<string | null>(null)
+  const [dataReady, setDataReady] = useState(false)
+  const [viewStateReady, setViewStateReady] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -122,6 +161,47 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [undo, setUndo] = useState<{ entryId: string; label: string } | null>(null)
   const undoTimer = useRef<number | null>(null)
+  const tabRef = useRef<Tab>('current')
+  const expandedRecipeRef = useRef<string | null>(null)
+  const scrollByTab = useRef<Record<Tab, number>>({ ...EMPTY_SCROLL })
+
+  const persistedViewKey = session && household ? viewStateKey(session.user.id, household.id) : null
+
+  function restoreScroll(nextTab: Tab) {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => window.scrollTo(0, scrollByTab.current[nextTab] ?? 0))
+    })
+  }
+
+  function saveViewState(captureScroll = true) {
+    if (!persistedViewKey || !viewStateReady) return
+    if (captureScroll) scrollByTab.current[tabRef.current] = window.scrollY
+    const state: PersistedViewState = {
+      version: 1,
+      tab: tabRef.current,
+      scrollByTab: scrollByTab.current,
+      expandedRecipeId: expandedRecipeRef.current,
+    }
+    try {
+      window.localStorage.setItem(persistedViewKey, JSON.stringify(state))
+    } catch {
+      // A full or unavailable localStorage must never make the app unusable.
+    }
+  }
+
+  function changeTab(nextTab: Tab) {
+    scrollByTab.current[tabRef.current] = window.scrollY
+    tabRef.current = nextTab
+    setTab(nextTab)
+    saveViewState(false)
+    restoreScroll(nextTab)
+  }
+
+  function changeExpandedRecipe(recipeId: string | null) {
+    expandedRecipeRef.current = recipeId
+    setLibraryExpanded(recipeId)
+    saveViewState(false)
+  }
 
   useEffect(() => {
     if (!message) return
@@ -142,6 +222,8 @@ function App() {
         setRecipes([])
         setRoster([])
         setQueue([])
+        setDataReady(false)
+        setViewStateReady(false)
       }
     })
     return () => data.subscription.unsubscribe()
@@ -249,7 +331,67 @@ function App() {
     setQueue((queueResult.data || []) as QueueEntry[])
     setVocabulary(vocabularyRows)
     setTags((tagResult.data || []) as HouseholdTag[])
+    setDataReady(true)
   }, [household])
+
+  useEffect(() => {
+    setDataReady(false)
+    setViewStateReady(false)
+  }, [household?.id])
+
+  useEffect(() => {
+    if (!persistedViewKey || !dataReady) return
+    const saved = readViewState(persistedViewKey)
+    const nextTab = saved?.tab ?? 'current'
+    const expandedStillExists = saved?.expandedRecipeId
+      ? recipes.some((recipe) => recipe.id === saved.expandedRecipeId && !recipe.deleted_at)
+      : false
+    scrollByTab.current = saved ? { ...EMPTY_SCROLL, ...saved.scrollByTab } : { ...EMPTY_SCROLL }
+    tabRef.current = nextTab
+    expandedRecipeRef.current = expandedStillExists ? saved?.expandedRecipeId ?? null : null
+    setTab(nextTab)
+    setLibraryExpanded(expandedRecipeRef.current)
+    setViewStateReady(true)
+    restoreScroll(nextTab)
+    // Restore once for this user/household after its first successful load.
+    // Realtime refreshes must not pull an older scroll position back in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistedViewKey, dataReady])
+
+  useEffect(() => {
+    if (!persistedViewKey || !viewStateReady) return
+    const save = () => {
+      scrollByTab.current[tabRef.current] = window.scrollY
+      const state: PersistedViewState = {
+        version: 1,
+        tab: tabRef.current,
+        scrollByTab: scrollByTab.current,
+        expandedRecipeId: expandedRecipeRef.current,
+      }
+      try {
+        window.localStorage.setItem(persistedViewKey, JSON.stringify(state))
+      } catch {
+        // A full or unavailable localStorage must never make the app unusable.
+      }
+    }
+    const rememberScroll = () => { scrollByTab.current[tabRef.current] = window.scrollY }
+    const saveWhenHidden = () => { if (document.visibilityState === 'hidden') save() }
+    window.addEventListener('scroll', rememberScroll, { passive: true })
+    window.addEventListener('pagehide', save)
+    document.addEventListener('visibilitychange', saveWhenHidden)
+    return () => {
+      save()
+      window.removeEventListener('scroll', rememberScroll)
+      window.removeEventListener('pagehide', save)
+      document.removeEventListener('visibilitychange', saveWhenHidden)
+    }
+  }, [persistedViewKey, viewStateReady])
+
+  useEffect(() => {
+    const previous = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+    return () => { window.history.scrollRestoration = previous }
+  }, [])
 
   // Global reference data, not household data: fetched once per session and
   // left alone. It changes when the crawler publishes, not when a recipe does.
@@ -744,7 +886,7 @@ function App() {
     if (completeError) setError(completeError.message)
     else {
       setMessage(`Apsipirkta — gaminimui paruoštų receptų: ${data}`)
-      setTab('current')
+      changeTab('current')
       await loadData()
     }
     setLoading(false)
@@ -861,6 +1003,8 @@ function App() {
             recipes={activeRecipes}
             categories={recipeCategories}
             lastCooked={lastCooked}
+            expanded={libraryExpanded}
+            onExpandedChange={changeExpandedRecipe}
             onAdd={() => setEditor({ destination: 'library' })}
             onImport={() => setImportOpen(true)}
             onEdit={(recipe) => setEditor({ recipe, destination: 'library' })}
@@ -885,10 +1029,10 @@ function App() {
       </main>
 
       <nav className="bottom-nav" aria-label="Pagrindinė navigacija">
-        <NavButton active={tab === 'current'} label="Meniu" icon={<BowlIcon />} onClick={() => setTab('current')} />
-        <NavButton active={tab === 'library'} label="Receptai" icon={<BookIcon />} onClick={() => setTab('library')} />
-        <NavButton active={tab === 'shop'} label="Krepšelis" icon={<BasketIcon />} badge={queue.length} onClick={() => setTab('shop')} />
-        <NavButton active={tab === 'deleted'} label="Ištrinti" icon={<TrashIcon />} onClick={() => setTab('deleted')} />
+        <NavButton active={tab === 'current'} label="Meniu" icon={<BowlIcon />} onClick={() => changeTab('current')} />
+        <NavButton active={tab === 'library'} label="Receptai" icon={<BookIcon />} onClick={() => changeTab('library')} />
+        <NavButton active={tab === 'shop'} label="Krepšelis" icon={<BasketIcon />} badge={queue.length} onClick={() => changeTab('shop')} />
+        <NavButton active={tab === 'deleted'} label="Ištrinti" icon={<TrashIcon />} onClick={() => changeTab('deleted')} />
       </nav>
 
       {editor && (
@@ -909,7 +1053,7 @@ function App() {
           queuedIds={new Set(queue.map((entry) => entry.recipe_id))}
           onClose={() => setPickerOpen(false)}
           onPick={(recipe) => {
-            if (tab === 'current') setTab('shop')
+            if (tab === 'current') changeTab('shop')
             void planRecipe(recipe, 'queue')
           }}
           onNew={() => { setPickerOpen(false); setEditor({ destination: 'queue' }) }}
@@ -1089,10 +1233,12 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
   )
 }
 
-function LibraryView({ recipes, categories, lastCooked, onAdd, onImport, onEdit, onQueue, onCurrent, onDelete }: {
+function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChange, onAdd, onImport, onEdit, onQueue, onCurrent, onDelete }: {
   recipes: Recipe[]
   categories: string[]
   lastCooked: (id: string) => string | null
+  expanded: string | null
+  onExpandedChange: (recipeId: string | null) => void
   onAdd: () => void
   onImport: () => void
   onEdit: (recipe: Recipe) => void
@@ -1101,7 +1247,6 @@ function LibraryView({ recipes, categories, lastCooked, onAdd, onImport, onEdit,
   onDelete: (recipe: Recipe) => void
 }) {
   const [search, setSearch] = useState('')
-  const [expanded, setExpanded] = useState<string | null>(null)
   const needle = search.trim().toLocaleLowerCase('lt')
   const filtered = recipes.filter((recipe) => {
     const tags = recipeTagNames(recipe).map((name) => name.replace(DISH_TAG_PREFIX, '').replace(CUISINE_TAG_PREFIX, ''))
@@ -1131,7 +1276,7 @@ function LibraryView({ recipes, categories, lastCooked, onAdd, onImport, onEdit,
                   const cookedAt = lastCooked(recipe.id)
                   return (
                     <article className={`recipe-tile ${isExpanded ? 'expanded' : ''}`} key={recipe.id}>
-                      <button className="recipe-tile-summary" aria-expanded={isExpanded} onClick={() => setExpanded(isExpanded ? null : recipe.id)}>
+                      <button className="recipe-tile-summary" aria-expanded={isExpanded} onClick={() => onExpandedChange(isExpanded ? null : recipe.id)}>
                         <span className="recipe-tile-copy"><strong>{recipe.title}</strong><small>{cookedAt ? `Gaminta ${formatRelative(cookedAt).toLocaleLowerCase('lt')}` : 'Dar negaminta'}</small></span>
                         <span className="recipe-tile-meta"><span>{cuisineFor(recipe)}</span><i>{recipe.recipe_ingredients.length}</i></span>
                         <span className="recipe-tile-chevron" aria-hidden="true">⌄</span>
@@ -1344,14 +1489,14 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, cat
   onDeleteCategory: (category: HouseholdTag) => Promise<void>
   onClose: () => void
 }) {
-  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories' | 'links'>('menu')
+  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories'>('menu')
   const [copied, setCopied] = useState(false)
   async function copyCode() {
     await navigator.clipboard.writeText(household.invite_code)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
-  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : view === 'links' ? 'Nuorodų testas' : 'Nustatymai'
+  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : 'Nustatymai'
   return (
     <Modal title={title} onClose={onClose} wide={view === 'ingredients'}>
       {view === 'menu' && <>
@@ -1359,7 +1504,6 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, cat
           <button onClick={() => setView('invite')}><span><strong>Pakviesti prisijungti</strong><small>Virtuvės kodas kitam žmogui</small></span><b>›</b></button>
           <button onClick={() => setView('ingredients')}><span><strong>Ingredientai</strong><small>Pavadinimai ir skyriai parduotuvėje</small></span><b>›</b></button>
           <button onClick={() => setView('categories')}><span><strong>Receptų kategorijos</strong><small>Grupės receptų bibliotekoje</small></span><b>›</b></button>
-          <button onClick={() => setView('links')}><span><strong>Nuorodų testas</strong><small>Patikrinti naršyklę ir „Barbora“ programėlę</small></span><b>›</b></button>
         </div>
         <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
         <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Atsijungti</button>
@@ -1377,34 +1521,8 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, cat
         <SettingsBack onClick={() => setView('menu')} />
         <RecipeCategoriesManager categories={categories} recipes={recipes} onCreate={onCreateCategory} onUpdate={onUpdateCategory} onDelete={onDeleteCategory} />
       </>}
-      {view === 'links' && <>
-        <SettingsBack onClick={() => setView('menu')} />
-        <LinkTestPanel />
-      </>}
     </Modal>
   )
-}
-
-function LinkTestPanel() {
-  const [copied, setCopied] = useState(false)
-  const iosNavigator = navigator as Navigator & { standalone?: boolean }
-  const platform = /Android/i.test(navigator.userAgent) ? 'Android' : /iPad|iPhone|iPod/i.test(navigator.userAgent) ? 'iOS' : 'Kita sistema'
-  const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean(iosNavigator.standalone)
-
-  async function copyCategoryUrl() {
-    await navigator.clipboard.writeText(TEST_CATEGORY_URL)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1800)
-  }
-
-  return <div className="link-test">
-    <p className="muted">Aplinka: <strong>{platform}</strong> · {standalone ? 'įdiegta programėlė' : 'naršyklė'}. Pirkinių sąraše naudojamos paprastos kategorijų nuorodos — tokios pat, kaip ši.</p>
-    <div className="link-test-list">
-      <a href={TEST_CATEGORY_URL} target="_blank" rel="noopener noreferrer"><span><strong>Pomidorų kategorija</strong><small>Tokia pati nuoroda, kokią atveria ingredientai</small></span><b>↗</b></a>
-      <button onClick={() => void copyCategoryUrl()}><span><strong>Kopijuoti kategorijos nuorodą</strong><small>{copied ? 'Nukopijuota!' : 'Reikalinga iOS atkūrimo veiksmui'}</small></span><b>⧉</b></button>
-    </div>
-    <p className="form-notice">Jei nuoroda atsidaro naršyklėje, o ne „Barbora“ programėlėje: nukopijuokite ją, įklijuokite į „Užrašinę“, palaikykite paspaudę ir pasirinkite <strong>Atidaryti su „Barbora“</strong>. Po to programėlė bus atsiminta. Jei „Barbora“ neįdiegta, nuoroda tiesiog atsidarys naršyklėje.</p>
-  </div>
 }
 
 function SettingsBack({ onClick }: { onClick: () => void }) {

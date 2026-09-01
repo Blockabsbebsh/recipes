@@ -63,7 +63,7 @@ An ingredient links to the Barbora category it is sold in, so a tap opens the sh
 
 - **The catalogue.** `data/barbora-categories.json` is the reviewed snapshot of Barbora's hierarchy — 636 categories under 11 aisles, three levels deep — mirrored in `public.barbora_categories`. It is global reference data rather than household data: signed-in members read active rows and cannot write them, and publication is a single transaction through a function only the server-side key can execute.
 - **The crawler**, in `scripts/barbora/`. Category-only; nothing about products, prices, or stock is read. It needs one page load per aisle, because each aisle page already renders its whole subtree.
-- **The mapper**, `src/lib/barboraMapping.js`. Deterministic and deliberately timid: it descends only where Barbora's own wording makes the answer obvious, and otherwise leaves an ingredient on its section's aisle. It proposed 66 of the 217 vocabulary ingredients.
+- **The mapper**, `src/lib/barboraMapping.js`. Deterministic and deliberately timid: it descends only where Barbora's own wording makes the answer obvious, and otherwise leaves an ingredient on its section's aisle. Reviewed rules now map 200 of the 217 vocabulary ingredients.
 - **The picker**, in **Ingredientai**. Any ingredient's category can be set by hand, at any depth, and a hand-picked one survives every later refresh.
 
 ```bash
@@ -78,7 +78,7 @@ Barbora's bot protection currently refuses the crawler, so the catalogue is refr
 
 - The importer parses checkboxes, numbering, dish names, and comma-separated ingredients, but preserves the source language. Automated translation needs a separate model/API and review rules.
 - Ingredient quantities and shopping-item checkboxes are intentionally absent.
-- Two thirds of ingredients link to their section's aisle rather than a specific shelf. That is as narrow as Barbora's own category names allow without guessing; the picker closes the gap for anything worth the trouble.
+- 17 of 217 ingredients still link to their section's aisle because Barbora's tree does not distinguish them safely (for example dry versus canned chickpeas). The picker closes the gap for anything worth choosing by hand.
 - Whether a link opens the Barbora app or a browser is decided by Barbora's app-link files, not by this app. Two quirks are handled in `shoppingUrl` and asserted by the tests: top-level aisles need a trailing slash, and the dairy aisle is claimed only under the path it used before Barbora renamed it. On iOS the preference also has to be granted once — long-press a category link in Notes and choose **Open in Barbora**.
-- PWA tab and scroll restoration is not built, so an iOS app eviction loses the current tab and scroll position.
+- The PWA restores the active tab, each tab's scroll position, and the expanded library recipe after iOS evicts and reloads it. Unsaved editor drafts are not persisted.
 - No recipe images or licensing machinery.

@@ -154,9 +154,8 @@ test('refuses to choose when the branches share nothing but the section', () => 
 
 test('leaves an ingredient alone when nothing matches', () => {
   assert.equal(map('Gochujang', 'Pantry'), null)
-  assert.equal(map('Seitanas', 'Dairy & alternatives'), null)
-  // "Ryžiai" names no category: every rice shelf is a specific rice.
-  assert.equal(map('Ryžiai', 'Pantry'), null)
+  assert.equal(map('Artišokai', 'Pantry'), null)
+  assert.equal(map('Miso pasta', 'Pantry'), null)
 })
 
 test('has no honest starting point for the Other section', () => {
@@ -170,6 +169,8 @@ test('lets a reviewed alias reach where the section root cannot', () => {
     reason: 'alias',
   })
   assert.equal(map('Sojų padažas', 'Pantry').reason, 'alias')
+  assert.equal(map('Alyvuogės', 'Pantry').path, '/bakaleja/konservuotas-maistas/konservuotos-alyvuoges-kapareliai-ir-svogunai')
+  assert.equal(map('Mocarela', 'Dairy & alternatives').path, '/pieno-gaminiai-kiausiniai-ir-majonezas/suris/mocarelos-ir-buratos-suriai')
 })
 
 test('every alias points at a category that exists', () => {
@@ -199,12 +200,12 @@ test('never proposes a category outside the ingredient section', () => {
 })
 
 test('resemblance alone never becomes a mapping', () => {
-  // "Pomidorų padažas" reads like several tomato categories, so the walk
-  // declines; only the human-facing suggestions may rank them.
-  assert.equal(map('Pomidorų padažas', 'Pantry'), null)
-  const suggestions = suggestCategories('Pomidorų padažas', catalogue.categories)
+  // A close spelling is still only a suggestion unless it was reviewed into
+  // the alias table.
+  assert.equal(map('Džiūvėsėliai', 'Pantry'), null)
+  const suggestions = suggestCategories('Džiūvėsėliai', catalogue.categories)
   assert.ok(suggestions.length > 0)
-  assert.ok(suggestions.some((category) => category.name.includes('Pomidorų padažai')))
+  assert.ok(suggestions.some((category) => category.name.includes('Džiūvės')))
 })
 
 test('suggestions stay quiet for an empty query', () => {
