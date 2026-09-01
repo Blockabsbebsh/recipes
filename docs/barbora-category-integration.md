@@ -2,7 +2,9 @@
 
 Status: partly implemented, based on device testing on 2026-09-01.
 
-The crawler, its validation, its tests, the reviewed catalogue snapshot, the manual GitHub Action, and the Supabase catalogue and mapping schema exist; the 636-category catalogue is published and live. Automatic mapping, the tree picker, the basket link change, and PWA state restoration are still the agreed plan and are not implemented. Each section below says which of the two it is.
+Everything through the shopping links is built: the crawler and its workflow, the published 636-category catalogue, the Supabase schema, the deterministic mapper, the tree picker, and the category links themselves. PWA state restoration is the one part still only planned. Each section below says which of the two it is.
+
+The crawler is parked rather than finished. Barbora's bot protection refuses it from the household's own connection — see **Crawler**. Nothing depends on it day to day: the catalogue is published, and a refresh is only needed when Barbora reorganizes its aisles.
 
 ## Outcome
 
@@ -27,17 +29,15 @@ Built:
 - `data/barbora-categories.json` holds the reviewed catalogue from the 2026-09-01 crawl: 636 categories under 11 top-level pages, three levels deep.
 - `supabase/migrations/20260901120000_barbora_category_catalogue.sql` adds `public.barbora_categories`, the four mapping columns on `public.ingredients`, and the `public.publish_barbora_categories` publication function. It is applied, and the catalogue in the database matches the snapshot exactly.
 - `BarboraCategory` and the ingredient mapping fields are in `src/lib/types.ts`.
+- `src/lib/barboraMapping.js` is the deterministic mapper, with its own tests.
+- Ingredient links use the mapped category, falling back to the section aisle and then to plain text. The section aisles are derived from the mapper's roots, so the stale dairy URL is gone along with the hardcoded table and the Android intent branch.
+- **Ingredientai** has a **Barbora kategorija** field and a tree picker.
+- 66 of the household's 217 ingredients carry an automatic mapping, applied by `supabase/migrations/20260901130000_backfill_barbora_mappings.sql`.
+- The Settings link test is down to one category link and the iOS recovery note.
 
 Not built:
 
-- Broad aisle URLs are still hardcoded in `src/App.tsx` as `SECTION_BARBORA_URLS`.
-- Ingredient names still use `barboraUrl(item)`, which creates `/paieska?q=...` links.
-- `androidBarboraIntent()` is still only an experiment and does not solve native search opening.
-- The Settings link test still compares search, Android intent, category, and exact-product URLs.
-- Nothing in the app reads the catalogue yet: no mapper, no picker, and no query.
-- Every ingredient mapping is still null, so every shopping link is unchanged.
 - The top-level `tab` state and library's expanded recipe are React-only state. They are lost if iOS discards and reloads the PWA.
-- The hardcoded dairy URL is stale: the crawled root is `/pieno-gaminiai-kiausiniai-ir-majonezas`, not `/pieno-gaminiai-ir-kiausiniai/`. The crawled catalogue is the place to correct this from.
 
 ## Mapping rule: deepest unambiguous category
 
@@ -151,6 +151,10 @@ node scripts/barbora/crawl.js --pause --channel chrome \
 
 `--channel chrome` drives the Chrome already installed on the machine, `--profile` keeps a persistent profile so the cookie banner stays answered between runs, and `--pause` opens the window and waits for Enter so a person can answer the banner before the crawl starts. Later runs against the same profile need neither `--pause` nor a person. None of this defeats a challenge; it just presents the crawler as the ordinary browser it actually is. If a genuine interstitial appears, the run still fails rather than publishing.
 
+**As of 2026-09-01 the crawler cannot reach Barbora at all.** A first live run degraded across the session — the homepage rendered but exposed no category links, the first aisle came back empty, the second returned 403 — and a second run was refused at the homepage. The signature is IP reputation, not markup: the catalogue ChatGPT crawled the same morning came back whole. Neither a real Chrome nor a persistent profile changed the outcome, and going further would mean fingerprint evasion, which is out of scope here and unwinnable besides. A scheduled run from a GitHub datacentre address is, if anything, less likely to be let in.
+
+This is not blocking. The catalogue is published, its links do not expire, and Barbora's aisles change rarely. Ways forward, when a refresh is wanted: try again after the address has cooled off, or build an offline mode that parses pages saved by hand from an ordinary browsing session, which no bot protection can object to.
+
 Direct unattended HTTP requests receive Cloudflare responses, while a rendered browser can read the hierarchy. An interstitial parses perfectly well and simply yields no categories, so `challenge.js` names it explicitly and the run fails instead of publishing an empty aisle. The crawler does not attempt to defeat a challenge.
 
 Validation, all of it enforced before anything is written:
@@ -181,7 +185,13 @@ For safe publication, validate the complete JSON first and replace/upsert the ca
 
 ## Automatic ingredient mapping
 
-Keep auto-mapping deterministic and testable. A reviewed alias table may live in code initially or in a small global Supabase table later.
+Implemented in `src/lib/barboraMapping.js`. The reviewed alias table lives in code.
+
+Barbora names a category after everything in it, so "Bulvės, morkos ir kopūstai" is three answers wearing one label. Splitting a label into terms on commas and the conjunction — before normalizing, which strips the punctuation — is what makes an exact match possible at all.
+
+The walk searches the whole subtree under the section's root rather than one level at a time, because Barbora's middle level is a broad grouping no ingredient name matches: nothing would ever reach the shelf below it. Where a name appears twice on one branch the deeper is meant; where it appears on two branches the walk retreats to what contains both, or gives up when that is only the section itself.
+
+Against the household's 217 ingredients this proposes 66. The other 151 keep their section aisle, which is what they had before.
 
 - Run the mapper when an ingredient is created/imported and as a reviewed backfill for existing ingredients.
 - Recompute only mappings whose source is `automatic`.
@@ -193,9 +203,11 @@ The crawler discovers the tree; the mapper chooses within that tree. Keep these 
 
 ## Category tree picker
 
-Add the custom mapping control to the existing **Ingredientai** manager when creating or editing an ingredient.
+Implemented as `CategoryPicker` in `src/App.tsx`, in the **Ingredientai** manager for both creating and editing.
 
-Recommended interaction:
+Verified by driving it in Chromium against the real catalogue: the eleven roots, descending two levels, the breadcrumb, choosing a non-leaf through **Pasirinkti šią kategoriją**, and confirming. Two layout faults were found and fixed — the sticky footer let rows scroll through the strip beneath it, and descending a level left the list scrolled where the previous one had been.
+
+The interaction, as built:
 
 - Field label: **Barbora kategorija**.
 - Tapping it opens a mobile sheet/modal at the current mapping or at the inferred root.
@@ -211,6 +223,8 @@ Recommended interaction:
 - Reuse the existing modal scroll-lock approach and test keyboard/viewport scrolling on iOS. The tree and confirmation buttons must remain reachable with large catalogues.
 
 ## Shopping basket links
+
+Implemented.
 
 - Replace ingredient search hyperlinks with `https://barbora.lt${barbora_category_path}` when a mapped category is active.
 - Keep the ingredient name itself as the clickable text.
@@ -248,12 +262,12 @@ Do not persist secrets or complete Supabase records. Treat unsaved recipe-editor
 3. ~~Review the generated hierarchy and validation thresholds.~~ Done: 636 categories, thresholds in `scripts/barbora/validate.js`.
 4. ~~Add the Supabase migration, RLS/grants, and TypeScript types.~~ Done; the app's read queries arrive with the picker.
 5. ~~Publish a reviewed initial catalogue.~~ Done, though seeded directly rather than through the workflow, which still needs its two secrets before its first real run.
-6. Add deterministic auto-mapping and backfill existing ingredients without touching manual mappings.
-7. Add the tree picker to ingredient create/edit flows.
-8. Change basket ingredient links to the selected category URL and remove platform-specific link logic.
+6. ~~Add deterministic auto-mapping and backfill existing ingredients without touching manual mappings.~~ Done.
+7. ~~Add the tree picker to ingredient create/edit flows.~~ Done.
+8. ~~Change basket ingredient links to the selected category URL and remove platform-specific link logic.~~ Done.
 9. Add PWA tab/scroll/expanded-item restoration.
-10. Test both devices, then enable the monthly crawler schedule.
-11. Update this document and `README.md` from planned to implemented behavior.
+10. Test both devices. The monthly crawler schedule waits on the crawler being able to reach Barbora at all.
+11. Update this document and `README.md` as each part lands.
 
 ## Tests and acceptance criteria
 
@@ -262,9 +276,9 @@ Automated tests:
 - ~~Tree construction preserves parent/child relationships and Barbora order.~~ Covered, including a rebuild of all 636 reviewed categories from the pages they came from.
 - ~~URL normalization rejects products, queries, foreign hosts, and cycles.~~ Covered.
 - ~~Challenge/incomplete fixtures fail validation and never publish.~~ Covered, and verified end to end against a local mock that serves an interstitial for one aisle.
-- Exact mapping descends to the expected node.
-- Ambiguous or unmatched mapping stops at the parent.
-- Fuzzy similarity alone never writes a leaf mapping.
+- ~~Exact mapping descends to the expected node.~~ Covered.
+- ~~Ambiguous or unmatched mapping stops at the parent.~~ Covered, both the retreat and the refusal.
+- ~~Fuzzy similarity alone never writes a leaf mapping.~~ Covered: similarity only feeds `suggestCategories`.
 - Manual mapping survives catalogue and automatic-mapping refreshes.
 - Inactive mapped categories produce a safe fallback/warning.
 - ~~RLS permits authenticated category reads, denies client category writes, isolates household ingredient updates, and permits the server publication path.~~ Verified directly against the database; see **Supabase data model**.
