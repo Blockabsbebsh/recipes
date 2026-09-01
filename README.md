@@ -73,7 +73,7 @@ The catalogue lives in `public.barbora_categories`, which is global reference da
 
 - The importer parses checkboxes, numbering, dish names, and comma-separated ingredients, but preserves the source language. Automated translation needs a separate model/API and review rules.
 - Ingredient quantities and shopping-item checkboxes are intentionally absent.
-- Ingredient links are ordinary Barbora category URLs on both platforms. Device testing confirmed these open the Android app directly; on iOS, choosing **Open in Barbora** once from a long-pressed category link in Notes restores the Universal Link preference, after which they open the app from this PWA too.
+- Ingredient links are ordinary Barbora category URLs on both platforms. Two quirks of Barbora's app-link files decide whether they open the app rather than a browser: top-level aisles need a trailing slash, and the dairy aisle is claimed only under the path it used before being renamed. Both are handled in `shoppingUrl`, and the test suite checks every category against Barbora's claim list. Device testing confirmed these open the Android app directly; on iOS, choosing **Open in Barbora** once from a long-pressed category link in Notes restores the Universal Link preference, after which they open the app from this PWA too.
 - 66 of the 217 vocabulary ingredients carry an automatic category. The rest link to their section's aisle, which is as specific as the shop's own wording allows without guessing; any of them can be set by hand in **Ingredientai**.
 - PWA tab and scroll restoration is still planned, in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
 - No recipe images or licensing machinery.

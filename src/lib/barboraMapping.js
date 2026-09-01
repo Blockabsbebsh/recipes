@@ -14,16 +14,39 @@ import { ingredientNameWithoutQuantity, normalizeTitle, titleSimilarity } from '
 export const BARBORA_ORIGIN = 'https://barbora.lt'
 
 /**
+ * Aisles the app claims under a path the website no longer navigates to.
+ *
+ * Barbora renamed the dairy aisle and never updated the app-link files, which
+ * still claim `/pieno-gaminiai-ir-kiausiniai/*`. Both prefixes serve the same
+ * aisle and the same children, so the two sources of truth simply disagree:
+ * the catalogue keeps what the shop navigates to, since that is what the
+ * crawler can verify, and the link uses what the app actually answers for.
+ *
+ * Remove an entry once Barbora claims the current path; the link is then the
+ * catalogue's own, and nothing else has to change.
+ */
+const APP_LINK_PREFIXES = [
+  ['/pieno-gaminiai-kiausiniai-ir-majonezas', '/pieno-gaminiai-ir-kiausiniai'],
+]
+
+/**
  * The shopping URL for a stored category path.
  *
- * Barbora's app-link files claim top-level aisles as `/<aisle>/*`, and a bare
- * `/<aisle>` does not match that pattern — the trailing slash is the whole
- * difference between a link opening the Barbora app and opening a browser tab.
- * Deeper paths already match, so they are left exactly as stored.
+ * Barbora claims top-level aisles as `/<aisle>/*`, and a bare `/<aisle>` does
+ * not match that pattern — the trailing slash is the whole difference between
+ * a link opening the Barbora app and opening a browser tab. Deeper paths
+ * already match, so they keep the shape the catalogue stored.
  */
 export function shoppingUrl(path) {
-  const segments = path.split('/').filter(Boolean)
-  return `${BARBORA_ORIGIN}${path}${segments.length === 1 ? '/' : ''}`
+  const claimed = APP_LINK_PREFIXES.reduce(
+    (current, [live, appLink]) =>
+      current === live || current.startsWith(`${live}/`)
+        ? appLink + current.slice(live.length)
+        : current,
+    path,
+  )
+  const segments = claimed.split('/').filter(Boolean)
+  return `${BARBORA_ORIGIN}${claimed}${segments.length === 1 ? '/' : ''}`
 }
 
 /**

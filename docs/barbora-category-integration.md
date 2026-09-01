@@ -231,6 +231,10 @@ Implemented.
 - If no ingredient mapping exists, link to its broad `section` category when available. If even that is unavailable, render plain text rather than inventing a URL.
 - A section heading may continue linking to its broad Barbora root.
 - Use a plain user-clicked `<a>` with an ordinary HTTPS URL, `target="_blank"`, and `rel="noopener noreferrer"` on both platforms.
+- Shape every link through `shoppingUrl`, because two details decide whether it opens the Barbora app at all, and both are invisible in the path itself:
+  - Barbora claims top-level aisles as `/<aisle>/*`, which a bare `/<aisle>` does not match. The trailing slash is the difference between the app and a browser tab.
+  - Barbora renamed the dairy aisle to `/pieno-gaminiai-kiausiniai-ir-majonezas` on the website but still claims only its former `/pieno-gaminiai-ir-kiausiniai/*`. Both prefixes serve the same shelves, so links are written with the claimed one while the catalogue keeps the path the shop navigates to — the crawler can verify the site, not the association file. Drop the rewrite once Barbora claims the current path.
+- `src/lib/barboraMapping.test.mjs` holds Barbora's claim list as of 2026-09-01 and asserts that all 636 categories produce a link inside it. A future catalogue that adds an unclaimed aisle fails the suite rather than shipping links that open a browser.
 - Remove the Android intent branch and do not default to exact-product URLs or `/paieska` URLs.
 - Exact-product URLs may remain only as a temporary diagnostic fixture; they are volatile and can point to sold-out products.
 

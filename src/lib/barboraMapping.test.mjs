@@ -22,6 +22,68 @@ const catalogue = JSON.parse(
 const index = buildCategoryIndex(catalogue.categories)
 const map = (name, section) => mapIngredient(name, section, index)
 
+/**
+ * The category path patterns Barbora's app claims, copied from
+ * https://barbora.lt/.well-known/apple-app-site-association on 2026-09-01.
+ * A link outside these opens a browser tab instead of the Barbora app, which
+ * is the entire point of pointing at categories rather than searches.
+ *
+ * Note `/pieno-gaminiai-ir-kiausiniai/*`: the dairy aisle's former path, and
+ * the reason `shoppingUrl` rewrites that one prefix.
+ */
+const CLAIMED_PATTERNS = [
+  '/darzoves-ir-vaisiai/*',
+  '/pieno-gaminiai-ir-kiausiniai/*',
+  '/duonos-gaminiai-ir-konditerija/*',
+  '/mesa-zuvis-ir-kulinarija/*',
+  '/bakaleja/*',
+  '/saldytas-maistas/*',
+  '/gerimai/*',
+  '/kudikiu-ir-vaiku-prekes/*',
+  '/kosmetika-ir-higiena/*',
+  '/svaros-ir-gyvunu-prekes/*',
+  '/namai-ir-laisvalaikis/*',
+]
+
+/** Apple matches these as a literal prefix with `*` standing for any suffix. */
+function isClaimed(url) {
+  const path = new URL(url).pathname
+  return CLAIMED_PATTERNS.some((pattern) => path.startsWith(pattern.slice(0, -1)))
+}
+
+test('every category in the catalogue produces a link the app claims', () => {
+  const missed = catalogue.categories
+    .map((category) => category.path)
+    .filter((path) => !isClaimed(shoppingUrl(path)))
+  assert.deepEqual(missed, [], 'these would open a browser tab instead of Barbora')
+})
+
+test('links the dairy aisle by the path the app answers for', () => {
+  // Barbora renamed the aisle and left the app-link file behind; both prefixes
+  // serve the same shelves, so the link uses the one that opens the app.
+  assert.equal(
+    shoppingUrl('/pieno-gaminiai-kiausiniai-ir-majonezas'),
+    `${BARBORA_ORIGIN}/pieno-gaminiai-ir-kiausiniai/`,
+  )
+  assert.equal(
+    shoppingUrl('/pieno-gaminiai-kiausiniai-ir-majonezas/suris'),
+    `${BARBORA_ORIGIN}/pieno-gaminiai-ir-kiausiniai/suris`,
+  )
+  assert.equal(
+    shoppingUrl('/pieno-gaminiai-kiausiniai-ir-majonezas/grietine-ir-grietinele/grietine-ir-kastinys'),
+    `${BARBORA_ORIGIN}/pieno-gaminiai-ir-kiausiniai/grietine-ir-grietinele/grietine-ir-kastinys`,
+  )
+  // The catalogue itself keeps the path the shop navigates to.
+  assert.ok(index.byPath.has('/pieno-gaminiai-kiausiniai-ir-majonezas/suris'))
+  assert.equal(index.byPath.has('/pieno-gaminiai-ir-kiausiniai/suris'), false)
+})
+
+test('leaves an aisle the app already claims untouched', () => {
+  assert.equal(shoppingUrl('/bakaleja/kruopos'), `${BARBORA_ORIGIN}/bakaleja/kruopos`)
+  assert.equal(shoppingUrl('/darzoves-ir-vaisiai/darzoves-ir-grybai/grybai'),
+    `${BARBORA_ORIGIN}/darzoves-ir-vaisiai/darzoves-ir-grybai/grybai`)
+})
+
 test('gives a top-level aisle the trailing slash its app link needs', () => {
   // Barbora claims `/<aisle>/*` in its app-link files, and a bare `/<aisle>`
   // does not match that pattern: without the slash the link opens a browser.
@@ -36,10 +98,9 @@ test('gives a top-level aisle the trailing slash its app link needs', () => {
 })
 
 test('every section aisle produces a link Barbora claims', () => {
-  const claimed = /^https:\/\/barbora\.lt\/[a-z0-9-]+\/.*$/
   for (const root of Object.values(SECTION_ROOTS)) {
     if (root === null) continue
-    assert.match(shoppingUrl(root), claimed, `${root} would not open the app`)
+    assert.ok(isClaimed(shoppingUrl(root)), `${root} would not open the app`)
   }
 })
 
