@@ -1930,12 +1930,13 @@ function IngredientChips({ value, vocabulary, onChange, categoryIndex, onCreateI
   }
 
   return (
+    <>
     <div className="chip-field">
       <div className="chip-row">
         {value.map((item, index) => (
           <span className="chip" key={`${item}-${index}`}>
             {item}
-            <button type="button" aria-label={`Pašalinti „${item}“`} onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
+            <button type="button" aria-label={`Pašalinti „${item}"`} onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
           </span>
         ))}
         {adding ? (
@@ -1966,7 +1967,7 @@ function IngredientChips({ value, vocabulary, onChange, categoryIndex, onCreateI
               </ul>
             )}
             {entry.trim() && !exactMatch && (
-              <p className="chip-hint">„Enter“ pridės <strong>{entry.trim()}</strong> kaip naują produktą</p>
+              <p className="chip-hint">„Enter" pridės <strong>{entry.trim()}</strong> kaip naują produktą</p>
             )}
           </div>
         ) : (
@@ -1992,5 +1993,6 @@ function IngredientChips({ value, vocabulary, onChange, categoryIndex, onCreateI
         onClose={() => setPendingNew(null)}
       />
     )}
+    </>
   )
 }
