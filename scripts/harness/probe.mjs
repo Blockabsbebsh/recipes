@@ -74,8 +74,7 @@ export async function layout(page, base) {
   await signIn(page, base)
   const tabs = await page.locator('.bottom-nav button').allTextContents()
   for (const [index, label] of tabs.entries()) {
-    await page.evaluate((i) => document.querySelectorAll('.bottom-nav button')[i].click(), index)
-    await page.waitForTimeout(700)
+    await openTab(page, index)
     for (const pass of ['top', 'bottom']) {
       if (pass === 'bottom') {
         await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
@@ -138,8 +137,7 @@ export async function appswitch(page, base) {
   const findings = []
   const target = 1500
   await signIn(page, base)
-  await page.evaluate((i) => document.querySelectorAll('.bottom-nav button')[i].click(), 1)
-  await page.waitForTimeout(700)
+  await openTab(page, 1)
   await page.evaluate((y) => window.scrollTo(0, y), target)
   await page.waitForTimeout(600)
 
