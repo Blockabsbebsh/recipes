@@ -1,0 +1,4460 @@
+{
+  "schemaVersion": 1,
+  "source": "https://barbora.lt",
+  "generatedAt": "2026-09-01T11:03:28.278Z",
+  "categoryCount": 636,
+  "categories": [
+    {
+      "path": "/darzoves-ir-vaisiai",
+      "name": "Daržovės ir vaisiai",
+      "sortOrder": 0,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "name": "Pieno gaminiai, kiaušiniai ir majonezas",
+      "sortOrder": 1,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija",
+      "name": "Duonos gaminiai ir konditerija",
+      "sortOrder": 2,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija",
+      "name": "Mėsa, žuvis ir kulinarija",
+      "sortOrder": 3,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/bakaleja",
+      "name": "Bakalėja",
+      "sortOrder": 4,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/saldytas-maistas",
+      "name": "Šaldytas maistas",
+      "sortOrder": 5,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/gerimai",
+      "name": "Gėrimai",
+      "sortOrder": 6,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes",
+      "name": "Kūdikių ir vaikų prekės",
+      "sortOrder": 7,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/kosmetika-ir-higiena",
+      "name": "Kosmetika ir higiena",
+      "sortOrder": 8,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes",
+      "name": "Švaros ir gyvūnų prekės",
+      "sortOrder": 9,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/namai-ir-laisvalaikis",
+      "name": "Namai ir laisvalaikis",
+      "sortOrder": 10,
+      "parentPath": null,
+      "depth": 1
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas",
+      "name": "Konservuotas maistas",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/makaronai",
+      "name": "Makaronai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/miltai-ir-ju-misiniai",
+      "name": "Miltai ir jų mišiniai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles",
+      "name": "Traškučiai, krekeriai ir sūrios lazdelės",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/kava-kavos-gerimai-ir-kakava",
+      "name": "Kava, kavos gėrimai ir kakava",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/aliejus-ir-actas",
+      "name": "Aliejus ir actas",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/kruopos",
+      "name": "Kruopos",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "name": "Cukrus, druska ir kepimo priedai",
+      "sortOrder": 7,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/saldumynai",
+      "name": "Saldumynai",
+      "sortOrder": 8,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/arbata",
+      "name": "Arbata",
+      "sortOrder": 9,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "name": "Padažai ir konservuotos užtepėlės",
+      "sortOrder": 10,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/sausi-pusryciai-dribsniai-ir-javainiu-batoneliai",
+      "name": "Sausi pusryčiai, dribsniai ir javainių batonėliai",
+      "sortOrder": 11,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/prieskoniai-marinatai-ir-sultiniai",
+      "name": "Prieskoniai, marinatai ir sultiniai",
+      "sortOrder": 12,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai",
+      "name": "Sausainiai, pyragaičiai, kukurūzai ir javainiai",
+      "sortOrder": 13,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/pasaulio-virtuves",
+      "name": "Pasaulio virtuvės",
+      "sortOrder": 14,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/greitai-paruosiamas-maistas",
+      "name": "Greitai paruošiamas maistas",
+      "sortOrder": 15,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "name": "Riešutai, sėklos, džiovinti vaisiai ir uogos",
+      "sortOrder": 16,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/baltyminiai-batoneliai-ir-misiniai",
+      "name": "Baltyminiai batonėliai ir mišiniai",
+      "sortOrder": 17,
+      "parentPath": "/bakaleja",
+      "depth": 2
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "name": "Daržovės ir grybai",
+      "sortOrder": 0,
+      "parentPath": "/darzoves-ir-vaisiai",
+      "depth": 2
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/vaisiai-ir-uogos",
+      "name": "Vaisiai ir uogos",
+      "sortOrder": 1,
+      "parentPath": "/darzoves-ir-vaisiai",
+      "depth": 2
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona",
+      "name": "Duona",
+      "sortOrder": 0,
+      "parentPath": "/duonos-gaminiai-ir-konditerija",
+      "depth": 2
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/bandeles-uzkandziai-ir-kibinai",
+      "name": "Bandelės, užkandžiai ir kibinai",
+      "sortOrder": 1,
+      "parentPath": "/duonos-gaminiai-ir-konditerija",
+      "depth": 2
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai",
+      "name": "Konditerijos gaminiai",
+      "sortOrder": 2,
+      "parentPath": "/duonos-gaminiai-ir-konditerija",
+      "depth": 2
+    },
+    {
+      "path": "/gerimai/vanduo",
+      "name": "Vanduo",
+      "sortOrder": 0,
+      "parentPath": "/gerimai",
+      "depth": 2
+    },
+    {
+      "path": "/gerimai/gaivieji-gerimai",
+      "name": "Gaivieji gėrimai",
+      "sortOrder": 1,
+      "parentPath": "/gerimai",
+      "depth": 2
+    },
+    {
+      "path": "/gerimai/sultys-nektarai-sulciu-gerimai-ir-berzu-sula",
+      "name": "Sultys, nektarai, sulčių gėrimai ir beržų sula",
+      "sortOrder": 2,
+      "parentPath": "/gerimai",
+      "depth": 2
+    },
+    {
+      "path": "/gerimai/nealkoholiniai-gerimai",
+      "name": "Nealkoholiniai gėrimai",
+      "sortOrder": 3,
+      "parentPath": "/gerimai",
+      "depth": 2
+    },
+    {
+      "path": "/gerimai/vynas",
+      "name": "Vynas",
+      "sortOrder": 4,
+      "parentPath": "/gerimai",
+      "depth": 2
+    },
+    {
+      "path": "/gerimai/alus",
+      "name": "Alus",
+      "sortOrder": 5,
+      "parentPath": "/gerimai",
+      "depth": 2
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "name": "Stiprieji alkoholiniai gėrimai",
+      "sortOrder": 6,
+      "parentPath": "/gerimai",
+      "depth": 2
+    },
+    {
+      "path": "/gerimai/sidras-ir-kokteiliai",
+      "name": "Sidras ir kokteiliai",
+      "sortOrder": 7,
+      "parentPath": "/gerimai",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/burnos-higienos-priemones",
+      "name": "Burnos higienos priemonės",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/veido-prieziuros-priemones",
+      "name": "Veido priežiūros priemonės",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dezodorantai",
+      "name": "Dezodorantai",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kuno-prieziuros-priemones",
+      "name": "Kūno priežiūros priemonės",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dekoratyvine-kosmetika",
+      "name": "Dekoratyvinė kosmetika",
+      "sortOrder": 4,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/medicinos-prekes",
+      "name": "Medicinos prekės",
+      "sortOrder": 5,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/ranku-ir-pedu-odos-prieziuros-priemones",
+      "name": "Rankų ir pėdų odos priežiūros priemonės",
+      "sortOrder": 6,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/skutimosi-prekes",
+      "name": "Skutimosi prekės",
+      "sortOrder": 7,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kvepalai",
+      "name": "Kvepalai",
+      "sortOrder": 8,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "name": "Plaukų priežiūros priemonės",
+      "sortOrder": 9,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kosmetika-ir-higiena/intymios-higienos-prekes",
+      "name": "Intymios higienos prekės",
+      "sortOrder": 10,
+      "parentPath": "/kosmetika-ir-higiena",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/pieno-misiniai",
+      "name": "Pieno mišiniai",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-koses",
+      "name": "Kūdikių košės",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-gerimai-ir-uzkandziai",
+      "name": "Kūdikių gėrimai ir užkandžiai",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/vaisines-ir-desertines-tyreles",
+      "name": "Vaisinės ir desertinės tyrelės",
+      "sortOrder": 3,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/mesos-ir-darzoviu-tyreles",
+      "name": "Mėsos ir daržovių tyrelės",
+      "sortOrder": 4,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/vaiku-higienos-prekes",
+      "name": "Vaikų higienos prekės",
+      "sortOrder": 5,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles",
+      "name": "Sauskelnės ir servetėlės",
+      "sortOrder": 6,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai",
+      "name": "Kūdikių ir vaikų žaislai",
+      "sortOrder": 7,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "name": "„LEGO“ KONSTRUKTORIAI",
+      "sortOrder": 8,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/prieziuros-prekes",
+      "name": "Priežiūros prekės",
+      "sortOrder": 9,
+      "parentPath": "/kudikiu-ir-vaiku-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "name": "Šviežia mėsa ir paukštiena",
+      "sortOrder": 0,
+      "parentPath": "/mesa-zuvis-ir-kulinarija",
+      "depth": 2
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "name": "Šviežia žuvis, jūrų gėrybės ir žuvų gaminiai",
+      "sortOrder": 1,
+      "parentPath": "/mesa-zuvis-ir-kulinarija",
+      "depth": 2
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai",
+      "name": "Rūkytos, vytintos dešros ir kumpiai",
+      "sortOrder": 2,
+      "parentPath": "/mesa-zuvis-ir-kulinarija",
+      "depth": 2
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/kulinarija",
+      "name": "Kulinarija",
+      "sortOrder": 3,
+      "parentPath": "/mesa-zuvis-ir-kulinarija",
+      "depth": 2
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/virtos-desros-kumpiai-ir-desreles",
+      "name": "Virtos dešros, kumpiai ir dešrelės",
+      "sortOrder": 4,
+      "parentPath": "/mesa-zuvis-ir-kulinarija",
+      "depth": 2
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/vyniotiniai-pastetas-ir-mesos-konservai",
+      "name": "Vyniotiniai, paštetas ir mėsos konservai",
+      "sortOrder": 5,
+      "parentPath": "/mesa-zuvis-ir-kulinarija",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika",
+      "name": "Buitinė technika ir elektronika",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/automobiliu-prekes",
+      "name": "Automobilių prekės",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laisvalaikio-prekes",
+      "name": "Laisvalaikio prekės",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "name": "Virtuvės ir stalo serviravimo reikmenys",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kanceliarines-prekes",
+      "name": "Kanceliarinės prekės",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos",
+      "name": "Laikraščiai, žurnalai, knygos",
+      "sortOrder": 5,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai",
+      "name": "Maisto ruošimo ir laikymo indai",
+      "sortOrder": 6,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas",
+      "name": "Kojinės ir apatinis trikotažas",
+      "sortOrder": 7,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "name": "Namų apyvokos reikmenys",
+      "sortOrder": 8,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura",
+      "name": "Augalai ir jų priežiūra",
+      "sortOrder": 9,
+      "parentPath": "/namai-ir-laisvalaikis",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/pienas",
+      "name": "Pienas",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/sviestas-margarinas-ir-riebalai",
+      "name": "Sviestas, margarinas ir riebalai",
+      "sortOrder": 1,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/majonezas",
+      "name": "Majonezas",
+      "sortOrder": 2,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/kefyras-rugpienis-ir-pasukos",
+      "name": "Kefyras, rūgpienis ir pasukos",
+      "sortOrder": 3,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/jogurtai-ir-desertai",
+      "name": "Jogurtai ir desertai",
+      "sortOrder": 4,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai",
+      "name": "Augaliniai produktai",
+      "sortOrder": 5,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/grietine-ir-grietinele",
+      "name": "Grietinė ir grietinėlė",
+      "sortOrder": 6,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "name": "Sūris",
+      "sortOrder": 7,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/varskes-produktai",
+      "name": "Varškės produktai",
+      "sortOrder": 8,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/kiausiniai",
+      "name": "Kiaušiniai",
+      "sortOrder": 9,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas",
+      "depth": 2
+    },
+    {
+      "path": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai",
+      "name": "Šaldyti kulinarijos ir konditerijos gaminiai",
+      "sortOrder": 0,
+      "parentPath": "/saldytas-maistas",
+      "depth": 2
+    },
+    {
+      "path": "/saldytas-maistas/saldyta-zuvis-juru-gerybes-ir-mesa",
+      "name": "Šaldyta žuvis, jūrų gėrybės ir mėsa",
+      "sortOrder": 1,
+      "parentPath": "/saldytas-maistas",
+      "depth": 2
+    },
+    {
+      "path": "/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos",
+      "name": "Šaldytos daržovės, vaisiai ir uogos",
+      "sortOrder": 2,
+      "parentPath": "/saldytas-maistas",
+      "depth": 2
+    },
+    {
+      "path": "/saldytas-maistas/ledai-ir-ledo-kubeliai",
+      "name": "Ledai ir ledo kubeliai",
+      "sortOrder": 3,
+      "parentPath": "/saldytas-maistas",
+      "depth": 2
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "name": "Gyvūnų prekės",
+      "sortOrder": 0,
+      "parentPath": "/svaros-ir-gyvunu-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/indu-plovikliai",
+      "name": "Indų plovikliai",
+      "sortOrder": 1,
+      "parentPath": "/svaros-ir-gyvunu-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/popieriniai-gaminiai",
+      "name": "Popieriniai gaminiai",
+      "sortOrder": 2,
+      "parentPath": "/svaros-ir-gyvunu-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/priemones-valymui",
+      "name": "Priemonės valymui",
+      "sortOrder": 3,
+      "parentPath": "/svaros-ir-gyvunu-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "name": "Buitinės chemijos prekės",
+      "sortOrder": 4,
+      "parentPath": "/svaros-ir-gyvunu-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "name": "Skalbimo priemonės",
+      "sortOrder": 5,
+      "parentPath": "/svaros-ir-gyvunu-prekes",
+      "depth": 2
+    },
+    {
+      "path": "/bakaleja/aliejus-ir-actas/alyvuogiu-aliejus",
+      "name": "Alyvuogių aliejus",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/aliejus-ir-actas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/aliejus-ir-actas/saulegrazu-aliejus",
+      "name": "Saulėgrąžų aliejus",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/aliejus-ir-actas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/aliejus-ir-actas/rapsu-aliejus",
+      "name": "Rapsų aliejus",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/aliejus-ir-actas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/aliejus-ir-actas/linu-semenu-kanapiu-ir-kiti-aliejai",
+      "name": "Linų sėmenų, kanapių ir kiti aliejai",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/aliejus-ir-actas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/aliejus-ir-actas/kokosu-ir-kitu-riesutu-aliejus",
+      "name": "Kokosų ir kitų riešutų aliejus",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/aliejus-ir-actas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/aliejus-ir-actas/actas-ir-citrinu-sultys",
+      "name": "Actas ir citrinų sultys",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/aliejus-ir-actas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/aliejus-ir-actas/balzaminis-actas",
+      "name": "Balzaminis actas",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja/aliejus-ir-actas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/arbata/juodoji-arbata",
+      "name": "Juodoji arbata",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/arbata",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/arbata/zalioji-arbata",
+      "name": "Žalioji arbata",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/arbata",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/arbata/vaisine-arbata",
+      "name": "Vaisinė arbata",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/arbata",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/arbata/zoleliu-arbata",
+      "name": "Žolelių arbata",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/arbata",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/arbata/raudonoji-baltoji-ir-kitos-arbatos",
+      "name": "Raudonoji, baltoji ir kitos arbatos",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/arbata",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/arbata/arbatos-koncentratai-ir-tyres",
+      "name": "Arbatos koncentratai ir tyrės",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/arbata",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/arbata/arbatu-rinkiniai",
+      "name": "Arbatų rinkiniai",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja/arbata",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/baltyminiai-batoneliai-ir-misiniai/baltyminiai-batoneliai",
+      "name": "Baltyminiai batonėliai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/baltyminiai-batoneliai-ir-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/baltyminiai-batoneliai-ir-misiniai/baltyminiai-misiniai",
+      "name": "Baltyminiai mišiniai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/baltyminiai-batoneliai-ir-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/baltyminiai-batoneliai-ir-misiniai/energiniai-geliai",
+      "name": "Energiniai geliai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/baltyminiai-batoneliai-ir-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai/baltasis-cukrus",
+      "name": "Baltasis cukrus",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai/rudasis-cukrus",
+      "name": "Rudasis cukrus",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai/saldikliai-ir-cukraus-pakaitalai",
+      "name": "Saldikliai ir cukraus pakaitalai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai/druska",
+      "name": "Druska",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai/soda-ir-krakmolas",
+      "name": "Soda ir krakmolas",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai/kepimo-milteliai-ir-vanilinis-cukrus",
+      "name": "Kepimo milteliai ir vanilinis cukrus",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai/kepiniu-ir-desertu-priedai",
+      "name": "Kepinių ir desertų priedai",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai/zele-kisielius-ir-zelatina",
+      "name": "Želė, kisielius ir želatina",
+      "sortOrder": 7,
+      "parentPath": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/cukrus-druska-ir-kepimo-priedai/sirupai-ir-desertiniai-padazai",
+      "name": "Sirupai ir desertiniai padažai",
+      "sortOrder": 8,
+      "parentPath": "/bakaleja/cukrus-druska-ir-kepimo-priedai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/greitai-paruosiamas-maistas/greitai-paruosiami-dribsniai-kosems",
+      "name": "Greitai paruošiami dribsniai košėms",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/greitai-paruosiamas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/greitai-paruosiamas-maistas/greitai-paruosiami-makaronai",
+      "name": "Greitai paruošiami makaronai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/greitai-paruosiamas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/greitai-paruosiamas-maistas/greitai-paruosiamos-sriubos",
+      "name": "Greitai paruošiamos sriubos",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/greitai-paruosiamas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/greitai-paruosiamas-maistas/greitai-paruosiamos-bulviu-koses",
+      "name": "Greitai paruošiamos bulvių košės",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/greitai-paruosiamas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kava-kavos-gerimai-ir-kakava/malta-kava",
+      "name": "Malta kava",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/kava-kavos-gerimai-ir-kakava",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kava-kavos-gerimai-ir-kakava/kavos-pupeles",
+      "name": "Kavos pupelės",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/kava-kavos-gerimai-ir-kakava",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kava-kavos-gerimai-ir-kakava/kavos-kapsules-dolce-gusto-aparatam",
+      "name": "Kavos kapsulės Dolce Gusto® aparatams",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/kava-kavos-gerimai-ir-kakava",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kava-kavos-gerimai-ir-kakava/kavos-kapsules-nespresso-aparatams",
+      "name": "Kavos kapsulės NESPRESSO® aparatams",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/kava-kavos-gerimai-ir-kakava",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kava-kavos-gerimai-ir-kakava/kavos-kapsules-a-modo-mio-aparatams",
+      "name": "Kavos kapsulės A MODO MIO® aparatams",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/kava-kavos-gerimai-ir-kakava",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kava-kavos-gerimai-ir-kakava/tirpioji-kava-ir-cikorijos-gerimai",
+      "name": "Tirpioji kava ir cikorijos gėrimai",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/kava-kavos-gerimai-ir-kakava",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kava-kavos-gerimai-ir-kakava/kakava-ir-karsto-sokolado-gerimai",
+      "name": "Kakava ir karšto šokolado gėrimai",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja/kava-kavos-gerimai-ir-kakava",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuoti-agurkai",
+      "name": "Konservuoti agurkai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuoti-pomidorai",
+      "name": "Konservuoti pomidorai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuoti-sauleje-dziovinti-pomidorai",
+      "name": "Konservuoti saulėje džiovinti pomidorai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuotos-paprikos",
+      "name": "Konservuotos paprikos",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuoti-zirneliai-ir-kukuruzai",
+      "name": "Konservuoti žirneliai ir kukurūzai",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuoti-burokeliai",
+      "name": "Konservuoti burokėliai",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuotos-pupeles",
+      "name": "Konservuotos pupelės",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuoti-lesiai-ir-avinzirniai",
+      "name": "Konservuoti lęšiai ir avinžirniai",
+      "sortOrder": 7,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuotos-alyvuoges-kapareliai-ir-svogunai",
+      "name": "Konservuotos alyvuogės, kaparėliai ir svogūnai",
+      "sortOrder": 8,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuotos-sriubos-ir-troskiniai",
+      "name": "Konservuotos sriubos ir troškiniai",
+      "sortOrder": 9,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuoti-grybai",
+      "name": "Konservuoti grybai",
+      "sortOrder": 10,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/uogienes-ir-dzemai",
+      "name": "Uogienės ir džemai",
+      "sortOrder": 11,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/konservuoti-vaisiai-ir-uogos",
+      "name": "Konservuoti vaisiai ir uogos",
+      "sortOrder": 12,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/tyres",
+      "name": "Tyrės",
+      "sortOrder": 13,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/konservuotas-maistas/medus",
+      "name": "Medus",
+      "sortOrder": 14,
+      "parentPath": "/bakaleja/konservuotas-maistas",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/basmati-ryziai",
+      "name": "Basmati ryžiai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/ilgagrudziai-ryziai",
+      "name": "Ilgagrūdžiai ryžiai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/plikyti-susiu-ir-rizoto-ryziai",
+      "name": "Plikyti, sušių ir rizoto ryžiai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/rudieji-apvalieji-ir-kiti-ryziai",
+      "name": "Rudieji, apvalieji ir kiti ryžiai",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/grikiai",
+      "name": "Grikiai",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/kvietines-ir-manu-kruopos",
+      "name": "Kvietinės ir manų kruopos",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/bulguro-ir-kuskuso-kruopos",
+      "name": "Bulguro ir kuskuso kruopos",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/avizines-kruopos-ir-dribsniai",
+      "name": "Avižinės kruopos ir dribsniai",
+      "sortOrder": 7,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/bolivine-balanda-soru-ir-kukuruzu-kruopos",
+      "name": "Bolivinė balanda, sorų ir kukurūzų kruopos",
+      "sortOrder": 8,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/miezines-ir-perlines-kruopos",
+      "name": "Miežinės ir perlinės kruopos",
+      "sortOrder": 9,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/kruopos/lesiai-avinzirniai-zirniai-ir-pupeles",
+      "name": "Lęšiai, avinžirniai, žirniai ir pupelės",
+      "sortOrder": 10,
+      "parentPath": "/bakaleja/kruopos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/makaronai/trumpieji-ir-smulkieji-makaronai",
+      "name": "Trumpieji ir smulkieji makaronai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/makaronai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/makaronai/ilgieji-plokstieji-ir-lazanijos-makaronai",
+      "name": "Ilgieji, plokštieji ir lazanijos makaronai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/makaronai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/makaronai/pilno-grudo-makaronai",
+      "name": "Pilno grūdo makaronai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/makaronai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/miltai-ir-ju-misiniai/kvietiniai-ir-ruginiai-miltai",
+      "name": "Kvietiniai ir ruginiai miltai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/miltai-ir-ju-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/miltai-ir-ju-misiniai/ryziu-kukuruzu-ir-riesutu-miltai",
+      "name": "Ryžių, kukurūzų ir riešutų miltai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/miltai-ir-ju-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/miltai-ir-ju-misiniai/miltu-misiniai-blynams-pyragams-ir-keksiukams",
+      "name": "Miltų mišiniai blynams, pyragams ir keksiukams",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/miltai-ir-ju-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/miltai-ir-ju-misiniai/miltu-misiniai-duonai-ir-picoms",
+      "name": "Miltų mišiniai duonai ir picoms",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/miltai-ir-ju-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/pomidoru-padazai-ir-pasta",
+      "name": "Pomidorų padažai ir pasta",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/kecupai",
+      "name": "Kečupai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/majoneziniai-ir-cesnakiniai-padazai",
+      "name": "Majoneziniai ir česnakiniai padažai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/bbq-kepsniu-ir-mesainiu-padazai",
+      "name": "BBQ, kepsnių ir mėsainių padažai",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/soju-terijakio-ir-vorcesterio-padazai",
+      "name": "Sojų, terijakio ir vorčesterio padažai",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/aitriuju-papriku-ir-saldziarugsciai-padazai",
+      "name": "Aitriųjų paprikų ir saldžiarūgščiai padažai",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/garstycios-ir-krienai",
+      "name": "Garstyčios ir krienai",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/pesto-padazai",
+      "name": "Pesto padažai",
+      "sortOrder": 7,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/salotu-padazai",
+      "name": "Salotų padažai",
+      "sortOrder": 8,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/humusas-ir-gvakamole",
+      "name": "Humusas ir gvakamolė",
+      "sortOrder": 9,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/padazai-ir-konservuotos-uztepeles/konservuotos-uztepeles",
+      "name": "Konservuotos užtepėlės",
+      "sortOrder": 10,
+      "parentPath": "/bakaleja/padazai-ir-konservuotos-uztepeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/pasaulio-virtuves/meksikos-virtuve",
+      "name": "Meksikos virtuvė",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/pasaulio-virtuves",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/pasaulio-virtuves/azijos-virtuve",
+      "name": "Azijos virtuvė",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/pasaulio-virtuves",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/prieskoniai-marinatai-ir-sultiniai/grynieji-prieskoniai-ir-zoleles",
+      "name": "Grynieji prieskoniai ir žolelės",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/prieskoniai-marinatai-ir-sultiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/prieskoniai-marinatai-ir-sultiniai/pipirai",
+      "name": "Pipirai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/prieskoniai-marinatai-ir-sultiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/prieskoniai-marinatai-ir-sultiniai/prieskoniu-ir-zoleliu-misiniai",
+      "name": "Prieskonių ir žolelių mišiniai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/prieskoniai-marinatai-ir-sultiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/prieskoniai-marinatai-ir-sultiniai/marinatai-ir-prieskoniu-ruosiniai-patiekalams",
+      "name": "Marinatai ir prieskonių ruošiniai patiekalams",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/prieskoniai-marinatai-ir-sultiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/prieskoniai-marinatai-ir-sultiniai/sultiniai-ir-sultiniu-kubeliai",
+      "name": "Sultiniai ir sultinių kubeliai",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/prieskoniai-marinatai-ir-sultiniai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos/riesutai",
+      "name": "Riešutai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos/sudyti-ir-kepinti-riesutai",
+      "name": "Sūdyti ir kepinti riešutai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos/riesutu-dziovintu-vaisiu-ir-uogu-misiniai",
+      "name": "Riešutų, džiovintų vaisių ir uogų mišiniai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos/seklos-ir-ju-misiniai",
+      "name": "Sėklos ir jų mišiniai",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos/sudytos-kepintos-saulegrazu-ir-moliugu-seklos",
+      "name": "Sūdytos, kepintos saulėgrąžų ir moliūgų sėklos",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos/dziovinti-vaisiai",
+      "name": "Džiovinti vaisiai",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos/dziovintos-uogos",
+      "name": "Džiovintos uogos",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos/saltyje-dziovinti-vaisiai-ir-uogos",
+      "name": "Šaltyje džiovinti vaisiai ir uogos",
+      "sortOrder": 7,
+      "parentPath": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos/selenos-ir-semenys",
+      "name": "Sėlenos ir sėmenys",
+      "sortOrder": 8,
+      "parentPath": "/bakaleja/riesutai-seklos-dziovinti-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/sveriami-saldainiai",
+      "name": "Sveriami saldainiai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/saldainiai-dezutese",
+      "name": "Saldainiai dėžutėse",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/sokolado-plyteles",
+      "name": "Šokolado plytelės",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/sokoladiniai-ir-vafliniai-batoneliai",
+      "name": "Šokoladiniai ir vafliniai batonėliai",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/javainiu-riesutu-ir-vaisiu-batoneliai",
+      "name": "Javainių, riešutų ir vaisių batonėliai",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/sokolado-ir-riesutu-kremai",
+      "name": "Šokolado ir riešutų kremai",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/guminukai",
+      "name": "Guminukai",
+      "sortOrder": 6,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/draze-ledinukai-ir-kramtomieji-saldainiai",
+      "name": "Dražė, ledinukai ir kramtomieji saldainiai",
+      "sortOrder": 7,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/pastiles-ir-kramtomoji-guma",
+      "name": "Pastilės ir kramtomoji guma",
+      "sortOrder": 8,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/saldumynai/sokoladiniai-kiausiniai-ir-saldainiai-su-zaislais",
+      "name": "Šokoladiniai kiaušiniai ir saldainiai su žaislais",
+      "sortOrder": 9,
+      "parentPath": "/bakaleja/saldumynai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai/sausainiai",
+      "name": "Sausainiai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai/javainiai-vafliai-ir-trapuciai",
+      "name": "Javainiai, vafliai ir trapučiai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai/biskvitiniai-pyragaiciai-ir-keksiukai",
+      "name": "Biskvitiniai pyragaičiai ir keksiukai",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai/meduoliai-ir-riestainiai",
+      "name": "Meduoliai ir riestainiai",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai/kukuruzu-lazdeles-ir-spragesiai",
+      "name": "Kukurūzų lazdelės ir spragėsiai",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai/zefyrai",
+      "name": "Zefyrai",
+      "sortOrder": 5,
+      "parentPath": "/bakaleja/sausainiai-pyragaiciai-kukuruzai-ir-javainiai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/sausi-pusryciai-dribsniai-ir-javainiu-batoneliai/sausi-pusryciai-ir-dribsniai",
+      "name": "Sausi pusryčiai ir dribsniai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/sausi-pusryciai-dribsniai-ir-javainiu-batoneliai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/sausi-pusryciai-dribsniai-ir-javainiu-batoneliai/granola",
+      "name": "Granola",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/sausi-pusryciai-dribsniai-ir-javainiu-batoneliai",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles/bulviu-traskuciai",
+      "name": "Bulvių traškučiai",
+      "sortOrder": 0,
+      "parentPath": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles/kukuruzu-traskuciai-ir-trapuciai",
+      "name": "Kukurūzų traškučiai ir trapučiai",
+      "sortOrder": 1,
+      "parentPath": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles/duonos-traskuciai-ir-kepinta-duona",
+      "name": "Duonos traškučiai ir kepinta duona",
+      "sortOrder": 2,
+      "parentPath": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles/lesiu-juros-dumbliu-ir-kiti-traskuciai",
+      "name": "Lęšių, jūros dumblių ir kiti traškučiai",
+      "sortOrder": 3,
+      "parentPath": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles",
+      "depth": 3
+    },
+    {
+      "path": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles/krekeriai-ir-surios-lazdeles",
+      "name": "Krekeriai ir sūrios lazdelės",
+      "sortOrder": 4,
+      "parentPath": "/bakaleja/traskuciai-krekeriai-ir-surios-lazdeles",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/pomidorai-ir-agurkai",
+      "name": "Pomidorai ir agurkai",
+      "sortOrder": 0,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/paprikos",
+      "name": "Paprikos",
+      "sortOrder": 1,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/bulves-morkos-ir-kopustai",
+      "name": "Bulvės, morkos ir kopūstai",
+      "sortOrder": 2,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/svogunai-porai-ir-cesnakai",
+      "name": "Svogūnai, porai ir česnakai",
+      "sortOrder": 3,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/salotos-ir-ju-misiniai",
+      "name": "Salotos ir jų mišiniai",
+      "sortOrder": 4,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/avokadai",
+      "name": "Avokadai",
+      "sortOrder": 5,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/prieskonines-darzoves-ir-zoleles",
+      "name": "Prieskoninės daržovės ir žolelės",
+      "sortOrder": 6,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/marinuotos-raugintos-ir-sudytos-darzoves",
+      "name": "Marinuotos, raugintos ir sūdytos daržovės",
+      "sortOrder": 7,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/burokeliai-ridikai-ir-imbieras",
+      "name": "Burokėliai, ridikai ir imbieras",
+      "sortOrder": 8,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/moliugai-cukinijos-ir-baklazanai",
+      "name": "Moliūgai, cukinijos ir baklažanai",
+      "sortOrder": 9,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/kukuruzai-zirniai-pupeles-ir-smidrai",
+      "name": "Kukurūzai, žirniai, pupelės ir smidrai",
+      "sortOrder": 10,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/darzoves-ir-grybai/grybai",
+      "name": "Grybai",
+      "sortOrder": 11,
+      "parentPath": "/darzoves-ir-vaisiai/darzoves-ir-grybai",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/vaisiai-ir-uogos/bananai-obuoliai-ir-kriauses",
+      "name": "Bananai, obuoliai ir kriaušės",
+      "sortOrder": 0,
+      "parentPath": "/darzoves-ir-vaisiai/vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/vaisiai-ir-uogos/vynuoges-ir-uogos",
+      "name": "Vynuogės ir uogos",
+      "sortOrder": 1,
+      "parentPath": "/darzoves-ir-vaisiai/vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/vaisiai-ir-uogos/citrusiniai-vaisiai",
+      "name": "Citrusiniai vaisiai",
+      "sortOrder": 2,
+      "parentPath": "/darzoves-ir-vaisiai/vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/vaisiai-ir-uogos/melionai-ir-arbuzai",
+      "name": "Melionai ir arbūzai",
+      "sortOrder": 3,
+      "parentPath": "/darzoves-ir-vaisiai/vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/vaisiai-ir-uogos/persikai-nektarinai-ir-slyvos",
+      "name": "Persikai, nektarinai ir slyvos",
+      "sortOrder": 4,
+      "parentPath": "/darzoves-ir-vaisiai/vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/darzoves-ir-vaisiai/vaisiai-ir-uogos/egzotiniai-vaisiai",
+      "name": "Egzotiniai vaisiai",
+      "sortOrder": 5,
+      "parentPath": "/darzoves-ir-vaisiai/vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/bandeles-uzkandziai-ir-kibinai/svieziai-keptos-nesaldzios-bandeles-ir-kibinai",
+      "name": "Šviežiai keptos nesaldžios bandelės ir kibinai",
+      "sortOrder": 0,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/bandeles-uzkandziai-ir-kibinai",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/bandeles-uzkandziai-ir-kibinai/svieziai-keptos-saldzios-bandeles-ir-pyragai",
+      "name": "Šviežiai keptos saldžios bandelės ir pyragai",
+      "sortOrder": 1,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/bandeles-uzkandziai-ir-kibinai",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/bandeles-uzkandziai-ir-kibinai/fasuotos-bandeles",
+      "name": "Fasuotos bandelės",
+      "sortOrder": 2,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/bandeles-uzkandziai-ir-kibinai",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/bandeles-uzkandziai-ir-kibinai/spurgos",
+      "name": "Spurgos",
+      "sortOrder": 3,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/bandeles-uzkandziai-ir-kibinai",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/tamsi-duona",
+      "name": "Tamsi duona",
+      "sortOrder": 0,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/sviesi-duona",
+      "name": "Šviesi duona",
+      "sortOrder": 1,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/svieziai-kepta-tamsi-duona",
+      "name": "Šviežiai kepta tamsi duona",
+      "sortOrder": 2,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/svieziai-kepta-sviesi-duona-ir-batonas",
+      "name": "Šviežiai kepta šviesi duona ir batonas",
+      "sortOrder": 3,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/sumustiniu-duona-batonas-ir-duoneles",
+      "name": "Sumuštinių duona, batonas ir duonelės",
+      "sortOrder": 4,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/mesainiu-desrainiu-ir-brioche-bandeles",
+      "name": "Mėsainių, dešrainių ir brioche bandelės",
+      "sortOrder": 5,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/tortilijos-ir-picu-paplociai",
+      "name": "Tortilijos ir picų papločiai",
+      "sortOrder": 6,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/duoniukai",
+      "name": "Duoniukai",
+      "sortOrder": 7,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/duona-be-glitimo",
+      "name": "Duona be glitimo",
+      "sortOrder": 8,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/duona/dziuvesiai",
+      "name": "Džiūvėsiai",
+      "sortOrder": 9,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/duona",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai/tortai",
+      "name": "Tortai",
+      "sortOrder": 0,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai/plokstainiai-ir-vyniotiniai",
+      "name": "Plokštainiai ir vyniotiniai",
+      "sortOrder": 1,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai/pyragaiciai-ir-desertai",
+      "name": "Pyragaičiai ir desertai",
+      "sortOrder": 2,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai/sakociai-skruzdelynai-ir-tinginys",
+      "name": "Šakočiai, skruzdėlynai ir tinginys",
+      "sortOrder": 3,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai/tortu-ir-vafliu-lakstai",
+      "name": "Tortų ir vaflių lakštai",
+      "sortOrder": 4,
+      "parentPath": "/duonos-gaminiai-ir-konditerija/konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/alus/sviesusis-alus",
+      "name": "Šviesusis alus",
+      "sortOrder": 0,
+      "parentPath": "/gerimai/alus",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/alus/kvietinis-alus",
+      "name": "Kvietinis alus",
+      "sortOrder": 1,
+      "parentPath": "/gerimai/alus",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/alus/tamsusis-alus",
+      "name": "Tamsusis alus",
+      "sortOrder": 2,
+      "parentPath": "/gerimai/alus",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/alus/alaus-kokteiliai",
+      "name": "Alaus kokteiliai",
+      "sortOrder": 3,
+      "parentPath": "/gerimai/alus",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/gaivieji-gerimai/gazuoti-vaisvandeniai",
+      "name": "Gazuoti vaisvandeniai",
+      "sortOrder": 0,
+      "parentPath": "/gerimai/gaivieji-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/gaivieji-gerimai/negazuoti-vaisvandeniai",
+      "name": "Negazuoti vaisvandeniai",
+      "sortOrder": 1,
+      "parentPath": "/gerimai/gaivieji-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/gaivieji-gerimai/tonikai",
+      "name": "Tonikai",
+      "sortOrder": 2,
+      "parentPath": "/gerimai/gaivieji-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/gaivieji-gerimai/gira",
+      "name": "Gira",
+      "sortOrder": 3,
+      "parentPath": "/gerimai/gaivieji-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/gaivieji-gerimai/energiniai-gerimai",
+      "name": "Energiniai gėrimai",
+      "sortOrder": 4,
+      "parentPath": "/gerimai/gaivieji-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/gaivieji-gerimai/sporto-ir-funkciniai-gerimai",
+      "name": "Sporto ir funkciniai gėrimai",
+      "sortOrder": 5,
+      "parentPath": "/gerimai/gaivieji-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/gaivieji-gerimai/salti-arbatos-ir-kavos-gerimai",
+      "name": "Šalti arbatos ir kavos gėrimai",
+      "sortOrder": 6,
+      "parentPath": "/gerimai/gaivieji-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/gaivieji-gerimai/sirupai",
+      "name": "Sirupai",
+      "sortOrder": 7,
+      "parentPath": "/gerimai/gaivieji-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/nealkoholiniai-gerimai/nealkoholinis-alus",
+      "name": "Nealkoholinis alus",
+      "sortOrder": 0,
+      "parentPath": "/gerimai/nealkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/nealkoholiniai-gerimai/nealkoholinis-sidras",
+      "name": "Nealkoholinis sidras",
+      "sortOrder": 1,
+      "parentPath": "/gerimai/nealkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/nealkoholiniai-gerimai/nealkoholinis-putojantis-vynas",
+      "name": "Nealkoholinis putojantis vynas",
+      "sortOrder": 2,
+      "parentPath": "/gerimai/nealkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/nealkoholiniai-gerimai/nealkoholinis-vynas",
+      "name": "Nealkoholinis vynas",
+      "sortOrder": 3,
+      "parentPath": "/gerimai/nealkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/nealkoholiniai-gerimai/kiti-nealkoholiniai-gerimai",
+      "name": "Kiti nealkoholiniai gėrimai",
+      "sortOrder": 4,
+      "parentPath": "/gerimai/nealkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/sidras-ir-kokteiliai/sidras",
+      "name": "Sidras",
+      "sortOrder": 0,
+      "parentPath": "/gerimai/sidras-ir-kokteiliai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/sidras-ir-kokteiliai/kokteiliai",
+      "name": "Kokteiliai",
+      "sortOrder": 1,
+      "parentPath": "/gerimai/sidras-ir-kokteiliai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/degtine",
+      "name": "Degtinė",
+      "sortOrder": 0,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/viskis",
+      "name": "Viskis",
+      "sortOrder": 1,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/brendis",
+      "name": "Brendis",
+      "sortOrder": 2,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/likeris",
+      "name": "Likeris",
+      "sortOrder": 3,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/romas",
+      "name": "Romas",
+      "sortOrder": 4,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/dzinas",
+      "name": "Džinas",
+      "sortOrder": 5,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/trauktine",
+      "name": "Trauktinė",
+      "sortOrder": 6,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/konjakas",
+      "name": "Konjakas",
+      "sortOrder": 7,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/tekila",
+      "name": "Tekila",
+      "sortOrder": 8,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/stiprieji-alkoholiniai-gerimai/midus-ir-kiti-stiprieji-alkoholiniai-gerimai",
+      "name": "Midus ir kiti stiprieji alkoholiniai gėrimai",
+      "sortOrder": 9,
+      "parentPath": "/gerimai/stiprieji-alkoholiniai-gerimai",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/sultys-nektarai-sulciu-gerimai-ir-berzu-sula/sultys",
+      "name": "Sultys",
+      "sortOrder": 0,
+      "parentPath": "/gerimai/sultys-nektarai-sulciu-gerimai-ir-berzu-sula",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/sultys-nektarai-sulciu-gerimai-ir-berzu-sula/nektarai-ir-sulciu-gerimai",
+      "name": "Nektarai ir sulčių gėrimai",
+      "sortOrder": 1,
+      "parentPath": "/gerimai/sultys-nektarai-sulciu-gerimai-ir-berzu-sula",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/sultys-nektarai-sulciu-gerimai-ir-berzu-sula/gaivieji-ir-sulciu-gerimai-vaikams",
+      "name": "Gaivieji ir sulčių gėrimai vaikams",
+      "sortOrder": 2,
+      "parentPath": "/gerimai/sultys-nektarai-sulciu-gerimai-ir-berzu-sula",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/sultys-nektarai-sulciu-gerimai-ir-berzu-sula/vaisiu-kokteiliai-ir-glotnuciai",
+      "name": "Vaisių kokteiliai ir glotnučiai",
+      "sortOrder": 3,
+      "parentPath": "/gerimai/sultys-nektarai-sulciu-gerimai-ir-berzu-sula",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/vanduo/negazuotas-vanduo",
+      "name": "Negazuotas vanduo",
+      "sortOrder": 0,
+      "parentPath": "/gerimai/vanduo",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/vanduo/gazuotas-vanduo",
+      "name": "Gazuotas vanduo",
+      "sortOrder": 1,
+      "parentPath": "/gerimai/vanduo",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/vynas/baltasis-vynas",
+      "name": "Baltasis vynas",
+      "sortOrder": 0,
+      "parentPath": "/gerimai/vynas",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/vynas/raudonasis-vynas",
+      "name": "Raudonasis vynas",
+      "sortOrder": 1,
+      "parentPath": "/gerimai/vynas",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/vynas/rausvasis-vynas",
+      "name": "Rausvasis vynas",
+      "sortOrder": 2,
+      "parentPath": "/gerimai/vynas",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/vynas/putojantis-vynas",
+      "name": "Putojantis vynas",
+      "sortOrder": 3,
+      "parentPath": "/gerimai/vynas",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/vynas/sampanas",
+      "name": "Šampanas",
+      "sortOrder": 4,
+      "parentPath": "/gerimai/vynas",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/vynas/vermutas",
+      "name": "Vermutas",
+      "sortOrder": 5,
+      "parentPath": "/gerimai/vynas",
+      "depth": 3
+    },
+    {
+      "path": "/gerimai/vynas/vyno-gerimai",
+      "name": "Vyno gėrimai",
+      "sortOrder": 6,
+      "parentPath": "/gerimai/vynas",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/burnos-higienos-priemones/dantu-sepeteliai",
+      "name": "Dantų šepetėliai",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/burnos-higienos-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/burnos-higienos-priemones/dantu-pastos",
+      "name": "Dantų pastos",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/burnos-higienos-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/burnos-higienos-priemones/burnos-skalavimo-skysciai",
+      "name": "Burnos skalavimo skysčiai",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/burnos-higienos-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/burnos-higienos-priemones/dantu-siulai-ir-krapstukai",
+      "name": "Dantų siūlai ir krapštukai",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/burnos-higienos-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/burnos-higienos-priemones/dantu-protezu-prieziura",
+      "name": "Dantų protezų priežiūra",
+      "sortOrder": 4,
+      "parentPath": "/kosmetika-ir-higiena/burnos-higienos-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dekoratyvine-kosmetika/blakstienu-tusai",
+      "name": "Blakstienų tušai",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/dekoratyvine-kosmetika",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dekoratyvine-kosmetika/makiazo-pagrindai-pudros-ir-maskuokliai",
+      "name": "Makiažo pagrindai, pudros ir maskuokliai",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/dekoratyvine-kosmetika",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dekoratyvine-kosmetika/akiu-ir-antakiu-piestukai",
+      "name": "Akių ir antakių pieštukai",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/dekoratyvine-kosmetika",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dekoratyvine-kosmetika/lupu-dazai-ir-piestukai",
+      "name": "Lūpų dažai ir pieštukai",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/dekoratyvine-kosmetika",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dekoratyvine-kosmetika/makiazo-reikmenys",
+      "name": "Makiažo reikmenys",
+      "sortOrder": 4,
+      "parentPath": "/kosmetika-ir-higiena/dekoratyvine-kosmetika",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dezodorantai/purskiamieji-dezodorantai-moterims",
+      "name": "Purškiamieji dezodorantai moterims",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/dezodorantai",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dezodorantai/purskiamieji-dezodorantai-vyrams",
+      "name": "Purškiamieji dezodorantai vyrams",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/dezodorantai",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dezodorantai/rutuliniai-ir-piestukiniai-dezodorantai-moterims",
+      "name": "Rutuliniai ir pieštukiniai dezodorantai moterims",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/dezodorantai",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/dezodorantai/rutuliniai-ir-piestukiniai-dezodorantai-vyrams",
+      "name": "Rutuliniai ir pieštukiniai dezodorantai vyrams",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/dezodorantai",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/intymios-higienos-prekes/higieniniai-iklotai",
+      "name": "Higieniniai įklotai",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/intymios-higienos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/intymios-higienos-prekes/higieniniai-paketai",
+      "name": "Higieniniai paketai",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/intymios-higienos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/intymios-higienos-prekes/tamponai",
+      "name": "Tamponai",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/intymios-higienos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/intymios-higienos-prekes/iklotai-nelaikantiems-slapimo",
+      "name": "Įklotai nelaikantiems šlapimo",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/intymios-higienos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/intymios-higienos-prekes/intymios-higienos-prausikliai-ir-serveteles",
+      "name": "Intymios higienos prausikliai ir servetėlės",
+      "sortOrder": 4,
+      "parentPath": "/kosmetika-ir-higiena/intymios-higienos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/intymios-higienos-prekes/sauskelnes-suaugusiems",
+      "name": "Sauskelnės suaugusiems",
+      "sortOrder": 5,
+      "parentPath": "/kosmetika-ir-higiena/intymios-higienos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kuno-prieziuros-priemones/gabalinis-tualetinis-muilas",
+      "name": "Gabalinis tualetinis muilas",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/kuno-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kuno-prieziuros-priemones/skystas-tualetinis-muilas",
+      "name": "Skystas tualetinis muilas",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/kuno-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kuno-prieziuros-priemones/duso-zele",
+      "name": "Dušo želė",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/kuno-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kuno-prieziuros-priemones/vonios-putos-ir-druska",
+      "name": "Vonios putos ir druska",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/kuno-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kuno-prieziuros-priemones/kuno-odos-prieziuros-priemones",
+      "name": "Kūno odos priežiūros priemonės",
+      "sortOrder": 4,
+      "parentPath": "/kosmetika-ir-higiena/kuno-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kuno-prieziuros-priemones/saules-kosmetika",
+      "name": "Saulės kosmetika",
+      "sortOrder": 5,
+      "parentPath": "/kosmetika-ir-higiena/kuno-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kuno-prieziuros-priemones/eteriniai-aliejai",
+      "name": "Eteriniai aliejai",
+      "sortOrder": 6,
+      "parentPath": "/kosmetika-ir-higiena/kuno-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kuno-prieziuros-priemones/kitos-kuno-prieziuros-priemones",
+      "name": "Kitos kūno priežiūros priemonės",
+      "sortOrder": 7,
+      "parentPath": "/kosmetika-ir-higiena/kuno-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kvepalai/kvepalai-moterims",
+      "name": "Kvepalai moterims",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/kvepalai",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/kvepalai/kvepalai-vyrams",
+      "name": "Kvepalai vyrams",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/kvepalai",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/medicinos-prekes/dregnosios-serveteles",
+      "name": "Drėgnosios servetėlės",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/medicinos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/medicinos-prekes/pleistrai",
+      "name": "Pleistrai",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/medicinos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/medicinos-prekes/dezinfekcijos-priemones",
+      "name": "Dezinfekcijos priemonės",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/medicinos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/medicinos-prekes/prezervatyvai",
+      "name": "Prezervatyvai",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/medicinos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/medicinos-prekes/kitos-medicinines-prekes",
+      "name": "Kitos medicininės prekės",
+      "sortOrder": 4,
+      "parentPath": "/kosmetika-ir-higiena/medicinos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/medicinos-prekes/vitaminu-ir-mineralu-papildai",
+      "name": "Vitaminų ir mineralų papildai",
+      "sortOrder": 5,
+      "parentPath": "/kosmetika-ir-higiena/medicinos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/medicinos-prekes/maisto-papildai",
+      "name": "Maisto papildai",
+      "sortOrder": 6,
+      "parentPath": "/kosmetika-ir-higiena/medicinos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/medicinos-prekes/namu-vaistinele",
+      "name": "Namų vaistinėlė",
+      "sortOrder": 7,
+      "parentPath": "/kosmetika-ir-higiena/medicinos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones/plauku-sampunai",
+      "name": "Plaukų šampūnai",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones/sausi-plauku-sampunai",
+      "name": "Sausi plaukų šampūnai",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones/plauku-balzamai",
+      "name": "Plaukų balzamai",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones/plauku-kaukes-serumai-ir-aliejus",
+      "name": "Plaukų kaukės, serumai ir aliejus",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones/sukuosenos-formavimo-priemones",
+      "name": "Šukuosenos formavimo priemonės",
+      "sortOrder": 4,
+      "parentPath": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones/plauku-lakas",
+      "name": "Plaukų lakas",
+      "sortOrder": 5,
+      "parentPath": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones/plauku-dazai",
+      "name": "Plaukų dažai",
+      "sortOrder": 6,
+      "parentPath": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones/sukos-ir-sepeciai",
+      "name": "Šukos ir šepečiai",
+      "sortOrder": 7,
+      "parentPath": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/plauku-prieziuros-priemones/plauku-aksesuarai",
+      "name": "Plaukų aksesuarai",
+      "sortOrder": 8,
+      "parentPath": "/kosmetika-ir-higiena/plauku-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/ranku-ir-pedu-odos-prieziuros-priemones/ranku-odos-prieziuros-priemones",
+      "name": "Rankų odos priežiūros priemonės",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/ranku-ir-pedu-odos-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/ranku-ir-pedu-odos-prieziuros-priemones/pedu-odos-prieziuros-priemones",
+      "name": "Pėdų odos priežiūros priemonės",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/ranku-ir-pedu-odos-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/ranku-ir-pedu-odos-prieziuros-priemones/manikiuro-ir-pedikiuro-reikmenys",
+      "name": "Manikiūro ir pedikiūro reikmenys",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/ranku-ir-pedu-odos-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/ranku-ir-pedu-odos-prieziuros-priemones/nagu-lakai",
+      "name": "Nagų lakai",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/ranku-ir-pedu-odos-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/skutimosi-prekes/skutimosi-putos-ir-zele",
+      "name": "Skutimosi putos ir želė",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/skutimosi-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/skutimosi-prekes/losjonai-ir-kremai-po-skutimosi",
+      "name": "Losjonai ir kremai po skutimosi",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/skutimosi-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/skutimosi-prekes/skustuvai",
+      "name": "Skustuvai",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/skutimosi-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/skutimosi-prekes/skutimosi-peiliukai-ir-priedai",
+      "name": "Skutimosi peiliukai ir priedai",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/skutimosi-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/skutimosi-prekes/depiliacines-priemones",
+      "name": "Depiliacinės priemonės",
+      "sortOrder": 4,
+      "parentPath": "/kosmetika-ir-higiena/skutimosi-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/veido-prieziuros-priemones/makiazo-valikliai-ir-veido-prausikliai",
+      "name": "Makiažo valikliai ir veido prausikliai",
+      "sortOrder": 0,
+      "parentPath": "/kosmetika-ir-higiena/veido-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/veido-prieziuros-priemones/veido-kremai",
+      "name": "Veido kremai",
+      "sortOrder": 1,
+      "parentPath": "/kosmetika-ir-higiena/veido-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/veido-prieziuros-priemones/naktiniai-veido-kremai",
+      "name": "Naktiniai veido kremai",
+      "sortOrder": 2,
+      "parentPath": "/kosmetika-ir-higiena/veido-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/veido-prieziuros-priemones/veido-serumai-ir-paakiu-kremai",
+      "name": "Veido serumai ir paakių kremai",
+      "sortOrder": 3,
+      "parentPath": "/kosmetika-ir-higiena/veido-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/veido-prieziuros-priemones/veido-kaukes",
+      "name": "Veido kaukės",
+      "sortOrder": 4,
+      "parentPath": "/kosmetika-ir-higiena/veido-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/veido-prieziuros-priemones/lupu-prieziuros-priemones",
+      "name": "Lūpų priežiūros priemonės",
+      "sortOrder": 5,
+      "parentPath": "/kosmetika-ir-higiena/veido-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kosmetika-ir-higiena/veido-prieziuros-priemones/kosmetine-vata-ir-krapstukai",
+      "name": "Kosmetinė vata ir krapštukai",
+      "sortOrder": 6,
+      "parentPath": "/kosmetika-ir-higiena/veido-prieziuros-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-gerimai-ir-uzkandziai/sausainiai-trapuciai-ir-dziuveseliai",
+      "name": "Sausainiai, trapučiai ir džiūvėsėliai",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-gerimai-ir-uzkandziai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-gerimai-ir-uzkandziai/kudikiu-ir-vaiku-gerimai",
+      "name": "Kūdikių ir vaikų gėrimai",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-gerimai-ir-uzkandziai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai/kudikiu-ir-lavinamieji-zaislai",
+      "name": "Kūdikių ir lavinamieji žaislai",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai/automobiliu-ir-veiksmo-zaidimai",
+      "name": "Automobilių ir veiksmo žaidimai",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai/leles-ir-ju-priedai",
+      "name": "Lėlės ir jų priedai",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai/kurybiniai-ir-interaktyvus-zaislai",
+      "name": "Kūrybiniai ir interaktyvūs žaislai",
+      "sortOrder": 3,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai/stalo-zaidimai",
+      "name": "Stalo žaidimai",
+      "sortOrder": 4,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai/deliones",
+      "name": "Dėlionės",
+      "sortOrder": 5,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai/kiti-zaislai",
+      "name": "Kiti žaislai",
+      "sortOrder": 6,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-ir-vaiku-zaislai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-koses/koses-su-pienu-nuo-4-men",
+      "name": "Košės su pienu nuo 4 mėn.",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-koses",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-koses/koses-su-pienu-nuo-6-men",
+      "name": "Košės su pienu nuo 6 mėn.",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-koses",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-koses/koses-su-pienu-nuo-8-men",
+      "name": "Košės su pienu nuo 8 mėn.",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-koses",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-koses/koses-su-pienu-nuo-12-men",
+      "name": "Košės su pienu nuo 12 mėn.",
+      "sortOrder": 3,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-koses",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-koses/koses-be-pieno-nuo-4-men",
+      "name": "Košės be pieno nuo 4 mėn.",
+      "sortOrder": 4,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-koses",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-koses/koses-be-pieno-nuo-6-men",
+      "name": "Košės be pieno nuo 6 mėn.",
+      "sortOrder": 5,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-koses",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-koses/koses-be-pieno-nuo-8-men",
+      "name": "Košės be pieno nuo 8 mėn.",
+      "sortOrder": 6,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-koses",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/kudikiu-koses/koses-be-pieno-nuo-12-men",
+      "name": "Košės be pieno nuo 12 mėn.",
+      "sortOrder": 7,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/kudikiu-koses",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-duplo",
+      "name": "LEGO DUPLO",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-friends",
+      "name": "LEGO FRIENDS",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-classic",
+      "name": "LEGO CLASSIC",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-disney",
+      "name": "LEGO DISNEY",
+      "sortOrder": 3,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-city",
+      "name": "LEGO CITY",
+      "sortOrder": 4,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-creator",
+      "name": "LEGO CREATOR",
+      "sortOrder": 5,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-technic",
+      "name": "LEGO TECHNIC",
+      "sortOrder": 6,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-ninjago",
+      "name": "LEGO NINJAGO",
+      "sortOrder": 7,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-marvel-super-heroes",
+      "name": "LEGO MARVEL SUPER HEROES",
+      "sortOrder": 8,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-speed-champions",
+      "name": "LEGO SPEED CHAMPIONS",
+      "sortOrder": 9,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-minecraft",
+      "name": "LEGO MINECRAFT",
+      "sortOrder": 10,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-icons",
+      "name": "LEGO ICONS",
+      "sortOrder": 11,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-sonic",
+      "name": "LEGO SONIC",
+      "sortOrder": 12,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-botanicals",
+      "name": "LEGO BOTANICALS",
+      "sortOrder": 13,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-disney-animation",
+      "name": "LEGO DISNEY ANIMATION",
+      "sortOrder": 14,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-harry-potter-tm",
+      "name": "LEGO HARRY POTTER TM",
+      "sortOrder": 15,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-star-wars-tm",
+      "name": "LEGO STAR WARS TM",
+      "sortOrder": 16,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-super-heroes",
+      "name": "LEGO SUPER HEROES",
+      "sortOrder": 17,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai/lego-art",
+      "name": "LEGO ART",
+      "sortOrder": 18,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/lego-konstruktoriai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/mesos-ir-darzoviu-tyreles/mesos-ir-darzoviu-tyreles-nuo-4-men",
+      "name": "Mėsos ir daržovių tyrelės nuo 4 mėn.",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/mesos-ir-darzoviu-tyreles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/mesos-ir-darzoviu-tyreles/mesos-ir-darzoviu-tyreles-nuo-6-men",
+      "name": "Mėsos ir daržovių tyrelės nuo 6 mėn.",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/mesos-ir-darzoviu-tyreles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/mesos-ir-darzoviu-tyreles/mesos-ir-darzoviu-tyreles-nuo-8-men",
+      "name": "Mėsos ir daržovių tyrelės nuo 8 mėn.",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/mesos-ir-darzoviu-tyreles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/mesos-ir-darzoviu-tyreles/mesos-ir-darzoviu-tyreles-nuo-12-men",
+      "name": "Mėsos ir daržovių tyrelės nuo 12 mėn.",
+      "sortOrder": 3,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/mesos-ir-darzoviu-tyreles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/pieno-misiniai/pieno-misiniai-nuo-0-men",
+      "name": "Pieno mišiniai nuo 0+ mėn.",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/pieno-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/pieno-misiniai/pieno-misiniai-nuo-6-men",
+      "name": "Pieno mišiniai nuo 6+ mėn.",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/pieno-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/pieno-misiniai/pieno-misiniai-nuo-1-metu",
+      "name": "Pieno mišiniai nuo 1+ metų",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/pieno-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/pieno-misiniai/specializuoti-pieno-misiniai",
+      "name": "Specializuoti pieno mišiniai",
+      "sortOrder": 3,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/pieno-misiniai",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/prieziuros-prekes/prekes-mamoms",
+      "name": "Prekės mamoms",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/prieziuros-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/prieziuros-prekes/maitinimo-ir-kudikiu-prieziuros-reikmenys",
+      "name": "Maitinimo ir kūdikių priežiūros reikmenys",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/prieziuros-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/prieziuros-prekes/seilinukai",
+      "name": "Seilinukai",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/prieziuros-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/prieziuros-prekes/kiti-kudikiu-prieziuros-reikmenys",
+      "name": "Kiti kūdikių priežiūros reikmenys",
+      "sortOrder": 3,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/prieziuros-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles/sauskelnes-dydziai-0-ir-1",
+      "name": "Sauskelnės, dydžiai 0 ir 1",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles/sauskelnes-dydis-2",
+      "name": "Sauskelnės, dydis 2",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles/sauskelnes-dydis-3",
+      "name": "Sauskelnės, dydis 3",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles/sauskelnes-dydis-4",
+      "name": "Sauskelnės, dydis 4",
+      "sortOrder": 3,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles/sauskelnes-dydis-5",
+      "name": "Sauskelnės, dydis 5",
+      "sortOrder": 4,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles/sauskelnes-dydis-6",
+      "name": "Sauskelnės, dydis 6+",
+      "sortOrder": 5,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles/paklotai",
+      "name": "Paklotai",
+      "sortOrder": 6,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles/dregnosios-serveteles",
+      "name": "Drėgnosios servetėlės",
+      "sortOrder": 7,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/sauskelnes-ir-serveteles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/vaiku-higienos-prekes/sampunai-ir-prausimosi-priemones",
+      "name": "Šampūnai ir prausimosi priemonės",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/vaiku-higienos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/vaiku-higienos-prekes/kremai-losjonai-ir-aliejai",
+      "name": "Kremai, losjonai ir aliejai",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/vaiku-higienos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/vaiku-higienos-prekes/burnos-higienos-priemones",
+      "name": "Burnos higienos priemonės",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/vaiku-higienos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/vaisines-ir-desertines-tyreles/vaisines-ir-desertines-tyreles-nuo-4-men",
+      "name": "Vaisinės ir desertinės tyrelės nuo 4 mėn.",
+      "sortOrder": 0,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/vaisines-ir-desertines-tyreles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/vaisines-ir-desertines-tyreles/vaisines-ir-desertines-tyreles-nuo-6-men",
+      "name": "Vaisinės ir desertinės tyrelės nuo 6 mėn.",
+      "sortOrder": 1,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/vaisines-ir-desertines-tyreles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/vaisines-ir-desertines-tyreles/vaisines-ir-desertines-tyreles-nuo-8-men",
+      "name": "Vaisinės ir desertinės tyrelės nuo 8 mėn.",
+      "sortOrder": 2,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/vaisines-ir-desertines-tyreles",
+      "depth": 3
+    },
+    {
+      "path": "/kudikiu-ir-vaiku-prekes/vaisines-ir-desertines-tyreles/vaisines-ir-desertines-tyreles-nuo-12-men",
+      "name": "Vaisinės ir desertinės tyrelės nuo 12 mėn.",
+      "sortOrder": 3,
+      "parentPath": "/kudikiu-ir-vaiku-prekes/vaisines-ir-desertines-tyreles",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/kulinarija/kepsneliai-kotletai-balandeliai-ir-troskiniai",
+      "name": "Kepsneliai, kotletai, balandėliai ir troškiniai",
+      "sortOrder": 0,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/kulinarija",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/kulinarija/salotos-ir-misraines",
+      "name": "Salotos ir mišrainės",
+      "sortOrder": 1,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/kulinarija",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/kulinarija/blynai-varskeciai-ir-apkepai",
+      "name": "Blynai, varškėčiai ir apkepai",
+      "sortOrder": 2,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/kulinarija",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/kulinarija/bulviniai-patiekalai",
+      "name": "Bulviniai patiekalai",
+      "sortOrder": 3,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/kulinarija",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/kulinarija/sumustiniai-picos-ir-lavasas",
+      "name": "Sumuštiniai, picos ir lavašas",
+      "sortOrder": 4,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/kulinarija",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/kulinarija/greitai-paruosiami-virtiniai-ir-kepsneliai",
+      "name": "Greitai paruošiami virtiniai ir kepsneliai",
+      "sortOrder": 5,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/kulinarija",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/kulinarija/susiai-ir-juros-kopustai",
+      "name": "Sušiai ir jūros kopūstai",
+      "sortOrder": 6,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/kulinarija",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai/rukytos-desros",
+      "name": "Rūkytos dešros",
+      "sortOrder": 0,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai/rukyti-kumpiai-nugarine-ir-file",
+      "name": "Rūkyti kumpiai, nugarinė ir filė",
+      "sortOrder": 1,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai/parukytos-desreles-ir-sardeles",
+      "name": "Parūkytos dešrelės ir sardelės",
+      "sortOrder": 2,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai/karstai-rukyta-vistiena",
+      "name": "Karštai rūkyta vištiena",
+      "sortOrder": 3,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai/vytintos-desros",
+      "name": "Vytintos dešros",
+      "sortOrder": 4,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai/vytinti-kumpiai-ir-nugarine",
+      "name": "Vytinti kumpiai ir nugarinė",
+      "sortOrder": 5,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai/mesos-uzkandziai-ir-kabanosiai",
+      "name": "Mėsos užkandžiai ir kabanosiai",
+      "sortOrder": 6,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai/sonine-ir-lasiniai",
+      "name": "Šoninė ir lašiniai",
+      "sortOrder": 7,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/rukytos-vytintos-desros-ir-kumpiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/vistiena",
+      "name": "Vištiena",
+      "sortOrder": 0,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/kiauliena",
+      "name": "Kiauliena",
+      "sortOrder": 1,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/jautiena",
+      "name": "Jautiena",
+      "sortOrder": 2,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/kalakutiena-antiena-ir-triusiena",
+      "name": "Kalakutiena, antiena ir triušiena",
+      "sortOrder": 3,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/malta-mesa-ir-paukstiena",
+      "name": "Malta mėsa ir paukštiena",
+      "sortOrder": 4,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/marinuota-paukstiena",
+      "name": "Marinuota paukštiena",
+      "sortOrder": 5,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/marinuota-kiauliena-ir-jautiena",
+      "name": "Marinuota kiauliena ir jautiena",
+      "sortOrder": 6,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/sviezios-desreles",
+      "name": "Šviežios dešrelės",
+      "sortOrder": 7,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena/augaliniai-mesos-pakaitalai",
+      "name": "Augaliniai mėsos pakaitalai",
+      "sortOrder": 8,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-mesa-ir-paukstiena",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/sviezia-zuvis-ir-juros-gerybes",
+      "name": "Šviežia žuvis ir jūros gėrybės",
+      "sortOrder": 0,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/lasisos-gaminiai",
+      "name": "Lašišos gaminiai",
+      "sortOrder": 1,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/silkes-ir-ju-gaminiai",
+      "name": "Silkės ir jų gaminiai",
+      "sortOrder": 2,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/tuno-konservai",
+      "name": "Tuno konservai",
+      "sortOrder": 3,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/sprotai-zuvu-konservai-ir-uztepeles",
+      "name": "Šprotai, žuvų konservai ir užtepėlės",
+      "sortOrder": 4,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/ikrai",
+      "name": "Ikrai",
+      "sortOrder": 5,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/krabu-skonio-lazdeles",
+      "name": "Krabų skonio lazdelės",
+      "sortOrder": 6,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/rukytos-zuvys-ir-juru-gerybes",
+      "name": "Rūkytos žuvys ir jūrų gėrybės",
+      "sortOrder": 7,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/vytintos-zuvys-ir-juru-gerybes",
+      "name": "Vytintos žuvys ir jūrų gėrybės",
+      "sortOrder": 8,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai/juros-gerybes-marinate-suryme-ir-padaze",
+      "name": "Jūros gėrybės marinate, sūryme ir padaže",
+      "sortOrder": 9,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/sviezia-zuvis-juru-gerybes-ir-zuvu-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/virtos-desros-kumpiai-ir-desreles/virtos-desros-ir-kumpiai",
+      "name": "Virtos dešros ir kumpiai",
+      "sortOrder": 0,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/virtos-desros-kumpiai-ir-desreles",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/virtos-desros-kumpiai-ir-desreles/virtos-desreles-ir-sardeles",
+      "name": "Virtos dešrelės ir sardelės",
+      "sortOrder": 1,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/virtos-desros-kumpiai-ir-desreles",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/virtos-desros-kumpiai-ir-desreles/kepamosios-desreles",
+      "name": "Kepamosios dešrelės",
+      "sortOrder": 2,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/virtos-desros-kumpiai-ir-desreles",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/vyniotiniai-pastetas-ir-mesos-konservai/vyniotiniai-slegtainiai-ir-saltienos",
+      "name": "Vyniotiniai, slėgtainiai ir šaltienos",
+      "sortOrder": 0,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/vyniotiniai-pastetas-ir-mesos-konservai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/vyniotiniai-pastetas-ir-mesos-konservai/virti-kepti-ir-sudyti-gaminiai",
+      "name": "Virti, kepti ir sūdyti gaminiai",
+      "sortOrder": 1,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/vyniotiniai-pastetas-ir-mesos-konservai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/vyniotiniai-pastetas-ir-mesos-konservai/pastetas",
+      "name": "Paštetas",
+      "sortOrder": 2,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/vyniotiniai-pastetas-ir-mesos-konservai",
+      "depth": 3
+    },
+    {
+      "path": "/mesa-zuvis-ir-kulinarija/vyniotiniai-pastetas-ir-mesos-konservai/mesos-ir-paukstienos-konservai",
+      "name": "Mėsos ir paukštienos konservai",
+      "sortOrder": 3,
+      "parentPath": "/mesa-zuvis-ir-kulinarija/vyniotiniai-pastetas-ir-mesos-konservai",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura/trasos",
+      "name": "Trąšos",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura/zemes-ir-substratai",
+      "name": "Žemės ir substratai",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura/geles",
+      "name": "Gėlės",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura/dirbtines-geles",
+      "name": "Dirbtinės gėlės",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura/vazos-ir-vazonai",
+      "name": "Vazos ir vazonai",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/augalai-ir-ju-prieziura",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/automobiliu-prekes/automobiliu-svaros-priemones",
+      "name": "Automobilių švaros priemonės",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/automobiliu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/automobiliu-prekes/automobiliniai-oro-gaivikliai",
+      "name": "Automobiliniai oro gaivikliai",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/automobiliu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/automobiliu-prekes/automobiliu-lemputes",
+      "name": "Automobilių lemputės",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/automobiliu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/automobiliu-prekes/tepalai-alyvos",
+      "name": "Tepalai, alyvos",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/automobiliu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/automobiliu-prekes/kitos-automobiliu-prekes",
+      "name": "Kitos automobilių prekės",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/automobiliu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika/virtuves-buitine-technika",
+      "name": "Virtuvės buitinė technika",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika/elektronikos-prietaisai-ir-ju-priedai",
+      "name": "Elektronikos prietaisai ir jų priedai",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika/asmeniniai-elektronikos-prietaisai-ir-ju-priedai",
+      "name": "Asmeniniai elektronikos prietaisai ir jų priedai",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika/kompiuterijos-prekes",
+      "name": "Kompiuterijos prekės",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika/ilgintuvai-ir-jungtukai",
+      "name": "Ilgintuvai ir jungtukai",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika/elektros-lemputes-ir-zibintuveliai",
+      "name": "Elektros lemputės ir žibintuvėliai",
+      "sortOrder": 5,
+      "parentPath": "/namai-ir-laisvalaikis/buitine-technika-ir-elektronika",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kanceliarines-prekes/popierius-popieriaus-gaminiai",
+      "name": "Popierius, popieriaus gaminiai",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/kanceliarines-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kanceliarines-prekes/kuprines-ir-penalai",
+      "name": "Kuprinės ir penalai",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/kanceliarines-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kanceliarines-prekes/sasiuviniai-ir-uzrasines",
+      "name": "Sąsiuviniai ir užrašinės",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/kanceliarines-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kanceliarines-prekes/rasymo-priemones",
+      "name": "Rašymo priemonės",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/kanceliarines-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kanceliarines-prekes/piesimo-ir-lipdymo-priemones",
+      "name": "Piešimo ir lipdymo priemonės",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/kanceliarines-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kanceliarines-prekes/zirkles-klijai-ir-aksesuarai",
+      "name": "Žirklės, klijai ir aksesuarai",
+      "sortOrder": 5,
+      "parentPath": "/namai-ir-laisvalaikis/kanceliarines-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kanceliarines-prekes/daiktadezes-ir-siuksliadezes",
+      "name": "Daiktadėžės ir šiukšliadežės",
+      "sortOrder": 6,
+      "parentPath": "/namai-ir-laisvalaikis/kanceliarines-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kanceliarines-prekes/aplankalai-ir-dokumentu-laikymas",
+      "name": "Aplankalai ir dokumentų laikymas",
+      "sortOrder": 7,
+      "parentPath": "/namai-ir-laisvalaikis/kanceliarines-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas/moteriskos-kojines",
+      "name": "Moteriškos kojinės",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas/vyriskos-kojines",
+      "name": "Vyriškos kojinės",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas/vaikiskos-kojines",
+      "name": "Vaikiškos kojinės",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas/pedkelnes",
+      "name": "Pėdkelnės",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas/vaikiskos-pedkelnes",
+      "name": "Vaikiškos pėdkelnės",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas/apatinis-trikotazas",
+      "name": "Apatinis trikotažas",
+      "sortOrder": 5,
+      "parentPath": "/namai-ir-laisvalaikis/kojines-ir-apatinis-trikotazas",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos/zurnalai-ir-laikrasciai",
+      "name": "Žurnalai ir laikraščiai",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos/zurnalai-vaikams",
+      "name": "Žurnalai vaikams",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos/kryziazodziai",
+      "name": "Kryžiažodžiai",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos/suaugusiuju-populiarioji-literatura",
+      "name": "Suaugusiųjų populiarioji literatūra",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos/vaiku-populiarioji-literatura",
+      "name": "Vaikų populiarioji literatūra",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos/spalvinimo-knygos",
+      "name": "Spalvinimo knygos",
+      "sortOrder": 5,
+      "parentPath": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos/valstybine-atributika",
+      "name": "Valstybinė atributika",
+      "sortOrder": 6,
+      "parentPath": "/namai-ir-laisvalaikis/laikrasciai-zurnalai-knygos",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laisvalaikio-prekes/kepsnines-ir-ju-reikmenys",
+      "name": "Kepsninės ir jų reikmenys",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/laisvalaikio-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laisvalaikio-prekes/anglys-ir-briketai",
+      "name": "Anglys ir briketai",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/laisvalaikio-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laisvalaikio-prekes/pridegimo-priemones",
+      "name": "Pridegimo priemonės",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/laisvalaikio-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laisvalaikio-prekes/vienkartiniai-indai-ir-irankiai",
+      "name": "Vienkartiniai indai ir įrankiai",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/laisvalaikio-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laisvalaikio-prekes/insekticidai-repelentai",
+      "name": "Insekticidai, repelentai",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/laisvalaikio-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laisvalaikio-prekes/sporto-prekes",
+      "name": "Sporto prekės",
+      "sortOrder": 5,
+      "parentPath": "/namai-ir-laisvalaikis/laisvalaikio-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/laisvalaikio-prekes/laisvalaikio-prekes",
+      "name": "Laisvalaikio prekės",
+      "sortOrder": 6,
+      "parentPath": "/namai-ir-laisvalaikis/laisvalaikio-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai/maisto-gaminimo-ir-laikymo-medziagos",
+      "name": "Maisto gaminimo ir laikymo medžiagos",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai/maisto-produktu-laikymo-indai",
+      "name": "Maisto produktų laikymo indai",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai/kepimo-formos",
+      "name": "Kepimo formos",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai/puodai-ir-keptuves",
+      "name": "Puodai ir keptuvės",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai/maisto-ruosimo-irankiai",
+      "name": "Maisto ruošimo įrankiai",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai/gertuves-ir-termosai",
+      "name": "Gertuvės ir termosai",
+      "sortOrder": 5,
+      "parentPath": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai/kiti-virtuves-reikmenys",
+      "name": "Kiti virtuvės reikmenys",
+      "sortOrder": 6,
+      "parentPath": "/namai-ir-laisvalaikis/maisto-ruosimo-ir-laikymo-indai",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/dovanu-pakavimas",
+      "name": "Dovanų pakavimas",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/pledai",
+      "name": "Pledai",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/patalyne-ir-patalynes-komplektai",
+      "name": "Patalynė ir patalynės komplektai",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/drabuziu-prieziura",
+      "name": "Drabužių priežiūra",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/skeciai",
+      "name": "Skėčiai",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/avalynes-prieziuros-priemones",
+      "name": "Avalynės priežiūros priemonės",
+      "sortOrder": 5,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/siuvimo-ir-mezgimo-priemones",
+      "name": "Siuvimo ir mezgimo priemonės",
+      "sortOrder": 6,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/vonios-reikmenys",
+      "name": "Vonios reikmenys",
+      "sortOrder": 7,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/galvaniniai-elementai",
+      "name": "Galvaniniai elementai",
+      "sortOrder": 8,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/klijai",
+      "name": "Klijai",
+      "sortOrder": 9,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/darbo-ir-remonto-priemones",
+      "name": "Darbo ir remonto priemonės",
+      "sortOrder": 10,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys/kapu-zvakes",
+      "name": "Kapų žvakės",
+      "sortOrder": 11,
+      "parentPath": "/namai-ir-laisvalaikis/namu-apyvokos-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys/taures-ir-stiklines",
+      "name": "Taurės ir stiklinės",
+      "sortOrder": 0,
+      "parentPath": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys/puodeliai",
+      "name": "Puodeliai",
+      "sortOrder": 1,
+      "parentPath": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys/lekstes",
+      "name": "Lėkštės",
+      "sortOrder": 2,
+      "parentPath": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys/dubenys",
+      "name": "Dubenys",
+      "sortOrder": 3,
+      "parentPath": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys/stalo-irankiai",
+      "name": "Stalo įrankiai",
+      "sortOrder": 4,
+      "parentPath": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys/zvakes-ir-zvakides",
+      "name": "Žvakės ir žvakidės",
+      "sortOrder": 5,
+      "parentPath": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys/popierines-serveteles",
+      "name": "Popierinės servetėlės",
+      "sortOrder": 6,
+      "parentPath": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys/progine-atributika",
+      "name": "Proginė atributika",
+      "sortOrder": 7,
+      "parentPath": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys/vandens-filtrai-ir-ju-priedai",
+      "name": "Vandens filtrai ir jų priedai",
+      "sortOrder": 8,
+      "parentPath": "/namai-ir-laisvalaikis/virtuves-ir-stalo-serviravimo-reikmenys",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai/augaliniai-gerimai-ir-grietinele",
+      "name": "Augaliniai gėrimai ir grietinėlė",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai/augalinis-suris-uztepai-ir-tofu",
+      "name": "Augalinis sūris, užtepai ir tofu",
+      "sortOrder": 1,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai/augaliniai-jogurto-ir-desertu-pakaitalai",
+      "name": "Augaliniai jogurto ir desertų pakaitalai",
+      "sortOrder": 2,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/augaliniai-produktai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/grietine-ir-grietinele/grietine-ir-kastinys",
+      "name": "Grietinė ir kastinys",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/grietine-ir-grietinele",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/grietine-ir-grietinele/grietinele",
+      "name": "Grietinėlė",
+      "sortOrder": 1,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/grietine-ir-grietinele",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/jogurtai-ir-desertai/naturalus-jogurtai",
+      "name": "Natūralūs jogurtai",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/jogurtai-ir-desertai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/jogurtai-ir-desertai/jogurtai-su-pagardais",
+      "name": "Jogurtai su pagardais",
+      "sortOrder": 1,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/jogurtai-ir-desertai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/jogurtai-ir-desertai/probiotiniai-gerimai",
+      "name": "Probiotiniai gėrimai",
+      "sortOrder": 2,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/jogurtai-ir-desertai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/jogurtai-ir-desertai/desertai-ir-desertiniai-batoneliai",
+      "name": "Desertai ir desertiniai batonėliai",
+      "sortOrder": 3,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/jogurtai-ir-desertai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/kefyras-rugpienis-ir-pasukos/kefyras-ir-kefyro-gerimai",
+      "name": "Kefyras ir kefyro gėrimai",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/kefyras-rugpienis-ir-pasukos",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/kefyras-rugpienis-ir-pasukos/rugpienis-ir-raugintos-pasukos",
+      "name": "Rūgpienis ir raugintos pasukos",
+      "sortOrder": 1,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/kefyras-rugpienis-ir-pasukos",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/kiausiniai/vistu-ir-putpeliu-kiausiniai",
+      "name": "Vištų ir putpelių kiaušiniai",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/kiausiniai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/majonezas/majonezas",
+      "name": "Majonezas",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/majonezas",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/pienas/pasterizuotas-pienas",
+      "name": "Pasterizuotas pienas",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/pienas",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/pienas/ilgo-galiojimo-pienas",
+      "name": "Ilgo galiojimo pienas",
+      "sortOrder": 1,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/pienas",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/pienas/pieno-gerimai",
+      "name": "Pieno gėrimai",
+      "sortOrder": 2,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/pienas",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/pienas/sutirstintas-pienas",
+      "name": "Sutirštintas pienas",
+      "sortOrder": 3,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/pienas",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/fermentiniai-suriai",
+      "name": "Fermentiniai sūriai",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/kietieji-suriai",
+      "name": "Kietieji sūriai",
+      "sortOrder": 1,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/tepamieji-suriai-ir-varske",
+      "name": "Tepamieji sūriai ir varškė",
+      "sortOrder": 2,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/mocarelos-ir-buratos-suriai",
+      "name": "Mocarelos ir buratos sūriai",
+      "sortOrder": 3,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/fetos-brinzos-ir-halumi-suriai",
+      "name": "Fetos, brinzos ir halumi sūriai",
+      "sortOrder": 4,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/maskarpones-ir-rikotos-suriai",
+      "name": "Maskarponės ir rikotos sūriai",
+      "sortOrder": 5,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/varskes-ir-desertiniai-suriai",
+      "name": "Varškės ir desertiniai sūriai",
+      "sortOrder": 6,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/lydyti-suriai",
+      "name": "Lydyti sūriai",
+      "sortOrder": 7,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/cederio-suriai",
+      "name": "Čederio sūriai",
+      "sortOrder": 8,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/pelesiniai-suriai",
+      "name": "Pelėsiniai sūriai",
+      "sortOrder": 9,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/ozku-ir-aviu-pieno-suriai",
+      "name": "Ožkų ir avių pieno sūriai",
+      "sortOrder": 10,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris/surio-uzkandziai-ir-surio-lazdeles",
+      "name": "Sūrio užkandžiai ir sūrio lazdelės",
+      "sortOrder": 11,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/suris",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/sviestas-margarinas-ir-riebalai/sviestas",
+      "name": "Sviestas",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/sviestas-margarinas-ir-riebalai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/sviestas-margarinas-ir-riebalai/margarinas-ir-tepieji-riebalu-misiniai",
+      "name": "Margarinas ir tepieji riebalų mišiniai",
+      "sortOrder": 1,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/sviestas-margarinas-ir-riebalai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/varskes-produktai/varske",
+      "name": "Varškė",
+      "sortOrder": 0,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/varskes-produktai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/varskes-produktai/grudeta-varske",
+      "name": "Grūdėta varškė",
+      "sortOrder": 1,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/varskes-produktai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/varskes-produktai/varskes-sureliai",
+      "name": "Varškės sūreliai",
+      "sortOrder": 2,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/varskes-produktai",
+      "depth": 3
+    },
+    {
+      "path": "/pieno-gaminiai-kiausiniai-ir-majonezas/varskes-produktai/desertine-varske",
+      "name": "Desertinė varškė",
+      "sortOrder": 3,
+      "parentPath": "/pieno-gaminiai-kiausiniai-ir-majonezas/varskes-produktai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/ledai-ir-ledo-kubeliai/ledai-porcijomis",
+      "name": "Ledai porcijomis",
+      "sortOrder": 0,
+      "parentPath": "/saldytas-maistas/ledai-ir-ledo-kubeliai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/ledai-ir-ledo-kubeliai/ledai-dezutese",
+      "name": "Ledai dėžutėse",
+      "sortOrder": 1,
+      "parentPath": "/saldytas-maistas/ledai-ir-ledo-kubeliai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/ledai-ir-ledo-kubeliai/ledo-kubeliai",
+      "name": "Ledo kubeliai",
+      "sortOrder": 2,
+      "parentPath": "/saldytas-maistas/ledai-ir-ledo-kubeliai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyta-zuvis-juru-gerybes-ir-mesa/saldytos-krevetes-ir-kitos-juru-gerybes",
+      "name": "Šaldytos krevetės ir kitos jūrų gėrybės",
+      "sortOrder": 0,
+      "parentPath": "/saldytas-maistas/saldyta-zuvis-juru-gerybes-ir-mesa",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyta-zuvis-juru-gerybes-ir-mesa/saldyta-zuvis",
+      "name": "Šaldyta žuvis",
+      "sortOrder": 1,
+      "parentPath": "/saldytas-maistas/saldyta-zuvis-juru-gerybes-ir-mesa",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyta-zuvis-juru-gerybes-ir-mesa/saldyti-zuvu-kepsneliai-ir-pirsteliai",
+      "name": "Šaldyti žuvų kepsneliai ir piršteliai",
+      "sortOrder": 2,
+      "parentPath": "/saldytas-maistas/saldyta-zuvis-juru-gerybes-ir-mesa",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai/saldyti-koldunai-ir-virtiniai",
+      "name": "Šaldyti koldūnai ir virtiniai",
+      "sortOrder": 0,
+      "parentPath": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai/saldytos-picos",
+      "name": "Šaldytos picos",
+      "sortOrder": 1,
+      "parentPath": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai/saldyti-kijevo-kotletai-kepsneliai-ir-kiti-patiekalai",
+      "name": "Šaldyti kijevo kotletai, kepsneliai ir kiti patiekalai",
+      "sortOrder": 2,
+      "parentPath": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai/saldyti-cepelinai-bulviniai-ir-zemaiciu-blynai",
+      "name": "Šaldyti cepelinai, bulviniai ir žemaičių blynai",
+      "sortOrder": 3,
+      "parentPath": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai/saldyti-lietiniai-ir-varskeciai",
+      "name": "Šaldyti lietiniai ir varškėčiai",
+      "sortOrder": 4,
+      "parentPath": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai/saldyti-pyragai-bandeles-ir-duona",
+      "name": "Šaldyti pyragai, bandelės ir duona",
+      "sortOrder": 5,
+      "parentPath": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai/saldyti-uzkandziai",
+      "name": "Šaldyti užkandžiai",
+      "sortOrder": 6,
+      "parentPath": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai/saldyta-tesla",
+      "name": "Šaldyta tešla",
+      "sortOrder": 7,
+      "parentPath": "/saldytas-maistas/saldyti-kulinarijos-ir-konditerijos-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos/saldytos-darzoves-grybai-ir-ju-misiniai",
+      "name": "Šaldytos daržovės, grybai ir jų mišiniai",
+      "sortOrder": 0,
+      "parentPath": "/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos/saldytos-bulvytes",
+      "name": "Šaldytos bulvytės",
+      "sortOrder": 1,
+      "parentPath": "/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos/saldytos-uogos-ir-vaisiai",
+      "name": "Šaldytos uogos ir vaisiai",
+      "sortOrder": 2,
+      "parentPath": "/saldytas-maistas/saldytos-darzoves-vaisiai-ir-uogos",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/virtuves-ir-vonios-kambario-valikliai",
+      "name": "Virtuvės ir vonios kambario valikliai",
+      "sortOrder": 0,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/langu-valikliai",
+      "name": "Langų valikliai",
+      "sortOrder": 1,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/nuoviru-ir-nuosedu-valikliai",
+      "name": "Nuovirų ir nuosėdų valikliai",
+      "sortOrder": 2,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/specialiosios-paskirties-valikliai",
+      "name": "Specialiosios paskirties valikliai",
+      "sortOrder": 3,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/sveitikliai",
+      "name": "Šveitikliai",
+      "sortOrder": 4,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/universalus-valikliai",
+      "name": "Universalūs valikliai",
+      "sortOrder": 5,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/grindu-ir-kilimu-valikliai",
+      "name": "Grindų ir kilimų valikliai",
+      "sortOrder": 6,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/skalbykliu-prieziura",
+      "name": "Skalbyklių priežiūra",
+      "sortOrder": 7,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/nutekamuju-vamzdziu-valikliai",
+      "name": "Nutekamųjų vamzdžių valikliai",
+      "sortOrder": 8,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/skystieji-wc-valikliai-gaivikliai",
+      "name": "Skystieji WC valikliai - gaivikliai",
+      "sortOrder": 9,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/kietieji-wc-valikliai-gaivikliai",
+      "name": "Kietieji WC valikliai - gaivikliai",
+      "sortOrder": 10,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/purskiamieji-oro-gaivikliai",
+      "name": "Purškiamieji oro gaivikliai",
+      "sortOrder": 11,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/oro-gaivikliai",
+      "name": "Oro gaivikliai",
+      "sortOrder": 12,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/namu-kvapai",
+      "name": "Namų kvapai",
+      "sortOrder": 13,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes/parazitu-naikinimo-priemones",
+      "name": "Parazitų naikinimo priemonės",
+      "sortOrder": 14,
+      "parentPath": "/svaros-ir-gyvunu-prekes/buitines-chemijos-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/sausas-sunu-edalas",
+      "name": "Sausas šunų ėdalas",
+      "sortOrder": 0,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/konservuotas-sunu-edalas",
+      "name": "Konservuotas šunų ėdalas",
+      "sortOrder": 1,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/sunu-skanestai",
+      "name": "Šunų skanėstai",
+      "sortOrder": 2,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/sausas-kaciu-edalas",
+      "name": "Sausas kačių ėdalas",
+      "sortOrder": 3,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/konservuotas-kaciu-edalas",
+      "name": "Konservuotas kačių ėdalas",
+      "sortOrder": 4,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/kaciu-skanestai",
+      "name": "Kačių skanėstai",
+      "sortOrder": 5,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/gyvunu-kraikas",
+      "name": "Gyvūnų kraikas",
+      "sortOrder": 6,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/pauksciu-lesalas",
+      "name": "Paukščių lesalas",
+      "sortOrder": 7,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/kitu-gyvunu-edalas",
+      "name": "Kitų gyvūnų ėdalas",
+      "sortOrder": 8,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/grauziku-edalas",
+      "name": "Graužikų ėdalas",
+      "sortOrder": 9,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/gyvunu-higienos-produktai",
+      "name": "Gyvūnų higienos produktai",
+      "sortOrder": 10,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/gyvunu-prieziuros-reikmenys",
+      "name": "Gyvūnų priežiūros reikmenys",
+      "sortOrder": 11,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/gyvunu-prekes/gyvunu-aksesuarai",
+      "name": "Gyvūnų aksesuarai",
+      "sortOrder": 12,
+      "parentPath": "/svaros-ir-gyvunu-prekes/gyvunu-prekes",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/indu-plovikliai/plovimo-priemones-indaplovems",
+      "name": "Plovimo priemonės indaplovėms",
+      "sortOrder": 0,
+      "parentPath": "/svaros-ir-gyvunu-prekes/indu-plovikliai",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/indu-plovikliai/indaploviu-prieziuros-priemones",
+      "name": "Indaplovių priežiūros priemonės",
+      "sortOrder": 1,
+      "parentPath": "/svaros-ir-gyvunu-prekes/indu-plovikliai",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/indu-plovikliai/priemones-indams-plauti",
+      "name": "Priemonės indams plauti",
+      "sortOrder": 2,
+      "parentPath": "/svaros-ir-gyvunu-prekes/indu-plovikliai",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/popieriniai-gaminiai/tualetinis-popierius",
+      "name": "Tualetinis popierius",
+      "sortOrder": 0,
+      "parentPath": "/svaros-ir-gyvunu-prekes/popieriniai-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/popieriniai-gaminiai/popieriniai-ranksluosciai",
+      "name": "Popieriniai rankšluosčiai",
+      "sortOrder": 1,
+      "parentPath": "/svaros-ir-gyvunu-prekes/popieriniai-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/popieriniai-gaminiai/popierines-nosinaites",
+      "name": "Popierinės nosinaitės",
+      "sortOrder": 2,
+      "parentPath": "/svaros-ir-gyvunu-prekes/popieriniai-gaminiai",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/priemones-valymui/sluostes-kempineles-ir-sepeciai",
+      "name": "Šluostės, kempinėlės ir šepečiai",
+      "sortOrder": 0,
+      "parentPath": "/svaros-ir-gyvunu-prekes/priemones-valymui",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/priemones-valymui/langu-ir-grindu-valymo-reikmenys",
+      "name": "Langų ir grindų valymo reikmenys",
+      "sortOrder": 1,
+      "parentPath": "/svaros-ir-gyvunu-prekes/priemones-valymui",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/priemones-valymui/buitines-ir-darbo-pirstines",
+      "name": "Buitinės ir darbo pirštinės",
+      "sortOrder": 2,
+      "parentPath": "/svaros-ir-gyvunu-prekes/priemones-valymui",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/priemones-valymui/siuksliu-maisai",
+      "name": "Šiukšlių maišai",
+      "sortOrder": 3,
+      "parentPath": "/svaros-ir-gyvunu-prekes/priemones-valymui",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones/skalbiamieji-milteliai",
+      "name": "Skalbiamieji milteliai",
+      "sortOrder": 0,
+      "parentPath": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones/skalbiniu-minkstikliai",
+      "name": "Skalbinių minkštikliai",
+      "sortOrder": 1,
+      "parentPath": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones/skystos-skalbimo-priemones",
+      "name": "Skystos skalbimo priemonės",
+      "sortOrder": 2,
+      "parentPath": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones/skalbiamieji-lapeliai",
+      "name": "Skalbiamieji lapeliai",
+      "sortOrder": 3,
+      "parentPath": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones/demiu-valikliai-ir-balinimo-priemones",
+      "name": "Dėmių valikliai ir balinimo priemonės",
+      "sortOrder": 4,
+      "parentPath": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones/priemones-skalbti-rankomis",
+      "name": "Priemonės skalbti rankomis",
+      "sortOrder": 5,
+      "parentPath": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones/audiniu-standikliai-ir-antistatikai",
+      "name": "Audinių standikliai ir antistatikai",
+      "sortOrder": 6,
+      "parentPath": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones/skalbimo-priemones-jautriai-odai-ir-kudikiams",
+      "name": "Skalbimo priemonės jautriai odai ir kūdikiams",
+      "sortOrder": 7,
+      "parentPath": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "depth": 3
+    },
+    {
+      "path": "/svaros-ir-gyvunu-prekes/skalbimo-priemones/skalbiniu-minkstikliai-jautriai-odai-ir-kudikiams",
+      "name": "Skalbinių minkštikliai jautriai odai ir kūdikiams",
+      "sortOrder": 8,
+      "parentPath": "/svaros-ir-gyvunu-prekes/skalbimo-priemones",
+      "depth": 3
+    }
+  ]
+}

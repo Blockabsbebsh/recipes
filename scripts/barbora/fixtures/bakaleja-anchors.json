@@ -1,0 +1,30 @@
+{
+  "comment": "Anchors in document order from a Barbora top-level category page, trimmed to the shapes the crawler has to survive: the header navigation to sibling roots, a breadcrumb back to the root, the full child and grandchild tree, a repeated link, promoted product cards, a filtered listing, a search link, and an off-site footer link.",
+  "root": "/bakaleja",
+  "base": "https://barbora.lt/bakaleja",
+  "anchors": [
+    { "href": "/", "text": "Barbora" },
+    { "href": "/darzoves-ir-vaisiai", "text": "Daržovės ir vaisiai" },
+    { "href": "/mesa-zuvis-ir-kulinarija", "text": "Mėsa, žuvis ir kulinarija" },
+    { "href": "/paieska?q=druska", "text": "Paieška" },
+    { "href": "/prisijungti", "text": "Prisijungti" },
+    { "href": "/krepselis", "text": "Krepšelis" },
+    { "href": "/bakaleja", "text": "Bakalėja" },
+    { "href": "/bakaleja/konservuotas-maistas", "text": "Konservuotas maistas" },
+    { "href": "/bakaleja/konservuotas-maistas/konservuotos-darzoves", "text": "Konservuotos daržovės" },
+    { "href": "/bakaleja/konservuotas-maistas/konservuotos-zuvys", "text": " Konservuotos\n  žuvys " },
+    { "href": "https://barbora.lt/bakaleja/makaronai", "text": "Makaronai" },
+    { "href": "/bakaleja/makaronai/ilgi-makaronai", "text": "Ilgi makaronai" },
+    { "href": "/bakaleja/makaronai/trumpi-makaronai/", "text": "Trumpi makaronai" },
+    { "href": "/bakaleja/padazai-ir-konservuotos-uztepeles", "text": "Padažai ir konservuotos užtepėlės" },
+    { "href": "/bakaleja/padazai-ir-konservuotos-uztepeles/kecupai", "text": "Kečupai" },
+    { "href": "/bakaleja/padazai-ir-konservuotos-uztepeles/soju-terijakio-ir-vorcesterio-padazai", "text": "Sojų, terijakio ir vorčesterio padažai" },
+    { "href": "/bakaleja/makaronai", "text": "Makaronai" },
+    { "href": "/bakaleja/makaronai?page=2", "text": "2" },
+    { "href": "/produktai/lietuviski-pomidorai-1-kg", "text": "Lietuviški pomidorai, 1 kg" },
+    { "href": "/produktai/druska-extra-1-kg", "text": "Druska Extra, 1 kg" },
+    { "href": "/akcijos", "text": "Akcijos" },
+    { "href": "https://www.facebook.com/barbora.lt", "text": "Facebook" },
+    { "href": "/bakaleja/prieskoniai-marinatai-ir-sultiniai", "text": "" }
+  ]
+}

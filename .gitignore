@@ -7,4 +7,8 @@ dist
 vite.config.js
 vite.config.d.ts
 .DS_Store
+
+# Crawler run output; the reviewed catalogue in data/ is committed deliberately
+crawl/
+data/barbora-crawl-report.json
 .npm-cache/

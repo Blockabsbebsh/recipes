@@ -17,6 +17,26 @@ export type Ingredient = {
 export type IngredientSection =
   'Produce' | 'Pantry' | 'Dairy & alternatives' | 'Bakery' | 'Frozen' | 'Spices' | 'Other'
 
+/**
+ * A node in Barbora's shopping hierarchy. Global reference data, not
+ * household-specific, and read-only for the app: `https://barbora.lt${path}`
+ * is the shopping link.
+ */
+export type BarboraCategory = {
+  path: string
+  name: string
+  parent_path: string | null
+  depth: number
+  sort_order: number
+  active: boolean
+}
+
+/** Why an ingredient points at the category it does. */
+export type BarboraMappingReason = 'exact' | 'alias' | 'parent_fallback' | 'manual'
+
+/** Who chose it. A `manual` choice survives crawler and auto-mapping runs. */
+export type BarboraMappingSource = 'automatic' | 'manual'
+
 /** An entry in the household's shared ingredient vocabulary. */
 export type VocabularyIngredient = {
   id: string
@@ -24,6 +44,12 @@ export type VocabularyIngredient = {
   name: string
   section: IngredientSection
   food_type: string
+  // Independent of `section` and `food_type`: those describe the food, this
+  // describes where its shopping link points. Null until mapped.
+  barbora_category_path: string | null
+  barbora_mapping_reason: BarboraMappingReason | null
+  barbora_mapping_source: BarboraMappingSource | null
+  barbora_mapping_updated_at: string | null
 }
 
 export type Recipe = {

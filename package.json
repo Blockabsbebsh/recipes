@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node --test --test-isolation=none src/lib/parser.test.mjs src/lib/categories.test.mjs"
+    "test": "node --test --test-isolation=none src/lib/parser.test.mjs src/lib/categories.test.mjs src/lib/barboraMapping.test.mjs scripts/barbora/crawler.test.mjs",
+    "crawl:barbora": "node scripts/barbora/crawl.js --out data/barbora-categories.json --previous data/barbora-categories.json --report data/barbora-crawl-report.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",
