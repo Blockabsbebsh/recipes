@@ -15,9 +15,9 @@ The category hierarchy is a shopping navigation system, not a food ontology. `in
 1. `scripts/barbora/` crawls the category tree and publishes it to `public.barbora_categories`.
 2. `src/lib/barboraMapping.js` proposes one category per ingredient, or none.
 3. A household member may override that choice in **Ingredientai**, and their choice outranks everything.
-4. `shoppingUrl` turns the stored path into a link Barbora's app will actually claim.
+4. `shoppingUrl` turns the stored path into the exact live URL discovered by the crawler.
 
-Each step is separately testable, and each declines rather than guesses. `npm test` runs 51 tests across the four suites.
+Each step is separately testable, and each declines rather than guesses. `npm test` runs 52 tests across the four suites.
 
 ## The catalogue
 
@@ -96,7 +96,7 @@ Two standing constraints worth remembering when extending this: grants on `ingre
 
 ## Automatic mapping
 
-`src/lib/barboraMapping.js`, with 22 tests. The reviewed alias table lives in code.
+`src/lib/barboraMapping.js`, with 23 tests. The reviewed alias table lives in code.
 
 The rule is deliberately timid: descend only where the shop's own wording makes the answer obvious, and otherwise stop somewhere merely broad rather than wrong. **A category that is too broad costs a few taps; one that is confidently wrong sends someone to the wrong aisle.**
 
@@ -144,28 +144,29 @@ An optional tree search may be added later, but it must navigate to a result ins
 
 - An ingredient with an active mapping links to that category; otherwise to its section's aisle; otherwise it stays plain text rather than inventing a URL.
 - The ingredient name itself is the clickable text. Section headings link to their aisle.
-- A plain user-clicked `<a>` with an ordinary HTTPS URL, `target="_blank"`, and `rel="noopener noreferrer"`, identical on Android and iOS. No `intent://` branch, no exact-product URLs, no `/paieska`.
+- iOS gets a plain user-clicked HTTPS link with `target="_blank"`. Android gets an explicit `intent://` link for package `lt.barbora`, carrying the exact same HTTPS URL as `browser_fallback_url`. There are no exact-product or `/paieska` links.
 
-**Every link goes through `shoppingUrl`**, because two details decide whether it opens the Barbora app at all, and neither is visible in the path:
+**Every link goes through `shoppingUrl`**, and it preserves the crawler path exactly. Barbora's association files are not a catalogue and are no longer used to rewrite URLs:
 
-- Barbora claims top-level aisles as `/<aisle>/*`, a pattern a bare `/<aisle>` does not match. **The trailing slash is the difference between the app and a browser tab.**
-- Barbora renamed the dairy aisle to `/pieno-gaminiai-kiausiniai-ir-majonezas` on the website but its app-link file still claims only the former `/pieno-gaminiai-ir-kiausiniai/*`. Both prefixes serve the same shelves, so links are written with the claimed one while the catalogue keeps the path the shop navigates to — the crawler can verify the site, not the association file. Delete the rewrite once Barbora claims the current path.
+- The website's live dairy aisle is `/pieno-gaminiai-kiausiniai-ir-majonezas`; the association file still names `/pieno-gaminiai-ir-kiausiniai/*`.
+- The retired path launches the app but produces a 404. Consequently, “claimed by the phone” is not evidence that Barbora can resolve a category.
+- Root paths also keep the exact no-trailing-slash shape stored in the catalogue instead of being adjusted to fit an association pattern.
 
-Neither is discoverable by crawling, because the disagreement is between Barbora's website and Barbora's association file. `src/lib/barboraMapping.test.mjs` therefore holds Barbora's claim list as of 2026-09-01 and asserts that **all 636 categories produce a link inside it**, so an aisle the app does not claim fails the build instead of shipping links that open a browser.
+`src/lib/barboraMapping.test.mjs` asserts that all 636 categories produce their exact crawled URL. A working browser page is preferred to an app-opening 404.
 
 ## Device behavior
 
-- Android opens ordinary Barbora category HTTPS URLs in the installed app. Search URLs and the `intent://` experiment did not.
+- Android tries an explicit package intent containing the current live category path. If Barbora does not accept the intent, Chrome opens the encoded live HTTPS fallback. This is intentionally an experiment and needs checking on a phone.
 - iOS initially opened every tested URL in an embedded browser. Pasting a category URL into Notes, long-pressing it and choosing **Open in Barbora** restored the domain's Universal Link preference, after which the same links opened the app from this PWA.
 - **Whether the option appears at all is decided by Barbora's association file, not by anything in this app.** The two quirks above are the reason a link that looks correct can still open a browser.
-- `target="_blank"` matters: native links hand off to Barbora, and the browser fallback does not navigate the PWA away from its current screen.
+- On iOS, `target="_blank"` keeps a browser fallback from navigating the PWA away from its current screen. Android intents are opened in the current browsing context because they hand off directly or use their own fallback.
 - The temporary **Nuorodų testas** screen was removed after device behavior was established. An ordinary category link falls back to a browser when Barbora is not installed or the association is unavailable.
 
 ## Outstanding work
 
-1. **Device regression testing** on both phones, now that links go through `shoppingUrl` and more ingredients use deep paths.
+1. **Device regression testing** on both phones, especially the Android intent for the current dairy path and its browser fallback.
 2. **The crawler is parked**, so no `schedule` on the workflow and no successful production run of it yet. An offline mode parsing hand-saved pages is the likeliest way forward.
-3. **A migration-history drift predating this work**: the database's recorded history jumps from `20260831181818` to the Barbora migrations, while the repository carries three files from `20260831192512`–`20260831220714` whose effects are present in the data under different recorded names. `supabase db pull` is the way to reconcile the checked-in SQL with the live schema.
+3. **One pending migration-history entry**: the two recipe-import files have been renamed to the exact versions recorded remotely (`20260831181733` and `20260831181818`), after verifying their SQL hashes match the database. The classification backfill's effects are already present, but version `20260831220714` was never recorded. Reconcile it once with `supabase migration repair 20260831220714 --status applied --linked`, then verify with `supabase migration list --linked`. Do not use `db pull`, because this is data/migration history rather than missing schema. If repairing is unavailable, the migration is idempotent and may instead be replayed with `supabase db push --include-all`.
 
 ### PWA state restoration
 
@@ -180,18 +181,18 @@ State is saved as it changes and on `pagehide`/`visibilitychange`, then restored
 
 ## Tests
 
-`npm test` runs 51 tests. Covered:
+`npm test` runs 52 tests. Covered:
 
 - Tree construction preserves parent/child relationships and Barbora's order, including a rebuild of all 636 reviewed categories from the pages they came from.
 - URL normalization rejects products, queries, foreign hosts, and impossible depths; cycles are unrepresentable by construction.
 - Challenge and truncated fixtures fail validation and never publish — verified end to end against a local mock serving an interstitial for one aisle.
 - Exact mapping descends to the expected node; ambiguity retreats to the parent or declines; similarity alone never writes a mapping.
 - Every alias points at a category that exists.
-- Every catalogue category produces a link Barbora's app claims.
+- Every catalogue category produces its exact live crawler URL, and the Android intent retains that URL as its fallback.
 
 Left to manual acceptance:
 
-- On Android, and on iOS with the preference set, a mapped ingredient opens the correct category in the Barbora app.
+- On Android, a mapped ingredient either opens the correct current category in Barbora or its exact live browser fallback; on iOS the normal Universal Link preference still applies.
 - Without that preference, the browser fallback opens and closing it returns to the same tab and scroll position.
 - Descending several levels, returning through breadcrumbs, cancelling without saving, and resetting to automatic.
 - A failed crawler run leaves every previously published link working.
