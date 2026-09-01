@@ -169,7 +169,7 @@ An optional tree search may be added later, but it must navigate to a result ins
 2. **The crawler is parked**, so no `schedule` on the workflow and no successful production run of it yet. An offline mode parsing hand-saved pages is the likeliest way forward.
 3. **One pending migration-history entry**: the two recipe-import files have been renamed to the exact versions recorded remotely (`20260831181733` and `20260831181818`), after verifying their SQL hashes match the database. The classification backfill's effects are already present, but version `20260831220714` was never recorded. Reconcile it once with `supabase migration repair 20260831220714 --status applied --linked`, then verify with `supabase migration list --linked`. Do not use `db pull`, because this is data/migration history rather than missing schema. If repairing is unavailable, the migration is idempotent and may instead be replayed with `supabase db push --include-all`.
 
-### PWA state restoration
+## PWA state restoration
 
 The app persists a small versioned, non-sensitive object in `localStorage`, keyed by user and household:
 
@@ -180,6 +180,10 @@ The app persists a small versioned, non-sensitive object in `localStorage`, keye
 
 State is saved as it changes and on `pagehide`/`visibilitychange`, then restored only after auth, household, and the first successful data load are ready. Browser scroll restoration is set to manual and scrolling waits for the selected tab to render. A different account or household uses a different key. Unsaved recipe-editor drafts remain separate future work.
 
+A scroll is only recorded when it can be the household's own. A hidden page still emits scroll events — iOS moves the web view around as it backgrounds and reclaims it — and a modal parks the body at the top through `position: fixed`, which reports a scroll of zero. Recording either overwrote the position being returned to, which is what used to send you to the top of the library after switching apps, and what made backgrounding with a modal open persist a scroll of zero.
+
+`npm run harness` covers all three cases: leaving and returning, leaving with a modal open, and reopening after eviction. See [`scripts/harness/README.md`](../scripts/harness/README.md).
+
 ## Tests
 
 `npm test` runs 52 tests. Covered:
@@ -189,13 +193,15 @@ State is saved as it changes and on `pagehide`/`visibilitychange`, then restored
 - Challenge and truncated fixtures fail validation and never publish — verified end to end against a local mock serving an interstitial for one aisle.
 - Exact mapping descends to the expected node; ambiguity retreats to the parent or declines; similarity alone never writes a mapping.
 - Every alias points at a category that exists.
-- Every catalogue category produces its exact live crawler URL, and the Android intent retains that URL as its fallback.
+- Every catalogue category produces a link Barbora's app claims.
 
-Left to manual acceptance:
+`npm run harness` drives the built app on an emulated phone against a stub backend, covering the modal stack, the keyboard against a nested modal, layout on every tab, and view restoration across an app switch, a modal, and an eviction. See [`scripts/harness/README.md`](../scripts/harness/README.md).
 
-- On Android, a mapped ingredient either opens the correct current category in Barbora or its exact live browser fallback; on iOS the normal Universal Link preference still applies.
+Left to manual acceptance, on real devices:
+
+- On Android, a mapped ingredient opens the correct category in Barbora; on iOS the same, once the Universal Link preference has been granted.
 - Without that preference, the browser fallback opens and closing it returns to the same tab and scroll position.
-- Descending several levels, returning through breadcrumbs, cancelling without saving, and resetting to automatic.
+- Descending several levels in the picker, returning through breadcrumbs, cancelling without saving, and resetting to automatic.
 - A failed crawler run leaves every previously published link working.
 
 ## External references
