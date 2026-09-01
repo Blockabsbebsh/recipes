@@ -1,15 +1,17 @@
 # Rebuilds the Barbora category catalogue.
 #
 # Manual only for now. The schedule is added after two successful production
-# runs, per docs/barbora-category-integration.md, and the Supabase publication
-# step is added together with the catalogue table. Until then the run produces
-# a reviewed artifact and changes nothing.
+# runs, per docs/barbora-category-integration.md.
 
 name: Crawl Barbora categories
 
 on:
   workflow_dispatch:
     inputs:
+      publish:
+        description: Publish the result to Supabase (uncheck for a dry run)
+        type: boolean
+        default: true
       dump-html:
         description: Keep the fetched HTML in the artifact for debugging
         type: boolean
@@ -61,6 +63,25 @@ jobs:
           --previous data/barbora-categories.json
           --report crawl/report.json
           $DUMP_HTML
+
+      # Runs only after the crawl and its validation passed, because a failing
+      # step fails the job. A missing secret is reported, not published around.
+      - name: Publish to Supabase
+        if: inputs.publish
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          set +e
+          node scripts/barbora/publish.js crawl/barbora-categories.json
+          status=$?
+          set -e
+          if [ $status -eq 3 ]; then
+            echo "::warning::Supabase secrets are not configured; the catalogue was crawled but not published."
+            echo "- **not published:** SUPABASE_URL / SUPABASE_SECRET_KEY are not configured" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          exit $status
 
       - name: Summarise the run
         if: always()

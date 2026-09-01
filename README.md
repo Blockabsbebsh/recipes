@@ -65,7 +65,9 @@ npx playwright install --with-deps chromium
 npm run crawl:barbora
 ```
 
-A run that Barbora blocks, or that fails any validation check, writes nothing and leaves the previous catalogue in place. The **Crawl Barbora categories** workflow runs the same crawl on demand and uploads the result and its diff as an artifact. Details are in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
+A run that Barbora blocks, or that fails any validation check, writes nothing and leaves the previous catalogue in place. The **Crawl Barbora categories** workflow runs the same crawl on demand, uploads the result and its diff as an artifact, and publishes it to Supabase once the `SUPABASE_URL` and `SUPABASE_SECRET_KEY` repository secrets are configured.
+
+The catalogue lives in `public.barbora_categories`, which is global reference data rather than household data: signed-in members may read active rows and may not write them, and publication is a single transaction through a function only the server-side key can execute. `public.ingredients` carries four nullable mapping columns alongside the untouched `section` and `food_type`. Details are in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
 
 ## Current MVP limits
 
@@ -73,5 +75,5 @@ A run that Barbora blocks, or that fails any validation check, writes nothing an
 - Ingredient quantities and shopping-item checkboxes are intentionally absent.
 - Barbora ingredient links use HTTPS search URLs. The Settings link test compares search, Android intent, category, and exact-product routes because native-app opening is controlled by Barbora's iOS/Android association files and the device. Basket aisle headings use Barbora category URLs, which are more stable than exact product SKUs.
 - Device testing confirmed that ordinary Barbora category HTTPS URLs open the Android app directly. On iOS, choosing **Open in Barbora** once from a long-pressed category link in Notes restored the device's Universal Link preference, after which the same links opened Barbora from this PWA.
-- The crawled category catalogue exists, but nothing reads it yet: per-ingredient mappings, the manual tree picker, the switch away from search URLs, and PWA state restoration are still planned in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
+- The category catalogue is crawled and published, but nothing reads it yet: every ingredient mapping is null, so shopping links are unchanged. Automatic mapping, the manual tree picker, the switch away from search URLs, and PWA state restoration are still planned in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
 - No recipe images or licensing machinery.

@@ -2,7 +2,7 @@
 
 Status: partly implemented, based on device testing on 2026-09-01.
 
-The crawler, its validation, its tests, the reviewed catalogue snapshot, and the manual GitHub Action exist. The Supabase tables, automatic mapping, tree picker, basket link change, and PWA state restoration are still the agreed plan and are not implemented. Each section below says which of the two it is.
+The crawler, its validation, its tests, the reviewed catalogue snapshot, the manual GitHub Action, and the Supabase catalogue and mapping schema exist; the 636-category catalogue is published and live. Automatic mapping, the tree picker, the basket link change, and PWA state restoration are still the agreed plan and are not implemented. Each section below says which of the two it is.
 
 ## Outcome
 
@@ -25,6 +25,8 @@ Built:
 - The category crawler, its validation, and its tests live in `scripts/barbora/`.
 - `.github/workflows/crawl-barbora-categories.yml` runs it on demand and uploads the catalogue and its diff as an artifact.
 - `data/barbora-categories.json` holds the reviewed catalogue from the 2026-09-01 crawl: 636 categories under 11 top-level pages, three levels deep.
+- `supabase/migrations/20260901120000_barbora_category_catalogue.sql` adds `public.barbora_categories`, the four mapping columns on `public.ingredients`, and the `public.publish_barbora_categories` publication function. It is applied, and the catalogue in the database matches the snapshot exactly.
+- `BarboraCategory` and the ingredient mapping fields are in `src/lib/types.ts`.
 
 Not built:
 
@@ -32,7 +34,8 @@ Not built:
 - Ingredient names still use `barboraUrl(item)`, which creates `/paieska?q=...` links.
 - `androidBarboraIntent()` is still only an experiment and does not solve native search opening.
 - The Settings link test still compares search, Android intent, category, and exact-product URLs.
-- No Barbora fields exist in `public.ingredients`, and no catalogue table exists.
+- Nothing in the app reads the catalogue yet: no mapper, no picker, and no query.
+- Every ingredient mapping is still null, so every shopping link is unchanged.
 - The top-level `tab` state and library's expanded recipe are React-only state. They are lost if iOS discards and reloads the PWA.
 - The hardcoded dairy URL is stale: the crawled root is `/pieno-gaminiai-kiausiniai-ir-majonezas`, not `/pieno-gaminiai-ir-kiausiniai/`. The crawled catalogue is the place to correct this from.
 
@@ -59,9 +62,9 @@ Store why a category was chosen. Suggested values are `exact`, `alias`, `parent_
 
 ## Supabase data model
 
-Use a global read-only category catalogue and a household-scoped mapping on the existing ingredient vocabulary.
+Implemented in `supabase/migrations/20260901120000_barbora_category_catalogue.sql`, as a global read-only category catalogue and a household-scoped mapping on the existing ingredient vocabulary.
 
-Suggested `public.barbora_categories` columns:
+`public.barbora_categories` columns:
 
 - `path text primary key`: normalized path beginning with `/`, without query or fragment; choose one trailing-slash convention.
 - `name text not null`
@@ -82,6 +85,16 @@ Add nullable fields to `public.ingredients` rather than mixing this navigation d
 
 The mapping remains per household because `ingredients` remains per household. The category catalogue itself is shared reference data and contains no household information.
 
+Two invariants are enforced by check constraints rather than left to the writer: `depth` must equal the number of segments in `path`, and `parent_path` must be the path with its last segment removed. A cycle is therefore not representable. `parent_path` is deferrable, so a whole tree can be published in any order inside one transaction.
+
+Verified after the migration was applied:
+
+- `anon` cannot read the catalogue; `authenticated` can read active rows and is denied insert, update, and delete by both grant and policy.
+- `authenticated` cannot execute `publish_barbora_categories`; only the server-side role can.
+- A member can write a mapping on their own household's ingredient; a non-member's identical update matches no rows.
+- A half-written mapping, an `automatic` mapping claiming the `manual` reason, a mapping to a nonexistent category, a malformed path, and a contradictory depth are all rejected.
+- The database advisors report nothing new for these objects.
+
 Security requirements:
 
 - Enable RLS on every new table in `public`.
@@ -92,7 +105,9 @@ Security requirements:
 - Verify whether the new table is exposed by the project's Data API settings; current Supabase projects may require an explicit API exposure/grant in addition to RLS.
 - Run Supabase database advisors after the migration and test both allowed and denied operations.
 
-Use `supabase migration new <descriptive-name>` to create the migration with the installed CLI rather than inventing a migration filename. Iterate against the database first, then generate or pull the final reproducible migration according to the repository's Supabase workflow.
+The migration filename follows the existing `supabase/migrations/` convention. The Supabase CLI is not available in the environment this was written in, so the file was written by hand and applied through the Supabase MCP tooling; a later `supabase db pull` is the way to confirm the checked-in SQL and the live schema agree.
+
+Note a pre-existing drift, unrelated to this work: the database's migration history stops at `20260831181818`, while the repository carries three later files whose effects are present in the data. The names and timestamps of those files do not match the recorded history.
 
 ## Crawler
 
@@ -143,10 +158,11 @@ Implemented as `.github/workflows/crawl-barbora-categories.yml`, minus the publi
 
 The workflow is `workflow_dispatch` only, in a `barbora-catalogue` concurrency group that never cancels a running crawl. It sets up Node 24, runs the test suite before touching Barbora, installs a pinned Playwright and Chromium, crawls, validates, writes a job summary of the diff, and uploads the catalogue, the run report, and optionally the fetched HTML as an artifact. Playwright is deliberately not a `package.json` dependency: the Pages deployment runs `npm ci` on every push to `main` and should not carry browser automation.
 
+Publication runs as the last step, through `scripts/barbora/publish.js`, which posts the validated snapshot to the `publish_barbora_categories` RPC. It needs two repository secrets, `SUPABASE_URL` and `SUPABASE_SECRET_KEY`, passed only to that step and never logged; until they are configured the step reports a warning and the run still produces its artifact. The `publish` input allows a deliberate dry run.
+
 Still to add:
 
 - A monthly `schedule` at a non-round time, only after at least two successful manual production runs.
-- The Supabase publication step, with repository secrets for the project URL and a server-side secret key passed only to that step, never logged.
 
 The existing Pages deployment workflow remains independent.
 
@@ -219,8 +235,8 @@ Do not persist secrets or complete Supabase records. Treat unsaved recipe-editor
 1. ~~Add static crawler fixtures and tree-building tests.~~ Done; mapping tests arrive with the mapper.
 2. ~~Implement and run the crawler locally without database writes.~~ Done.
 3. ~~Review the generated hierarchy and validation thresholds.~~ Done: 636 categories, thresholds in `scripts/barbora/validate.js`.
-4. Add the Supabase migration, RLS/grants, TypeScript types, and read queries.
-5. Publish a reviewed initial catalogue with a manually triggered workflow.
+4. ~~Add the Supabase migration, RLS/grants, and TypeScript types.~~ Done; the app's read queries arrive with the picker.
+5. ~~Publish a reviewed initial catalogue.~~ Done, though seeded directly rather than through the workflow, which still needs its two secrets before its first real run.
 6. Add deterministic auto-mapping and backfill existing ingredients without touching manual mappings.
 7. Add the tree picker to ingredient create/edit flows.
 8. Change basket ingredient links to the selected category URL and remove platform-specific link logic.
@@ -240,7 +256,7 @@ Automated tests:
 - Fuzzy similarity alone never writes a leaf mapping.
 - Manual mapping survives catalogue and automatic-mapping refreshes.
 - Inactive mapped categories produce a safe fallback/warning.
-- RLS permits authenticated category reads, denies client category writes, isolates household ingredient updates, and permits the server publication path.
+- ~~RLS permits authenticated category reads, denies client category writes, isolates household ingredient updates, and permits the server publication path.~~ Verified directly against the database; see **Supabase data model**.
 
 Manual acceptance:
 
