@@ -76,6 +76,9 @@ function mappingFields(
   manualPath?: string | null,
 ) {
   const stamp = new Date().toISOString()
+  // No catalogue loaded means no opinion, not "no category": clearing the
+  // columns here would quietly discard a mapping because a fetch was slow.
+  if (index.byPath.size === 0 && !manualPath) return {}
   if (manualPath) {
     return {
       barbora_category_path: manualPath,
