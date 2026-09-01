@@ -3,7 +3,9 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { ingredientLookupKey, ingredientNameWithoutQuantity, parseRecipeList, titleSimilarity } from './lib/parser'
 import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
-import type { Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
+import { SECTION_ROOTS, buildCategoryIndex, mapIngredient, trailTo } from './lib/barboraMapping'
+import type { CategoryIndex } from './lib/barboraMapping'
+import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
 type Tab = 'current' | 'library' | 'shop' | 'deleted'
 type RecipeDestination = 'library' | 'queue'
@@ -24,20 +26,18 @@ const SECTION_LABELS: Record<IngredientSection, string> = {
   Other: 'Kita',
 }
 
-// These paths are included in Barbora's iOS Universal Links and Android App
-// Links configuration. A trailing slash also keeps the top-level categories
-// within Barbora's declared `/<category>/*` patterns.
-const SECTION_BARBORA_URLS: Partial<Record<IngredientSection, string>> = {
-  Produce: 'https://barbora.lt/darzoves-ir-vaisiai/',
-  Bakery: 'https://barbora.lt/duonos-gaminiai-ir-konditerija/',
-  'Dairy & alternatives': 'https://barbora.lt/pieno-gaminiai-ir-kiausiniai/',
-  Frozen: 'https://barbora.lt/saldytas-maistas/',
-  Pantry: 'https://barbora.lt/bakaleja/',
-  Spices: 'https://barbora.lt/bakaleja/prieskoniai-marinatai-ir-sultiniai',
-}
+const BARBORA_ORIGIN = 'https://barbora.lt'
+const categoryUrl = (path: string) => `${BARBORA_ORIGIN}${path}`
 
-const TEST_CATEGORY_URL = 'https://barbora.lt/darzoves-ir-vaisiai/darzoves-ir-grybai/pomidorai-ir-agurkai'
-const TEST_PRODUCT_URL = 'https://barbora.lt/produktai/lietuviski-pomidorai-1-kg'
+// The aisle each section falls back to, read from the same crawled catalogue
+// the mapper walks. Hardcoding them here is how the dairy link went stale.
+const SECTION_BARBORA_URLS = Object.fromEntries(
+  Object.entries(SECTION_ROOTS)
+    .filter(([, path]) => path !== null)
+    .map(([section, path]) => [section, categoryUrl(path as string)]),
+) as Partial<Record<IngredientSection, string>>
+
+const TEST_CATEGORY_URL = categoryUrl('/darzoves-ir-vaisiai/darzoves-ir-grybai/pomidorai-ir-agurkai')
 
 function formatRelative(dateValue: string | null) {
   if (!dateValue) return 'Niekada'
@@ -51,21 +51,59 @@ function formatRelative(dateValue: string | null) {
   return `Prieš ${days} d.`
 }
 
-function barboraUrl(item: string) {
-  return `https://barbora.lt/paieska?q=${encodeURIComponent(item)}`
+/**
+ * An ordinary category link on both platforms. Device testing showed these
+ * open the Barbora app directly, while search URLs do not, so there is no
+ * platform-specific branch to maintain any more.
+ *
+ * With no category to point at, the name stays plain text rather than becoming
+ * a link to somewhere invented.
+ */
+function BarboraLink({ href, children }: { href: string | null; children: ReactNode }) {
+  if (href === null) return <>{children}</>
+  return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
 }
 
-function androidBarboraIntent(item: string) {
-  const fallback = encodeURIComponent(barboraUrl(item))
-  return `intent://barbora.lt/paieska?q=${encodeURIComponent(item)}#Intent;scheme=https;package=lt.barbora;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${fallback};end`
-}
-
-function BarboraLink({ item, children }: { item: string; children: ReactNode }) {
-  return <a href={barboraUrl(item)} target="_blank" rel="noreferrer">{children}</a>
+/**
+ * The mapping columns for an ingredient. A category the household picked by
+ * hand is recorded as such and is never recomputed; everything else is the
+ * mapper's proposal, which may be nothing at all.
+ */
+function mappingFields(
+  name: string,
+  section: IngredientSection,
+  index: CategoryIndex,
+  manualPath?: string | null,
+) {
+  const stamp = new Date().toISOString()
+  if (manualPath) {
+    return {
+      barbora_category_path: manualPath,
+      barbora_mapping_reason: 'manual',
+      barbora_mapping_source: 'manual',
+      barbora_mapping_updated_at: stamp,
+    }
+  }
+  const proposal = mapIngredient(name, section, index)
+  if (!proposal) {
+    return {
+      barbora_category_path: null,
+      barbora_mapping_reason: null,
+      barbora_mapping_source: null,
+      barbora_mapping_updated_at: null,
+    }
+  }
+  return {
+    barbora_category_path: proposal.path,
+    barbora_mapping_reason: proposal.reason,
+    barbora_mapping_source: 'automatic',
+    barbora_mapping_updated_at: stamp,
+  }
 }
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
+  const [barboraCategories, setBarboraCategories] = useState<BarboraCategory[]>([])
   const [authReady, setAuthReady] = useState(false)
   const [household, setHousehold] = useState<Household | null>(null)
   const [vocabulary, setVocabulary] = useState<VocabularyIngredient[]>([])
@@ -212,6 +250,26 @@ function App() {
     setVocabulary(vocabularyRows)
     setTags((tagResult.data || []) as HouseholdTag[])
   }, [household])
+
+  // Global reference data, not household data: fetched once per session and
+  // left alone. It changes when the crawler publishes, not when a recipe does.
+  useEffect(() => {
+    if (!session) return
+    let cancelled = false
+    void supabase
+      .from('barbora_categories')
+      .select('path, name, parent_path, depth, sort_order, active')
+      .order('depth', { ascending: true })
+      .order('sort_order', { ascending: true })
+      .then(({ data, error: categoryError }) => {
+        if (cancelled) return
+        // A missing catalogue is not worth an error banner: every link falls
+        // back to its section aisle, exactly as before this existed.
+        if (categoryError) return
+        setBarboraCategories((data ?? []) as BarboraCategory[])
+      })
+    return () => { cancelled = true }
+  }, [session])
 
   useEffect(() => {
     if (!household) return
@@ -492,11 +550,16 @@ function App() {
     setMessage(`Importuota receptų: ${drafts.length}`)
   }
 
-  async function createIngredient(name: string, section: IngredientSection) {
+  async function createIngredient(name: string, section: IngredientSection, manualPath?: string | null) {
     if (!household) return false
     const cleaned = ingredientNameWithoutQuantity(name)
     if (!cleaned) return false
-    const { error: createError } = await supabase.from('ingredients').insert({ household_id: household.id, name: cleaned, section })
+    const { error: createError } = await supabase.from('ingredients').insert({
+      household_id: household.id,
+      name: cleaned,
+      section,
+      ...mappingFields(cleaned, section, categoryIndex, manualPath),
+    })
     if (createError) {
       setError(createError.code === '23505' ? 'Toks ingredientas jau yra.' : createError.message)
       return false
@@ -506,12 +569,21 @@ function App() {
     return true
   }
 
-  async function updateIngredient(ingredient: VocabularyIngredient, name: string, section: IngredientSection) {
+  /**
+   * `manualPath` is the household's own choice. Passing nothing re-runs the
+   * mapper, which is how "restore the automatic choice" is expressed.
+   */
+  async function updateIngredient(
+    ingredient: VocabularyIngredient,
+    name: string,
+    section: IngredientSection,
+    manualPath?: string | null,
+  ) {
     const cleaned = ingredientNameWithoutQuantity(name)
     if (!cleaned) return false
     const { error: updateError } = await supabase
       .from('ingredients')
-      .update({ name: cleaned, section })
+      .update({ name: cleaned, section, ...mappingFields(cleaned, section, categoryIndex, manualPath) })
       .eq('id', ingredient.id)
     if (updateError) {
       setError(updateError.code === '23505' ? 'Toks ingredientas jau yra.' : updateError.message)
@@ -703,20 +775,36 @@ function App() {
     }
   }
 
-  const sectionByIngredient = useMemo(
-    () => new Map(vocabulary.map((entry) => [entry.name.trim().toLocaleLowerCase(), entry.section])),
+  const categoryIndex = useMemo(() => buildCategoryIndex(barboraCategories), [barboraCategories])
+
+  const vocabularyByName = useMemo(
+    () => new Map(vocabulary.map((entry) => [entry.name.trim().toLocaleLowerCase(), entry])),
     [vocabulary],
   )
 
+  /**
+   * The mapped category when there is one, the section's aisle when there is
+   * not, and nothing at all rather than a guessed URL. A mapping pointing at a
+   * category the catalogue no longer carries falls back too.
+   */
+  const shoppingHref = useCallback((entry: VocabularyIngredient | undefined, section: IngredientSection) => {
+    const path = entry?.barbora_category_path
+    if (path && categoryIndex.byPath.has(path)) return categoryUrl(path)
+    return SECTION_BARBORA_URLS[section] ?? null
+  }, [categoryIndex])
+
   const shoppingSections = useMemo(() => {
-    const grouped = new Map<string, { item: string; section: IngredientSection; recipes: Set<string> }>()
+    const grouped = new Map<string, { item: string; section: IngredientSection; href: string | null; recipes: Set<string> }>()
     queue.forEach((entry) => {
       const recipe = recipeById.get(entry.recipe_id)
       recipe?.recipe_ingredients.forEach((ingredient) => {
         const key = ingredient.item.trim().toLocaleLowerCase()
+        const known = vocabularyByName.get(key)
+        const section = known?.section ?? 'Other'
         const group = grouped.get(key) || {
           item: ingredient.item.trim(),
-          section: sectionByIngredient.get(key) || 'Other',
+          section,
+          href: shoppingHref(known, section),
           recipes: new Set<string>(),
         }
         group.recipes.add(recipe.title)
@@ -730,7 +818,7 @@ function App() {
         items: items.filter((item) => item.section === section).sort((a, b) => a.item.localeCompare(b.item, 'lt')),
       }))
       .filter((group) => group.items.length > 0)
-  }, [queue, recipeById, sectionByIngredient])
+  }, [queue, recipeById, vocabularyByName, shoppingHref])
 
   const shoppingCount = useMemo(
     () => shoppingSections.reduce((total, group) => total + group.items.length, 0),
@@ -834,6 +922,7 @@ function App() {
           vocabulary={vocabulary}
           recipes={recipes}
           categories={tags.filter((tag) => tag.name.startsWith(DISH_TAG_PREFIX))}
+          categoryIndex={categoryIndex}
           onCreateIngredient={createIngredient}
           onUpdateIngredient={updateIngredient}
           onDeleteIngredient={deleteIngredient}
@@ -1075,7 +1164,7 @@ function LibraryView({ recipes, categories, lastCooked, onAdd, onImport, onEdit,
 function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRemove, onComplete }: {
   queue: QueueEntry[]
   recipeById: Map<string, Recipe>
-  sections: { section: IngredientSection; items: { item: string; recipes: Set<string> }[] }[]
+  sections: { section: IngredientSection; items: { item: string; href: string | null; recipes: Set<string> }[] }[]
   count: number
   loading: boolean
   onAdd: () => void
@@ -1099,12 +1188,12 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
               <div className="shop-section" key={group.section}>
                 <h3 className="shop-section-title">
                   {SECTION_BARBORA_URLS[group.section]
-                    ? <a href={SECTION_BARBORA_URLS[group.section]} target="_blank" rel="noreferrer">{SECTION_LABELS[group.section]} <small aria-hidden="true">↗</small></a>
+                    ? <a href={SECTION_BARBORA_URLS[group.section]} target="_blank" rel="noopener noreferrer">{SECTION_LABELS[group.section]} <small aria-hidden="true">↗</small></a>
                     : SECTION_LABELS[group.section]}
                   <span>{group.items.length}</span>
                 </h3>
                 <ul className="ingredient-shopping-list">
-                  {group.items.map((item) => <li key={item.item}><BarboraLink item={item.item}><strong>{item.item}</strong></BarboraLink><div className="ingredient-recipe-tags">{[...item.recipes].map((title) => <span key={title}>{title}</span>)}</div></li>)}
+                  {group.items.map((item) => <li key={item.item}><BarboraLink href={item.href}><strong>{item.item}</strong></BarboraLink><div className="ingredient-recipe-tags">{[...item.recipes].map((title) => <span key={title}>{title}</span>)}</div></li>)}
                 </ul>
               </div>
             )) : <p className="muted">Šiuose receptuose produktų dar nėra.</p>}
@@ -1240,14 +1329,15 @@ function MealPicker({ recipes, queuedIds, onClose, onPick, onNew }: {
   )
 }
 
-function SettingsDialog({ household, email, vocabulary, recipes, categories, onCreateIngredient, onUpdateIngredient, onDeleteIngredient, onCreateCategory, onUpdateCategory, onDeleteCategory, onClose }: {
+function SettingsDialog({ household, email, vocabulary, recipes, categories, categoryIndex, onCreateIngredient, onUpdateIngredient, onDeleteIngredient, onCreateCategory, onUpdateCategory, onDeleteCategory, onClose }: {
   household: Household
   email: string
   vocabulary: VocabularyIngredient[]
   recipes: Recipe[]
   categories: HouseholdTag[]
-  onCreateIngredient: (name: string, section: IngredientSection) => Promise<boolean>
-  onUpdateIngredient: (ingredient: VocabularyIngredient, name: string, section: IngredientSection) => Promise<boolean>
+  categoryIndex: CategoryIndex
+  onCreateIngredient: (name: string, section: IngredientSection, manualPath?: string | null) => Promise<boolean>
+  onUpdateIngredient: (ingredient: VocabularyIngredient, name: string, section: IngredientSection, manualPath?: string | null) => Promise<boolean>
   onDeleteIngredient: (ingredient: VocabularyIngredient) => Promise<void>
   onCreateCategory: (name: string) => Promise<boolean>
   onUpdateCategory: (category: HouseholdTag, name: string) => Promise<boolean>
@@ -1281,7 +1371,7 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, onC
       </>}
       {view === 'ingredients' && <>
         <SettingsBack onClick={() => setView('menu')} />
-        <IngredientsManager vocabulary={vocabulary} recipes={recipes} onCreate={onCreateIngredient} onUpdate={onUpdateIngredient} onDelete={onDeleteIngredient} />
+        <IngredientsManager vocabulary={vocabulary} recipes={recipes} categoryIndex={categoryIndex} onCreate={onCreateIngredient} onUpdate={onUpdateIngredient} onDelete={onDeleteIngredient} />
       </>}
       {view === 'categories' && <>
         <SettingsBack onClick={() => setView('menu')} />
@@ -1296,32 +1386,24 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, onC
 }
 
 function LinkTestPanel() {
-  const [item, setItem] = useState('Pomidorai')
   const [copied, setCopied] = useState(false)
   const iosNavigator = navigator as Navigator & { standalone?: boolean }
   const platform = /Android/i.test(navigator.userAgent) ? 'Android' : /iPad|iPhone|iPod/i.test(navigator.userAgent) ? 'iOS' : 'Kita sistema'
   const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean(iosNavigator.standalone)
-  const searchUrl = barboraUrl(item.trim() || 'Pomidorai')
 
-  async function copySearchUrl() {
-    await navigator.clipboard.writeText(searchUrl)
+  async function copyCategoryUrl() {
+    await navigator.clipboard.writeText(TEST_CATEGORY_URL)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
 
   return <div className="link-test">
-    <p className="muted">Aplinka: <strong>{platform}</strong> · {standalone ? 'įdiegta programėlė' : 'naršyklė'}. Išbandykite kiekvieną nuorodą ir pasižymėkite, kuri atveria išorinę naršyklę arba „Barbora“ programėlę.</p>
-    <label className="link-test-query"><span>Bandymo produktas</span><input value={item} onChange={(event) => setItem(event.target.value)} /></label>
+    <p className="muted">Aplinka: <strong>{platform}</strong> · {standalone ? 'įdiegta programėlė' : 'naršyklė'}. Pirkinių sąraše naudojamos paprastos kategorijų nuorodos — tokios pat, kaip ši.</p>
     <div className="link-test-list">
-      <a href={searchUrl} target="_blank" rel="noreferrer"><span><strong>Paieška naujame lange</strong><small>Dabartinis krepšelio variantas</small></span><b>↗</b></a>
-      <a href={searchUrl} target="_self"><span><strong>Paieška tame pačiame lange</strong><small>Grįžti reikės sistemos mygtuku „Atgal“</small></span><b>→</b></a>
-      <a href={androidBarboraIntent(item.trim() || 'Pomidorai')}><span><strong>„Barbora“ Android bandymas</strong><small>Tiesioginis kreipimasis į lt.barbora</small></span><b>↗</b></a>
-      <a href={TEST_CATEGORY_URL} target="_blank" rel="noreferrer"><span><strong>Pomidorų kategorija naujame lange</strong><small>Kategorijos nuoroda, ne konkretus produktas</small></span><b>↗</b></a>
-      <a href={TEST_CATEGORY_URL} target="_self"><span><strong>Pomidorų kategorija tame pačiame lange</strong><small>Patikrina, ar lango tipas keičia programėlės atidarymą</small></span><b>→</b></a>
-      <a href={TEST_PRODUCT_URL} target="_blank" rel="noreferrer"><span><strong>Tikslus pomidorų produktas</strong><small>Vienas konkretus 1 kg produktas; gali būti išparduotas</small></span><b>↗</b></a>
-      <button onClick={() => void copySearchUrl()}><span><strong>Kopijuoti paieškos nuorodą</strong><small>{copied ? 'Nukopijuota!' : 'Patikimas atsarginis variantas'}</small></span><b>⧉</b></button>
+      <a href={TEST_CATEGORY_URL} target="_blank" rel="noopener noreferrer"><span><strong>Pomidorų kategorija</strong><small>Tokia pati nuoroda, kokią atveria ingredientai</small></span><b>↗</b></a>
+      <button onClick={() => void copyCategoryUrl()}><span><strong>Kopijuoti kategorijos nuorodą</strong><small>{copied ? 'Nukopijuota!' : 'Reikalinga iOS atkūrimo veiksmui'}</small></span><b>⧉</b></button>
     </div>
-    <p className="form-notice">iOS „Barbora“ konfigūracijoje paieškos kelias neįtrauktas, todėl būtent kategorijos ir tikslaus produkto bandymai yra svarbiausi.</p>
+    <p className="form-notice">Jei nuoroda atsidaro naršyklėje, o ne „Barbora“ programėlėje: nukopijuokite ją, įklijuokite į „Užrašinę“, palaikykite paspaudę ir pasirinkite <strong>Atidaryti su „Barbora“</strong>. Po to programėlė bus atsiminta. Jei „Barbora“ neįdiegta, nuoroda tiesiog atsidarys naršyklėje.</p>
   </div>
 }
 
@@ -1329,11 +1411,84 @@ function SettingsBack({ onClick }: { onClick: () => void }) {
   return <button className="settings-back" onClick={onClick}>← Visi nustatymai</button>
 }
 
-function IngredientsManager({ vocabulary, recipes, onCreate, onUpdate, onDelete }: {
+/**
+ * Browsing the shop's hierarchy to pick one category by hand.
+ *
+ * Every node is choosable, not only the leaves: a household knows when a
+ * branch is good enough, and forcing them deeper would be inventing precision.
+ * Nothing is written until Gerai.
+ */
+function CategoryPicker({ index, ingredientName, initialPath, onCancel, onConfirm }: {
+  index: CategoryIndex
+  ingredientName: string
+  initialPath: string | null
+  onCancel: () => void
+  onConfirm: (path: string) => void
+}) {
+  const [node, setNode] = useState<string | null>(initialPath)
+  const [selected, setSelected] = useState<string | null>(initialPath)
+  const top = useRef<HTMLParagraphElement | null>(null)
+
+  // Moving a level down should start at the top of the new list, not wherever
+  // the previous one happened to be scrolled to.
+  useEffect(() => { top.current?.scrollIntoView({ block: 'start' }) }, [node])
+
+  const children = index.children.get(node) ?? []
+  const trail = node === null ? [] : trailTo(index, node)
+  const selectedName = selected === null ? null : index.byPath.get(selected)?.name ?? selected
+
+  function open(path: string) {
+    setSelected(path)
+    if ((index.children.get(path) ?? []).length > 0) setNode(path)
+  }
+
+  return <Modal title="Barbora kategorija" onClose={onCancel}>
+    <p className="muted" ref={top}>Kur ieškoti „{ingredientName || 'ingrediento'}“ parduotuvėje.</p>
+    <nav className="category-crumbs" aria-label="Kategorijų kelias">
+      <button type="button" onClick={() => setNode(null)}>Visos</button>
+      {trail.map((category) => (
+        <button type="button" key={category.path} onClick={() => setNode(category.path)}>
+          <span aria-hidden="true">›</span> {category.name}
+        </button>
+      ))}
+    </nav>
+    {node !== null && (
+      <button type="button" className="button secondary wide" onClick={() => setSelected(node)}>
+        Pasirinkti šią kategoriją
+      </button>
+    )}
+    <div className="category-rows">
+      {children.length === 0
+        ? <p className="muted">Giliau nebeskirstoma.</p>
+        : children.map((category) => {
+          const deeper = (index.children.get(category.path) ?? []).length
+          return <button
+            type="button"
+            key={category.path}
+            className={`category-row ${selected === category.path ? 'is-selected' : ''}`}
+            onClick={() => open(category.path)}
+          >
+            <span>{category.name}</span>
+            {deeper > 0 ? <b aria-hidden="true">›</b> : null}
+          </button>
+        })}
+    </div>
+    <div className="category-picker-footer">
+      <p className="muted">{selectedName ? <>Pasirinkta: <strong>{selectedName}</strong></> : 'Nieko nepasirinkta'}</p>
+      <div>
+        <button type="button" className="button secondary" onClick={onCancel}>Atšaukti</button>
+        <button type="button" className="button primary" disabled={selected === null} onClick={() => selected && onConfirm(selected)}>Gerai</button>
+      </div>
+    </div>
+  </Modal>
+}
+
+function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreate, onUpdate, onDelete }: {
   vocabulary: VocabularyIngredient[]
   recipes: Recipe[]
-  onCreate: (name: string, section: IngredientSection) => Promise<boolean>
-  onUpdate: (ingredient: VocabularyIngredient, name: string, section: IngredientSection) => Promise<boolean>
+  categoryIndex: CategoryIndex
+  onCreate: (name: string, section: IngredientSection, manualPath?: string | null) => Promise<boolean>
+  onUpdate: (ingredient: VocabularyIngredient, name: string, section: IngredientSection, manualPath?: string | null) => Promise<boolean>
   onDelete: (ingredient: VocabularyIngredient) => Promise<void>
 }) {
   const [search, setSearch] = useState('')
@@ -1342,6 +1497,12 @@ function IngredientsManager({ vocabulary, recipes, onCreate, onUpdate, onDelete 
   const [editing, setEditing] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editSection, setEditSection] = useState<IngredientSection>('Other')
+  // `null` means "leave it to the mapper"; a path means the household chose.
+  const [newPath, setNewPath] = useState<string | null>(null)
+  const [editPath, setEditPath] = useState<string | null>(null)
+  const [picking, setPicking] = useState<'new' | 'edit' | null>(null)
+  const hasCatalogue = categoryIndex.byPath.size > 0
+  const categoryName = (path: string | null) => (path === null ? null : categoryIndex.byPath.get(path)?.name ?? path)
   const usage = useMemo(() => {
     const counts = new Map<string, number>()
     recipes.forEach((recipe) => recipe.recipe_ingredients.forEach((item) => counts.set(item.ingredient_id, (counts.get(item.ingredient_id) || 0) + 1)))
@@ -1354,36 +1515,73 @@ function IngredientsManager({ vocabulary, recipes, onCreate, onUpdate, onDelete 
     setEditing(ingredient.id)
     setEditName(ingredient.name)
     setEditSection(ingredient.section)
+    // Only a manual choice is carried into the form; an automatic one is left
+    // to be recomputed, so editing a name cannot freeze a stale proposal.
+    setEditPath(ingredient.barbora_mapping_source === 'manual' ? ingredient.barbora_category_path : null)
   }
 
   return <div className="manager-stack">
     <form className="manager-create" onSubmit={(event) => {
       event.preventDefault()
-      void onCreate(newName, newSection).then((saved) => { if (saved) setNewName('') })
+      void onCreate(newName, newSection, newPath).then((saved) => { if (saved) { setNewName(''); setNewPath(null) } })
     }}>
       <input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Naujas ingredientas" aria-label="Naujas ingredientas" />
       <select value={newSection} onChange={(event) => setNewSection(event.target.value as IngredientSection)} aria-label="Ingrediento skyrius">{SECTION_ORDER.map((section) => <option value={section} key={section}>{SECTION_LABELS[section]}</option>)}</select>
       <button className="button primary" disabled={!newName.trim()}>Pridėti</button>
     </form>
+    {hasCatalogue && <div className="category-field">
+      <button type="button" className="category-field-button" onClick={() => setPicking('new')}>
+        <span><strong>Barbora kategorija</strong><small>{categoryName(newPath) ?? 'Parenkama automatiškai'}</small></span><b>›</b>
+      </button>
+      {newPath !== null && <button type="button" className="text-button" onClick={() => setNewPath(null)}>Atkurti automatinį parinkimą</button>}
+    </div>}
     <input className="search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Ieškoti (${vocabulary.length})`} />
     <div className="manager-list">
       {filtered.map((ingredient) => editing === ingredient.id ? (
         <form className="manager-edit" key={ingredient.id} onSubmit={(event) => {
           event.preventDefault()
-          void onUpdate(ingredient, editName, editSection).then((saved) => { if (saved) setEditing(null) })
+          void onUpdate(ingredient, editName, editSection, editPath).then((saved) => { if (saved) setEditing(null) })
         }}>
           <input value={editName} onChange={(event) => setEditName(event.target.value)} aria-label="Ingrediento pavadinimas" />
           <select value={editSection} onChange={(event) => setEditSection(event.target.value as IngredientSection)} aria-label="Ingrediento skyrius">{SECTION_ORDER.map((section) => <option value={section} key={section}>{SECTION_LABELS[section]}</option>)}</select>
+          {hasCatalogue && <div className="category-field">
+            <button type="button" className="category-field-button" onClick={() => setPicking('edit')}>
+              <span><strong>Barbora kategorija</strong><small>{categoryName(editPath) ?? categoryName(ingredient.barbora_category_path) ?? 'Parenkama automatiškai'}</small></span><b>›</b>
+            </button>
+            {(editPath !== null || ingredient.barbora_mapping_source === 'manual') && (
+              <button type="button" className="text-button" onClick={() => setEditPath(null)}>Atkurti automatinį parinkimą</button>
+            )}
+          </div>}
           <div><button className="button primary" disabled={!editName.trim()}>Išsaugoti</button><button type="button" className="button secondary" onClick={() => setEditing(null)}>Atšaukti</button></div>
         </form>
       ) : (
         <div className="manager-row" key={ingredient.id}>
-          <div><strong>{ingredient.name}</strong><small>{SECTION_LABELS[ingredient.section]} · receptų: {usage.get(ingredient.id) || 0}</small></div>
+          <div>
+            <strong>{ingredient.name}</strong>
+            <small>{SECTION_LABELS[ingredient.section]} · receptų: {usage.get(ingredient.id) || 0}</small>
+            {ingredient.barbora_category_path && (
+              <small className="category-hint">
+                {categoryName(ingredient.barbora_category_path)}
+                {ingredient.barbora_mapping_source === 'manual' ? ' · pasirinkta' : ''}
+              </small>
+            )}
+          </div>
           <button className="text-button" onClick={() => beginEdit(ingredient)}>Keisti</button>
           <button className="text-button danger-text" onClick={() => void onDelete(ingredient)}>Ištrinti</button>
         </div>
       ))}
     </div>
+    {picking !== null && <CategoryPicker
+      index={categoryIndex}
+      ingredientName={picking === 'new' ? newName : editName}
+      initialPath={picking === 'new' ? newPath : editPath}
+      onCancel={() => setPicking(null)}
+      onConfirm={(path) => {
+        if (picking === 'new') setNewPath(path)
+        else setEditPath(path)
+        setPicking(null)
+      }}
+    />}
   </div>
 }
 
