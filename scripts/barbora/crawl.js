@@ -101,9 +101,10 @@ async function main(options, warnings) {
     page.setDefaultTimeout(options.timeout)
 
     // With --profile, answering the cookie banner once is what makes every
-    // later run see the shop instead of the consent wall.
-    if (options.pause) {
-      await page.goto(options.origin, { waitUntil: 'domcontentloaded' })
+    // later run see the shop instead of the consent wall. Discovery does its
+    // own waiting; this covers the case where --roots skips discovery.
+    if (options.pause && options.roots) {
+      await openPage(page, options.origin, '/index', options)
       await waitForEnter('Answer any cookie banner in the browser window, then press Enter here.')
     }
 
@@ -153,18 +154,31 @@ async function main(options, warnings) {
   }
 }
 
+/**
+ * Navigate, save the HTML if asked, and only then decide whether the response
+ * is usable. Checking first and dumping afterwards meant a 403 — the one case
+ * worth inspecting — left nothing on disk.
+ */
+async function openPage(page, url, name, options) {
+  const response = await page.goto(url, { waitUntil: 'domcontentloaded' })
+  if (options.dumpHtml) await dumpHtml(options.dumpHtml, name, page)
+
+  const status = response?.status() ?? 0
+  if (status >= 400) {
+    const title = await page.title().catch(() => '')
+    throw new Error(`${url} returned HTTP ${status}${title ? ` ("${title}")` : ''}`)
+  }
+
+  await assertNotChallenged(page, url)
+}
+
 /** Read one category page and return its ordered categories. */
 async function crawlRoot(page, root, options, warnings) {
   const url = `${options.origin}${root}`
 
   for (let attempt = 1; attempt <= options.retries + 1; attempt += 1) {
     try {
-      const response = await page.goto(url, { waitUntil: 'domcontentloaded' })
-      const status = response?.status() ?? 0
-      if (status >= 400) throw new Error(`${url} returned HTTP ${status}`)
-
-      await assertNotChallenged(page, url)
-      if (options.dumpHtml) await dumpHtml(options.dumpHtml, root, page)
+      await openPage(page, url, root, options)
 
       const { selector, anchors } = await extractAnchors(page)
       if (selector === null) {
@@ -187,11 +201,13 @@ async function crawlRoot(page, root, options, warnings) {
  * shrink the catalogue.
  */
 async function discoverRoots(page, options, warnings) {
-  const response = await page.goto(options.origin, { waitUntil: 'domcontentloaded' })
-  const status = response?.status() ?? 0
-  if (status >= 400) throw new Error(`${options.origin} returned HTTP ${status}`)
-  await assertNotChallenged(page, options.origin)
-  if (options.dumpHtml) await dumpHtml(options.dumpHtml, '/index', page)
+  await openPage(page, options.origin, '/index', options)
+
+  // Answering the cookie banner is worth nothing if the crawl then reloads the
+  // page and gets scored again, so the wait happens on the page already open.
+  if (options.pause) {
+    await waitForEnter('Answer any cookie banner in the browser window, then press Enter here.')
+  }
 
   const { anchors } = await extractAnchors(page)
   const discovered = []
