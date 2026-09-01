@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { ingredientLookupKey, ingredientNameWithoutQuantity, parseRecipeList, titleSimilarity } from './lib/parser'
 import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
-import { SECTION_ROOTS, buildCategoryIndex, mapIngredient, trailTo } from './lib/barboraMapping'
+import { SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
 import type { CategoryIndex } from './lib/barboraMapping'
 import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
@@ -26,18 +26,15 @@ const SECTION_LABELS: Record<IngredientSection, string> = {
   Other: 'Kita',
 }
 
-const BARBORA_ORIGIN = 'https://barbora.lt'
-const categoryUrl = (path: string) => `${BARBORA_ORIGIN}${path}`
-
 // The aisle each section falls back to, read from the same crawled catalogue
 // the mapper walks. Hardcoding them here is how the dairy link went stale.
 const SECTION_BARBORA_URLS = Object.fromEntries(
   Object.entries(SECTION_ROOTS)
     .filter(([, path]) => path !== null)
-    .map(([section, path]) => [section, categoryUrl(path as string)]),
+    .map(([section, path]) => [section, shoppingUrl(path as string)]),
 ) as Partial<Record<IngredientSection, string>>
 
-const TEST_CATEGORY_URL = categoryUrl('/darzoves-ir-vaisiai/darzoves-ir-grybai/pomidorai-ir-agurkai')
+const TEST_CATEGORY_URL = shoppingUrl('/darzoves-ir-vaisiai/darzoves-ir-grybai/pomidorai-ir-agurkai')
 
 function formatRelative(dateValue: string | null) {
   if (!dateValue) return 'Niekada'
@@ -792,7 +789,7 @@ function App() {
    */
   const shoppingHref = useCallback((entry: VocabularyIngredient | undefined, section: IngredientSection) => {
     const path = entry?.barbora_category_path
-    if (path && categoryIndex.byPath.has(path)) return categoryUrl(path)
+    if (path && categoryIndex.byPath.has(path)) return shoppingUrl(path)
     return SECTION_BARBORA_URLS[section] ?? null
   }, [categoryIndex])
 
