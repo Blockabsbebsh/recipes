@@ -367,8 +367,22 @@ function App() {
 
   useEffect(() => {
     if (!persistedViewKey || !viewStateReady) return
-    const save = () => {
+    /**
+     * Only a scroll the household actually made is worth remembering.
+     *
+     * A hidden page still emits scroll events — iOS moves the web view around
+     * as it backgrounds and reclaims it — and a modal parks the body at the
+     * top through `position: fixed`, which reports a scroll of zero. Recording
+     * either overwrites the position we mean to come back to, which is how
+     * switching apps used to return you to the top of the library.
+     */
+    const rememberScroll = () => {
+      if (document.visibilityState === 'hidden') return
+      if (document.body.style.position === 'fixed') return
       scrollByTab.current[tabRef.current] = window.scrollY
+    }
+    const save = () => {
+      rememberScroll()
       const state: PersistedViewState = {
         version: 1,
         tab: tabRef.current,
@@ -381,7 +395,6 @@ function App() {
         // A full or unavailable localStorage must never make the app unusable.
       }
     }
-    const rememberScroll = () => { scrollByTab.current[tabRef.current] = window.scrollY }
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') save()
       else window.requestAnimationFrame(() => window.scrollTo(0, scrollByTab.current[tabRef.current] ?? 0))

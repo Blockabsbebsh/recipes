@@ -10,5 +10,6 @@ vite.config.d.ts
 
 # Crawler run output; the reviewed catalogue in data/ is committed deliberately
 crawl/
+tmp/
 data/barbora-crawl-report.json
 .npm-cache/

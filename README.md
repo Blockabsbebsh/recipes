@@ -14,7 +14,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - One-tap shopping completion that atomically moves planned meals to Current
 - Soft deletion and recovery
 - Live refresh when the other person edits data
-- Installable PWA layout for Android and iOS
+- Installable PWA layout for Android and iOS, remembering your tab and scroll position across app switches and eviction
 - Lithuanian interface copy and metadata
 - Automatic dish-type and cuisine classification with manual editing
 - Library search across recipe names, ingredients, dish types, and cuisines
@@ -31,6 +31,23 @@ npm run dev
 ```
 
 The Supabase project URL and publishable key are included in `src/lib/supabase.ts`. A publishable key is designed to be public; access is enforced by RLS. Never put a Supabase secret/service-role key in this repository.
+
+## Testing
+
+```bash
+npm test          # 52 unit tests: the parser, classifier, Barbora mapper, crawler
+npm run harness   # the real app on an emulated phone, against a fake Supabase
+```
+
+The harness exists because this app's bugs are rarely logic bugs. They are about what a thumb can reach with the keyboard up, and where you land after switching apps — which no unit test sees. It builds the app against an in-memory stub, drives it in a phone-emulated browser, and checks layout, the keyboard, modal stacking, and view restoration. It never touches the real Supabase project.
+
+It needs Playwright, which is installed on demand rather than carried as a dependency:
+
+```bash
+npm i --no-save playwright@1.62.1
+```
+
+[`scripts/harness/README.md`](scripts/harness/README.md) explains the scenarios, how to add one, and the pitfalls — above all that Playwright's own `click()` scrolls the page and will invent bugs that are not there.
 
 ## First use
 
