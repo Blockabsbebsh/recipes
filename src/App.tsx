@@ -1,4 +1,5 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { ingredientLookupKey, ingredientNameWithoutQuantity, normalizeTitle, parseRecipeList, titleSimilarity } from './lib/parser'
@@ -1826,11 +1827,20 @@ function Modal({ title, onClose, wide = false, children }: { title: string; onCl
       overflow: body.style.overflow,
     }
     const viewport = window.visualViewport
+    // The backdrop must always cover the whole screen — it is the dimmer and
+    // the tap-catcher. Only the card has to fit above the keyboard, so the
+    // keyboard's height is published separately as padding rather than by
+    // shrinking the backdrop, which used to leave the page behind visible and
+    // tappable in the gap.
     const syncViewport = () => {
       const element = backdrop.current
       if (!element) return
-      element.style.setProperty('--modal-viewport-height', `${viewport?.height ?? window.innerHeight}px`)
-      element.style.setProperty('--modal-viewport-top', `${viewport?.offsetTop ?? 0}px`)
+      const visible = viewport?.height ?? window.innerHeight
+      const offsetTop = viewport?.offsetTop ?? 0
+      const keyboard = Math.max(0, window.innerHeight - (visible + offsetTop))
+      element.style.setProperty('--modal-viewport-height', `${visible}px`)
+      element.style.setProperty('--modal-viewport-top', `${offsetTop}px`)
+      element.style.setProperty('--modal-keyboard-inset', `${keyboard}px`)
     }
 
     body.style.position = 'fixed'
@@ -1851,7 +1861,15 @@ function Modal({ title, onClose, wide = false, children }: { title: string; onCl
       window.scrollTo(0, scrollY)
     }
   }, [])
-  return <div ref={backdrop} className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title}><header><h2>{title}</h2><button className="icon-button" aria-label="Uždaryti" onClick={onClose}>×</button></header><div className="modal-body">{children}</div></section></div>
+  // Rendered into the body rather than in place. A modal opened from inside
+  // another one would otherwise be a descendant of that modal's scroll
+  // container, so focusing a field in the inner one scrolls the list behind
+  // it; and the parent's backdrop-filter makes it the containing block for
+  // anything fixed inside, which is not where a modal belongs.
+  return createPortal(
+    <div ref={backdrop} className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title}><header><h2>{title}</h2><button className="icon-button" aria-label="Uždaryti" onClick={onClose}>×</button></header><div className="modal-body">{children}</div></section></div>,
+    document.body,
+  )
 }
 
 function Banner({ tone = 'info', onClose, children }: { tone?: 'info' | 'error'; onClose: () => void; children: React.ReactNode }) {
