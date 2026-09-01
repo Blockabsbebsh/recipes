@@ -142,7 +142,10 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .undo-toast { position: fixed; z-index: 60; right: 20px; bottom: calc(88px + env(safe-area-inset-bottom)); left: 20px; display: flex; max-width: 480px; margin: auto; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 14px; background: #30362f; box-shadow: var(--shadow); color: #fff; font-size: .87rem; }
 .undo-toast button { border: 0; background: transparent; color: #ffbd82; font-weight: 800; cursor: pointer; }
 
-.modal-backdrop { position: fixed; z-index: 50; top: var(--modal-viewport-top, 0); right: 0; bottom: auto; left: 0; display: grid; height: var(--modal-viewport-height, 100dvh); padding: 8px 14px max(8px, env(safe-area-inset-bottom)); place-items: end center; overflow: hidden; overscroll-behavior: none; background: rgba(41, 43, 38, .45); backdrop-filter: blur(3px); }
+/* Covers the screen whatever the keyboard is doing: sizing this to the visual
+   viewport left the page behind undimmed and tappable below the modal, and
+   stacked modals visible at once. The keyboard is padding, not a smaller box. */
+.modal-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; padding: calc(8px + var(--modal-viewport-top, 0px)) 14px calc(max(8px, env(safe-area-inset-bottom)) + var(--modal-keyboard-inset, 0px)); place-items: end center; overflow: hidden; overscroll-behavior: none; background: rgba(41, 43, 38, .45); backdrop-filter: blur(3px); }
 .modal { display: flex; width: min(100%, 560px); max-height: calc(var(--modal-viewport-height, 100dvh) - 16px); min-height: 0; flex-direction: column; overflow: hidden; border-radius: 24px 24px 18px 18px; background: var(--paper); box-shadow: var(--shadow); }
 .wide-modal { width: min(100%, 720px); }
 .modal > header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; padding: 19px 20px 12px; }
