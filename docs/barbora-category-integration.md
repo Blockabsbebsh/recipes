@@ -140,16 +140,16 @@ npm run crawl:barbora
 
 On Linux, add `--with-deps` to the Playwright install to pull the OS packages Chromium needs; on Windows and macOS it is an apt-only step and does not apply. The workflow uses it because its runner is Ubuntu.
 
-`npm run crawl:barbora` compares against `data/barbora-categories.json` and rewrites it only if the result passes validation. Useful flags: `--dump-html <dir>` keeps the fetched HTML for inspection, `--headed` shows the browser, `--channel`/`--profile` borrow a real browser and keep its profile, `--report <file>` writes the run report, and `--delay`/`--retries`/`--timeout` adjust politeness. `PLAYWRIGHT_CHROMIUM_EXECUTABLE` points at a Chromium that Playwright did not install itself.
+`npm run crawl:barbora` compares against `data/barbora-categories.json` and rewrites it only if the result passes validation. Useful flags: `--dump-html <dir>` keeps the fetched HTML for inspection, `--headed` shows the browser, `--pause` waits for you to deal with it, `--channel`/`--profile` borrow a real browser and keep its profile, `--report <file>` writes the run report, and `--delay`/`--retries`/`--timeout` adjust politeness. `PLAYWRIGHT_CHROMIUM_EXECUTABLE` points at a Chromium that Playwright did not install itself.
 
 When Barbora blocks the crawl, the symptom is not an error page. Bundled headless Chromium is served a consent wall or a soft block instead: navigation discovery finds no category links, aisles come back with nothing in them, and requests then escalate to HTTP 403. The remedy is to stop looking like a robot rather than to retry harder:
 
 ```bash
-node scripts/barbora/crawl.js --headed --channel chrome \
+node scripts/barbora/crawl.js --pause --channel chrome \
   --profile tmp/barbora-profile --delay 5000
 ```
 
-`--channel chrome` drives the Chrome already installed on the machine, `--profile` keeps a persistent profile so the cookie banner stays answered between runs, and `--headed` shows the window so a person can answer it once. None of this defeats a challenge; it just presents the crawler as the ordinary browser it actually is. If a genuine interstitial appears, the run still fails rather than publishing.
+`--channel chrome` drives the Chrome already installed on the machine, `--profile` keeps a persistent profile so the cookie banner stays answered between runs, and `--pause` opens the window and waits for Enter so a person can answer the banner before the crawl starts. Later runs against the same profile need neither `--pause` nor a person. None of this defeats a challenge; it just presents the crawler as the ordinary browser it actually is. If a genuine interstitial appears, the run still fails rather than publishing.
 
 Direct unattended HTTP requests receive Cloudflare responses, while a rendered browser can read the hierarchy. An interstitial parses perfectly well and simply yields no categories, so `challenge.js` names it explicitly and the run fails instead of publishing an empty aisle. The crawler does not attempt to defeat a challenge.
 

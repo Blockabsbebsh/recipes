@@ -12,7 +12,7 @@
 // If Barbora answers with a consent wall or a 403, borrow a real browser and
 // keep its profile, answering the cookie banner once by hand:
 //
-//   node scripts/barbora/crawl.js --headed --channel chrome \
+//   node scripts/barbora/crawl.js --pause --channel chrome \
 //     --profile tmp/barbora-profile --delay 5000
 //
 // The run fails, and writes no output, unless the result passes validation.
@@ -46,6 +46,18 @@ const TREE_SELECTORS = [
   'nav[class*="categor"]',
   'main',
 ]
+
+/** Hold the crawl open until the operator has dealt with the browser window. */
+function waitForEnter(message) {
+  log(message)
+  return new Promise((resolve) => {
+    process.stdin.resume()
+    process.stdin.once('data', () => {
+      process.stdin.pause()
+      resolve()
+    })
+  })
+}
 
 /** Record a warning and say it out loud: a failed run still owes its reasons. */
 function warn(warnings, message) {
@@ -87,6 +99,13 @@ async function main(options, warnings) {
 
     const page = await context.newPage()
     page.setDefaultTimeout(options.timeout)
+
+    // With --profile, answering the cookie banner once is what makes every
+    // later run see the shop instead of the consent wall.
+    if (options.pause) {
+      await page.goto(options.origin, { waitUntil: 'domcontentloaded' })
+      await waitForEnter('Answer any cookie banner in the browser window, then press Enter here.')
+    }
 
     const roots = options.roots ?? (await discoverRoots(page, options, warnings))
     log(`Crawling ${roots.length} top-level categories`)
@@ -300,6 +319,7 @@ function parseArgs(argv) {
     origin: BARBORA_ORIGIN,
     channel: null,
     profile: null,
+    pause: false,
     out: 'data/barbora-categories.json',
     previous: null,
     report: null,
@@ -330,6 +350,7 @@ function parseArgs(argv) {
       case '--channel': options.channel = value(); break
       case '--profile': options.profile = value(); break
       case '--headed': options.headed = true; break
+      case '--pause': options.pause = true; options.headed = true; break
       case '--delay': options.delay = Number(value()); break
       case '--timeout': options.timeout = Number(value()); break
       case '--retries': options.retries = Number(value()); break
