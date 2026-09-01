@@ -134,9 +134,11 @@ Run it locally:
 
 ```bash
 npm i --no-save playwright@1.62.1
-npx playwright install --with-deps chromium
+npx playwright install chromium
 npm run crawl:barbora
 ```
+
+On Linux, add `--with-deps` to the Playwright install to pull the OS packages Chromium needs; on Windows and macOS it is an apt-only step and does not apply. The workflow uses it because its runner is Ubuntu.
 
 `npm run crawl:barbora` compares against `data/barbora-categories.json` and rewrites it only if the result passes validation. Useful flags: `--dump-html <dir>` keeps the fetched HTML for inspection, `--headed` shows the browser, `--report <file>` writes the run report, and `--delay`/`--retries`/`--timeout` adjust politeness. `PLAYWRIGHT_CHROMIUM_EXECUTABLE` points at a Chromium that Playwright did not install itself.
 

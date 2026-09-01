@@ -61,7 +61,7 @@ Recipe classifications reuse the existing normalized tag relation. Machine-reada
 
 ```bash
 npm i --no-save playwright@1.62.1
-npx playwright install --with-deps chromium
+npx playwright install chromium
 npm run crawl:barbora
 ```
 

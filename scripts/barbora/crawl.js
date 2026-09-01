@@ -5,7 +5,7 @@
 // the whole catalogue is eleven page loads rather than hundreds. Nothing here
 // touches products, prices, stock, or pagination.
 //
-//   npm i --no-save playwright@1.62.1 && npx playwright install --with-deps chromium
+//   npm i --no-save playwright@1.62.1 && npx playwright install chromium
 //   node scripts/barbora/crawl.js --out data/barbora-categories.json \
 //     --previous data/barbora-categories.json
 //
@@ -265,7 +265,7 @@ async function importPlaywright() {
   } catch {
     throw new Error(
       'Playwright is not installed. Run: npm i --no-save playwright@1.62.1 && ' +
-        'npx playwright install --with-deps chromium',
+        'npx playwright install chromium',
     )
   }
 }
