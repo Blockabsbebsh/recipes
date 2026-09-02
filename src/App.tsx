@@ -5,7 +5,7 @@ import { ingredientLookupKey, normalizeTitle } from './lib/parser'
 import { cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
 import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, shoppingUrl } from './lib/barboraMapping'
 import { environment, navigationKind, trace, visualTop } from './lib/scrollTrace'
-import { showsSetupSplash } from './lib/readiness'
+import { showsSetupSplash, showsUnreachable } from './lib/readiness'
 import { backNav } from './lib/backNav'
 import { useHouseholdData } from './hooks/useHouseholdData'
 import { useVocabulary } from './hooks/useVocabulary'
@@ -73,6 +73,9 @@ function App() {
   const [authReady, setAuthReady] = useState(false)
   const [household, setHousehold] = useState<Household | null>(null)
   const [setupChecked, setSetupChecked] = useState(false)
+  // Whether that check failed rather than answered. An answer of "no
+  // household" is an invitation to make one; a failure is not.
+  const [setupFailed, setSetupFailed] = useState(false)
   // Start on the tab they were last using rather than on the menu.
   //
   // The real record cannot be read this early — it is keyed by user and
@@ -284,6 +287,7 @@ function App() {
   const findHousehold = useCallback(async () => {
     if (!userId) return
     setSetupChecked(false)
+    setSetupFailed(false)
     setError(null)
     const { data: memberships, error: membershipError } = await supabase
       .from('household_members')
@@ -292,6 +296,7 @@ function App() {
       .limit(1)
     if (membershipError) {
       setError(membershipError.message)
+      setSetupFailed(true)
       setSetupChecked(true)
       return
     }
@@ -324,8 +329,10 @@ function App() {
       .select('id, name, invite_code, owner_id')
       .eq('id', householdId)
       .single()
-    if (householdError) setError(householdError.message)
-    else setHousehold(householdRow as Household)
+    if (householdError) {
+      setError(householdError.message)
+      setSetupFailed(true)
+    } else setHousehold(householdRow as Household)
     setSetupChecked(true)
   }, [userId])
 
@@ -683,6 +690,9 @@ function App() {
   if (!authReady) return <Splash />
   if (!session) return <AuthScreen />
   if (showsSetupSplash({ setupChecked, hasHousehold: household !== null })) return <Splash />
+  if (showsUnreachable({ setupChecked, hasHousehold: household !== null, setupFailed })) {
+    return <Unreachable detail={error} onRetry={() => void findHousehold()} />
+  }
   if (!household) return <HouseholdSetup loading={loading} error={error} onCreate={createHousehold} onJoin={joinHousehold} />
 
   return (
@@ -817,6 +827,32 @@ function Splash() {
     return () => trace('splash', { shown: 'gone', ms: Date.now() - shownAt })
   }, [])
   return <div className="splash"><div className="brand-mark">R</div><p>Ruošiama virtuvė…</p></div>
+}
+
+/**
+ * What the app says when it cannot reach the kitchen.
+ *
+ * The alternative it replaces was worse than an error: with the membership
+ * read failing, the household check finished holding nothing, and the app
+ * offered to create a household to two people who already have one.
+ *
+ * The technical message goes underneath in small print rather than being
+ * hidden — `TypeError: Failed to fetch` means nothing to the household, but
+ * it is the difference between a phone with no signal and a real fault, and
+ * it is what gets read out to me when something is wrong.
+ */
+function Unreachable({ detail, onRetry }: { detail: string | null; onRetry: () => void }) {
+  return (
+    <div className="auth-page">
+      <section className="auth-card">
+        <p className="eyebrow">Nepavyko prisijungti</p>
+        <h1>Nepavyko pasiekti virtuvės</h1>
+        <p className="lead">Receptai niekur nedingo. Patikrinkite interneto ryšį ir bandykite dar kartą.</p>
+        <button className="button primary wide" onClick={onRetry}>Bandyti dar kartą</button>
+        {detail && <p className="form-notice">{detail}</p>}
+      </section>
+    </div>
+  )
 }
 
 function AuthScreen() {

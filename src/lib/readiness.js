@@ -17,3 +17,22 @@
 export function showsSetupSplash({ setupChecked, hasHousehold }) {
   return !setupChecked && !hasHousehold
 }
+
+/**
+ * Whether to say the kitchen could not be reached, rather than offering to
+ * make a new one.
+ *
+ * "No household" and "we could not find out" look identical once the check has
+ * finished: both leave the app holding null. With the network down, the
+ * membership read fails, the check finishes empty, and a household of two who
+ * have been cooking from this app for months are shown `Sukurkite savo
+ * virtuvę` — an invitation to create a second household on top of the one they
+ * already have. Accepting it would leave them with two memberships and the app
+ * picking between them arbitrarily.
+ *
+ * So a failed check is its own answer. Only a check that actually completed
+ * and found nothing is allowed to offer the setup screen.
+ */
+export function showsUnreachable({ setupChecked, hasHousehold, setupFailed }) {
+  return setupChecked && !hasHousehold && setupFailed
+}
