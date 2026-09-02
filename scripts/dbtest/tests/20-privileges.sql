@@ -57,14 +57,47 @@ select t.refused('select private.new_invite_code()', 'a client minting an invite
 select t.refused('select * from private.join_attempts', 'a client reading who has been trying to join');
 select t.allowed('select private.own_household_count()', 'the policy helper a client''s own insert needs');
 
--- A table added later inherits the same grants, which is how the TRUNCATE hole
--- would come back without the default-privileges line.
+-- The whole table-level picture, spelled out.
+--
+-- A column grant does nothing while a table-level grant is still standing:
+-- table-level UPDATE covers every column, and revoking a column privilege does
+-- not subtract from it. Supabase's bootstrap grants the client roles everything
+-- on `public`, so every carefully worded column grant in this project was
+-- decoration until that blanket was taken away. Listing the result in full is
+-- the only way that stays true — a single table quietly regaining UPDATE is
+-- invisible in any check narrower than this one.
 reset role;
+select t.eq(
+  (select array_agg(c.relname || ': ' || privs order by c.relname) from (
+     select c.oid, c.relname, string_agg(distinct a.privilege_type, ',' order by a.privilege_type) as privs
+       from pg_class c, aclexplode(c.relacl) a
+      where c.relnamespace = 'public'::regnamespace and c.relkind = 'r'
+        and a.grantee = 'authenticated'::regrole
+      group by c.oid, c.relname) c),
+  array[
+    'barbora_categories: SELECT',
+    'household_members: INSERT,SELECT',
+    'households: INSERT,SELECT',
+    'ingredients: DELETE,INSERT,SELECT',
+    'recipe_ingredients: DELETE,INSERT,SELECT,UPDATE',
+    'recipe_tags: DELETE,INSERT,SELECT',
+    'recipes: INSERT,SELECT',
+    'roster_entries: INSERT,SELECT',
+    'shopping_queue: DELETE,INSERT,SELECT',
+    'tags: DELETE,INSERT,SELECT'
+  ],
+  'a signed-in client holds exactly these table-level privileges and no others');
+select t.eq(
+  (select count(*)::int from pg_class c, aclexplode(c.relacl) a
+    where c.relnamespace = 'public'::regnamespace and a.grantee = 'anon'::regrole),
+  0, 'and the signed-out key holds nothing at all');
+
+-- A table added later used to inherit the blanket grant. It now starts closed.
 create table public.something_new (id uuid primary key default gen_random_uuid(), household_id uuid);
 select t.eq(has_table_privilege('authenticated', 'public.something_new', 'TRUNCATE'), false,
             'a table added later does not hand TRUNCATE back to clients');
-select t.eq(has_table_privilege('authenticated', 'public.something_new', 'TRIGGER'), false,
-            'nor the right to attach a trigger to it');
+select t.eq(has_table_privilege('authenticated', 'public.something_new', 'SELECT'), false,
+            'nor anything else until a migration says so');
 select t.eq((select relrowsecurity from pg_class where oid = 'public.something_new'::regclass), true,
             'and row security is on from the moment it exists');
 rollback;

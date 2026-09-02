@@ -13,6 +13,16 @@ create role service_role nologin bypassrls;
 grant anon, authenticated, service_role to postgres;
 grant usage on schema public to anon, authenticated, service_role;
 
+-- Supabase's own bootstrap, and the reason the TRUNCATE hole existed at all.
+-- The platform hands the client roles everything on `public` by default, so a
+-- table created by a migration arrives with TRUNCATE, TRIGGER and REFERENCES
+-- already granted — none of which row security is consulted for. Without these
+-- four lines the hardening migration has nothing to revoke and its tests pass
+-- against a database that was never vulnerable.
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+
 create schema extensions;
 create extension pgcrypto with schema extensions;
 grant usage on schema extensions to anon, authenticated, service_role;
