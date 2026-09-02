@@ -180,7 +180,7 @@ The app persists a small versioned, non-sensitive object in `localStorage`, keye
 
 State is saved as it changes and on `pagehide`/`visibilitychange`, then restored only after auth, household, and the first successful data load are ready. Browser scroll restoration is set to manual and scrolling waits for the selected tab to render. A different account or household uses a different key. Unsaved recipe-editor drafts remain separate future work.
 
-A scroll is only recorded when it can be the household's own. A hidden page still emits scroll events — iOS moves the web view around as it backgrounds and reclaims it — and a modal parks the body at the top through `position: fixed`, which reports a scroll of zero. Recording either overwrote the position being returned to, which is what used to send you to the top of the library after switching apps, and what made backgrounding with a modal open persist a scroll of zero.
+A scroll is only recorded when a touch produced it. iOS shifts the web view as it backgrounds the app — sometimes before it reports the page hidden, and often within a second of the last real scroll — so neither the visibility flag nor a time window separates the two. Contact does: the household's scrolling happens while a touch is down, or settles shortly after it lifts. Restoring then waits for the page to be tall enough to hold the position rather than scrolling after a fixed number of frames, which silently clamped to the top on a slow connection.
 
 `npm run harness` covers all three cases: leaving and returning, leaving with a modal open, and reopening after eviction. See [`scripts/harness/README.md`](../scripts/harness/README.md).
 

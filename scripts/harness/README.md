@@ -44,6 +44,10 @@ A finding beginning with `note:` is advisory: reported, but it does not fail the
 
 **Confirm a finding with a second, independent measurement before believing it.** If the DOM says an element moved, check whether something in the harness moved it.
 
+**Scroll the way a finger does, with `userScroll`.** The app only remembers a scroll that a touch produced, because a scroll with no contact behind it is the system moving the web view — the thing that must not be saved. A bare `window.scrollTo` therefore stands for the *system*, and the two are not interchangeable. `appswitch` relies on the difference: it uses `userScroll` for the household's scrolling and a bare `scrollTo` for iOS shifting the page.
+
+**A green suite means nothing until you re-run it on the merged result.** The `appswitch` scenario was strengthened in review while the fix it tested was written against the weaker version. Both were merged, the combination was never run, and the app shipped with the bug the scenario was already catching. Run the suite against `main` after every merge, not only against your branch.
+
 ## Trusting it
 
 Each scenario has been run against the broken code it is meant to catch, because a check that has never failed proves nothing:
@@ -51,7 +55,7 @@ Each scenario has been run against the broken code it is meant to catch, because
 | Scenario | Reverted | Reported |
 | --- | --- | --- |
 | `keyboard` | the backdrop sized to the visual viewport | `backdrop covers 328px of a 664px screen — 336px of live page shows below it` |
-| `appswitch` | the guard on recording scrolls | `switching away and back left the library at 0px instead of 1500px`, and the modal case |
+| `appswitch` | recording scrolls with no touch behind them | `switching away when the web view moved first left the library at 0px instead of 1500px` |
 | `modals` | Escape closing the topmost modal | `Escape did not leave 2 modal(s) open` |
 
 Do the same for any scenario you add.

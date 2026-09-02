@@ -43,6 +43,23 @@ export async function signIn(page, base) {
 
 export const scrollY = (page) => page.evaluate(() => Math.round(window.scrollY))
 
+/**
+ * Scroll the way a finger does. The app only remembers a scroll a gesture
+ * started, so a bare `window.scrollTo` stands for the system moving the web
+ * view — which is exactly the thing that must NOT be remembered. Use this
+ * whenever the scroll is meant to be the household's own.
+ */
+export async function userScroll(page, y) {
+  await page.evaluate((top) => {
+    window.dispatchEvent(new Event('touchstart', { bubbles: true }))
+    window.dispatchEvent(new Event('touchmove', { bubbles: true }))
+    window.scrollTo(0, top)
+    window.dispatchEvent(new Event('touchend', { bubbles: true }))
+  }, y)
+  // Long enough for the app to take the resting position after the lift.
+  await page.waitForTimeout(700)
+}
+
 /** Switch tabs the way a thumb does. */
 export const openTab = async (page, index) => {
   await page.evaluate((i) => document.querySelectorAll('.bottom-nav button')[i].click(), index)
@@ -138,8 +155,8 @@ export async function appswitch(page, base) {
   const target = 1500
   await signIn(page, base)
   await openTab(page, 1)
-  await page.evaluate((y) => window.scrollTo(0, y), target)
-  await page.waitForTimeout(600)
+  await userScroll(page, target)
+  await page.waitForTimeout(300)
 
   // iOS may move the web view before it reports the page as hidden. This is
   // deliberately the opposite order from the next case: a guard that only
@@ -156,8 +173,8 @@ export async function appswitch(page, base) {
 
   // The inverse event order must work too: hidden first, then moved by the
   // system, then reopened.
-  await page.evaluate((y) => window.scrollTo(0, y), target)
-  await page.waitForTimeout(400)
+  await userScroll(page, target)
+  await page.waitForTimeout(100)
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(200)
   await page.evaluate(() => window.scrollTo(0, 0))
@@ -168,8 +185,8 @@ export async function appswitch(page, base) {
   if (Math.abs(now - target) > 40) findings.push(`switching away after the page was hidden left the library at ${now}px instead of ${target}px`)
 
   // Backgrounded with a modal open, which parks the body at the top.
-  await page.evaluate((y) => window.scrollTo(0, y), target)
-  await page.waitForTimeout(400)
+  await userScroll(page, target)
+  await page.waitForTimeout(100)
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
@@ -183,14 +200,32 @@ export async function appswitch(page, base) {
   await tap(page, '.modal .icon-button')
 
   // Evicted and reloaded from scratch.
-  await page.evaluate((y) => window.scrollTo(0, y), target)
-  await page.waitForTimeout(400)
+  await userScroll(page, target)
+  await page.waitForTimeout(100)
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   await page.reload({ waitUntil: 'networkidle' })
   await page.waitForTimeout(3500)
   now = await scrollY(page)
   if (Math.abs(now - target) > 60) findings.push(`reopening after eviction landed at ${now}px instead of ${target}px`)
+
+  // The same again, with the backend answering as slowly as a phone on mobile
+  // data. The stub is otherwise instant, which hides every race between the
+  // restore and the render — the reason this suite once passed while the real
+  // app still came back at the top.
+  await page.context().route('**/rest/v1/**', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200))
+    await route.continue()
+  })
+  await userScroll(page, target)
+  await page.waitForTimeout(100)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(300)
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(12000)
+  now = await scrollY(page)
+  if (Math.abs(now - target) > 60) findings.push(`reopening on a slow connection landed at ${now}px instead of ${target}px`)
+  await page.context().unroute('**/rest/v1/**')
   return findings
 }
 
