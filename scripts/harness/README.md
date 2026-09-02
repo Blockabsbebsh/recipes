@@ -78,10 +78,13 @@ observable symptom of a stale entry is a back press that does nothing — so the
 check is that back eventually *leaves the app*, which has to be the last thing
 a scenario does.
 
-**A back scenario must stop pressing once nothing of ours is open.** The press
-after that leaves the app, and every finding still to come goes with it — a
-mutation that should have reported three faults reported a crashed scenario
-instead, twice, until both loops learned to stop.
+**A finding is worth nothing if a later step throws.** Findings are returned at
+the end, so an exception anywhere after one discards it and reports a crashed
+scenario instead. Two cases have been bitten: a back loop that kept pressing
+after everything of ours had closed (the press after that leaves the app), and
+a shop that was checked for switching tabs and then went on tapping things on
+the tab it had not switched to. Where a step can fail, carry on from a known
+place rather than assuming the step worked.
 
 **Accept dialogs, do not let Playwright dismiss them.** Every destructive step
 in this app asks first, and Playwright answers no by default — half of
@@ -108,6 +111,12 @@ that, not against a number you chose.
 already at 1500px fires no scroll event and no gesture: the case runs, asserts
 its target, and proves nothing. One mid-gesture case sat green like that until
 a trace dump showed no capture lines in it at all.
+
+**Kill the process group, not the process.** `npx vite preview` is a wrapper
+around the process that actually holds the port, so killing the child leaves
+the grandchild listening and the next run fails on a port already in use — or
+worse, silently tests the previous build. `run.mjs` spawns each child
+`detached` and kills `-pid`. Anything else it starts must do the same.
 
 **`DUMP_TRACE=1` prints the app's own scroll trace** at the end of `appswitch`,
 which is the fastest way to find out why a scenario disagrees with a phone.
@@ -150,7 +159,7 @@ Do the same for any scenario you add.
 
 ## The scroll trace
 
-The app keeps its last 60 scroll-related events in `localStorage` under
+The app keeps its last 150 scroll-related events in `localStorage` under
 `recipes:scroll-trace:v1`, and prints them in **Nustatymai → Slinkties žurnalas**.
 It exists because the one moment that matters — the phone backgrounding the app —
 has no console attached, and iOS often reloads the web view before you could
@@ -197,7 +206,7 @@ The lines that answer questions the harness cannot:
 | Line | |
 | --- | --- |
 | `boot nav=… os=ios mode=installed` | the app started from nothing. No `boot` after an app switch means it was never reloaded, whatever the screen showed. |
-| `splash shown=yes` / `splash shown=gone ms=…` | the app's own loading screen rendered, and for how long. Seeing the loading screen with no `splash` line means the platform painted a stored image of an earlier launch, not the app. |
+| `splash shown=yes` / `splash shown=gone ms=…` | the app's own loading screen rendered, and for how long. A loading screen with no `splash` line beside it is the platform painting over a resuming app, not this app — the one time it mattered, the line was there and the app was rendering it. |
 | `restore-waiting` | the page was too short to hold the position, so the app stopped scrolling at it and waited for the height. |
 | `restore-abandoned` | the household scrolled while a restore was still waiting, so it stood down. |
 | `capture from=coast` | a flick's momentum, still being followed. The `settle` after it is where the page came to rest. |

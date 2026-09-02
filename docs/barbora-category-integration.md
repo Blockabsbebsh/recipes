@@ -17,7 +17,7 @@ The category hierarchy is a shopping navigation system, not a food ontology. `in
 3. A household member may override that choice in **Ingredientai**, and their choice outranks everything.
 4. `shoppingUrl` turns the stored path into the exact live URL discovered by the crawler.
 
-Each step is separately testable, and each declines rather than guesses. `npm test` runs 52 tests across the four suites.
+Each step is separately testable, and each declines rather than guesses.
 
 ## The catalogue
 
@@ -163,61 +163,53 @@ An optional tree search may be added later, but it must navigate to a result ins
 - The Android `intent://` experiment for package `lt.barbora` was removed because the app did not handle the intent. Plain HTTPS links let Android's own App Links or Digital Asset Links do the right thing when Barbora registers them.
 - The temporary **Nuorodų testas** screen was removed after device behavior was established. An ordinary category link falls back to a browser when Barbora is not installed or the association is unavailable.
 
+## Names that are contracts
+
+Three sets of strings in this repository are agreements with something outside
+the code, and none of them may be tidied, renamed, or retyped:
+
+- **The section keys** — `Produce`, `Bakery`, `Dairy & alternatives`, `Frozen`,
+  `Pantry`, `Spices`, `Other`. They are the values stored in `ingredients.section`,
+  the keys of `SECTION_ROOTS` here, and the keys of `SECTION_LABELS` in
+  `src/lib/sections.ts`. Renaming one orphans every existing row and breaks the
+  aisle fallback.
+- **The Barbora paths** in `SECTION_ROOTS` and in `data/barbora-categories.json`.
+  Barbora's app opens a link only when the path matches its own routes exactly;
+  a path that looks tidier is a link that opens a browser instead of the shop.
+- **The tag prefixes** `Tipas: ` and `Virtuvė: `, which are how a dish type is
+  told from a cuisine in a single tag table.
+
+The Lithuanian labels beside those keys are display text and can be changed
+freely. The distinction is easy to lose: during a refactor that moved
+`SECTION_LABELS` between files, retyping the block by hand rather than moving it
+turned `Pieno produktai ir alternatyvos` into something shorter. It was a label
+rather than a key, so nothing broke — but the same slip one column to the left
+would have been silent and expensive. Move these blocks; do not retype them.
+
 ## Outstanding work
 
-1. **Device regression testing** on both phones, especially the iOS Universal Link preference for the current dairy path.
+1. **Device regression testing** on both phones for the links themselves, especially the iOS Universal Link preference for the current dairy path. The app's own behaviour on both phones — scroll, resume, back — has been checked against real logs.
 2. **The crawler is parked**, so no `schedule` on the workflow and no successful production run of it yet. An offline mode parsing hand-saved pages is the likeliest way forward.
 3. **One pending migration-history entry**: the two recipe-import files have been renamed to the exact versions recorded remotely (`20260831181733` and `20260831181818`), after verifying their SQL hashes match the database. The classification backfill's effects are already present, but version `20260831220714` was never recorded. Reconcile it once with `supabase migration repair 20260831220714 --status applied --linked`, then verify with `supabase migration list --linked`. Do not use `db pull`, because this is data/migration history rather than missing schema. If repairing is unavailable, the migration is idempotent and may instead be replayed with `supabase db push --include-all`.
 
-## The back button
-
-On Android the back button is how things get closed, and until now it closed the whole app — mid-recipe, mid-shop, whatever was open. The web has no notion of "close the thing on top"; it has history. So `src/lib/backNav.js` keeps a stack of things a back press should undo and one history entry for each, and every dialog registers itself through the shared `Modal`, nested ones included. Being away from the menu is one more entry, so back comes home before it leaves.
-
-A page inside a dialog counts too. Settings keeps its pages — the invite code, the ingredients, the recipe categories, the scroll log — in one dialog rather than a dialog each, so the stack saw a single layer and back closed the lot from halfway in. The pages register themselves the same way, one entry for being off the menu.
-
-The awkward half is that a dialog can also be dismissed the ordinary way. The entry it pushed has to come off with it, and taking it off means going back programmatically — which fires the same event as a real press, so those are counted and ignored. Registering an entry per tab rather than one for being away broke this in a way worth remembering: going back is asynchronous, so a drop and an add in the same breath let the queued back land after the new push and undo it, and a few taps later the app walked off its own page.
-
-## PWA state restoration
-
-The rules live in two modules, and `App.tsx` holds only the wiring between them and the page. `src/lib/viewState.js` is the record itself — what is kept, how it is read back from a storage shared with every other page on the origin, and when a position has gone stale. `src/lib/scrollMemory.js` decides what a movement of the page *was*: the household dragging it, the momentum of a flick they have let go of, or the phone moving the web view on its own. Nothing in the browser distinguishes those three, saving the wrong one loses the place they were reading, and every rule for telling them apart was learnt from a log off a real phone. Both are exercised with plain numbers rather than a browser, so the reasoning can be read and tested without one.
-
-
-The app persists a small versioned, non-sensitive object in `localStorage`, keyed by user and household:
-
-- active top-level tab;
-- scroll position per tab;
-- expanded library recipe ID, if still present after data reload;
-- no Settings subview, modal, destructive confirmation, secret, or whole Supabase record.
-
-State is saved as it changes and on `pagehide`/`visibilitychange`, then restored only after auth, household, and the first successful data load are ready. Browser scroll restoration is set to manual and scrolling waits for the selected tab to render. A different account or household uses a different key. Unsaved recipe-editor drafts remain separate future work.
-
-A scroll is only recorded when a touch produced it. iOS shifts the web view as it backgrounds the app — sometimes before it reports the page hidden, and often within a second of the last real scroll — so neither the visibility flag nor a time window separates the two. Contact does: the household's scrolling happens while a touch is down, or settles shortly after it lifts. Restoring then waits for the page to be tall enough to hold the position rather than scrolling after a fixed number of frames, which silently clamped to the top on a slow connection.
-
-`npm run harness` covers all three cases: leaving and returning, leaving with a modal open, and reopening after eviction. See [`scripts/harness/README.md`](../scripts/harness/README.md).
-
-### Reading what actually happened on the phone
-
-Restoration still fails on at least one real device where the harness passes: the tab comes back, the scroll does not. The moment it fails in has no console attached, and iOS frequently reloads the web view before one could be, so the app keeps its own record: the last 60 scroll events — every capture, every write to `localStorage`, every visibility, `pagehide`, `pageshow`, `freeze` and `resume` transition, and the outcome of every restore — under `recipes:scroll-trace:v1`, printed in **Nustatymai → Slinkties žurnalas** with copy and clear.
-
-Every entry carries both `window.scrollY` and `visualViewport.pageTop`, because on iOS the page can report a position it is not showing.
-
-The first trace from the phone ruled out the whole persistence layer: the position was saved correctly on `visibilitychange`, restored correctly on the way back, and then the web view moved to the top on its own a few seconds later, with nothing left to put it back. Restoring now holds: for two seconds after a restore lands, a drift away from the target with no touch behind it is corrected, and a touch since the restore cancels the correction so the app never fights the household. The correction rides the phone's own scroll event rather than a timer, because putting the page back 300ms later is a jump the household can watch happen; timers at 300, 900 and 1800ms stay behind it for a move that arrives without a scroll event.
-
-Three things must never be mistaken for the household's own scrolling, all found on a phone rather than in a scenario. A gesture that was still settling when the app went away is cancelled: Android holds the pending timer while the app is backgrounded and runs it on the way back, after the system has moved the page to the top, and the position it settled on was a zero written over the one about to be restored — which is why the scroll survived one switch and was lost on the next. A touch that moved nothing is a tap, and a tap says nothing about where the page should be. And a correction that clamps because the page came back shorter than it was hands over to the height-aware restore rather than assuming it landed.
-
-Coming back to the app is not a cold start, and for a while it was treated as one. Supabase hands out a new session object each time it revalidates the token, which the phone provokes on every app switch, and the household check was keyed off that object — so stepping out to the shop for two seconds blanked the page to the loading screen and re-queried over the network. The check now keys off the user, and a re-check of a household already in hand never blanks the app (`showsSetupSplash`). That loading screen was also why the position was lost on iOS: a page with nothing on it is 62px tall, so the restore spent its whole budget against a page that could not have held the position, and gave up. It now waits up to eight seconds for the height, stands down if the household scrolls meanwhile, and stops scrolling at a page it cannot reach instead of arguing with it forty times a second.
-
-A flick is followed to where it stops rather than sampled a fixed moment after the finger lifts. The phone caught the difference outright: the position was taken at 572px, the page coasted on to 907px and stayed there for nine seconds, and 572 came back. Momentum decelerates, so a step larger than the flick that started it is the system throwing the page to the top — which arrives in the same window, and is refused on that basis.
-
-A remembered position lasts an hour. Stepping out to Barbora and back should return you to the row you were reading; opening the app the next morning should not, because the list has changed underneath and landing halfway down it reads as a fault. The tab survives either way. Per-tab positions are kept within that hour — switching tabs and coming back is the one case that always worked, and matches what a tab bar does everywhere else.
-
-The log also records what the harness cannot reach: whether the app's own loading screen rendered and for how long, whether the app was left by tapping a shop link or by the app switcher, and which phone the log came from. A `mark` button writes a line the household controls, so they can point at the moment they saw something. What the platform paints over a resuming web app — iOS reuses a stored image of an earlier launch, Android draws a manifest splash on relaunch — is not the app rendering, and a `splash` line separates the two.
-
-The log exists to separate two failures that look identical from the outside: a position already lost before the app went away (a capture site recorded a scroll the household did not make) from a position that survived and was not put back (the restore ran out of frames, or the page was reloaded and the list was still short). The tail after one app switch says which. The reading table is in [`scripts/harness/README.md`](../scripts/harness/README.md); the `scrolltrace` harness scenario keeps the record itself honest, including that it survives the reload.
-
 ## Tests
 
-`npm test` runs 66 tests. Covered:
+`npm test` runs 96 tests across ten suites, none of which need a browser:
+
+| Suite | |
+| --- | --- |
+| `barboraMapping.test.mjs` | 23 — the mapper, the aliases, the link shapes |
+| `crawler.test.mjs` | 17 — tree construction, validation, refusal to publish a bad crawl |
+| `scrollMemory.test.mjs` | 10 — a drag, a flick, a tap, the page thrown to the top |
+| `scrollTrace.test.mjs` | 10 — the on-device log |
+| `viewState.test.mjs` | 9 — what is remembered, and when it goes stale |
+| `parser.test.mjs` | 9 — the importer |
+| `backNav.test.mjs` | 6 — what the back button undoes |
+| `ingredientMapping.test.mjs` | 5 — the Barbora columns for an ingredient |
+| `readiness.test.mjs` | 4 — whether the loading screen belongs on screen |
+| `categories.test.mjs` | 3 — dish type and cuisine |
+
+Of the Barbora work specifically:
 
 - Tree construction preserves parent/child relationships and Barbora's order, including a rebuild of all 636 reviewed categories from the pages they came from.
 - URL normalization rejects products, queries, foreign hosts, and impossible depths; cycles are unrepresentable by construction.
@@ -226,7 +218,7 @@ The log exists to separate two failures that look identical from the outside: a 
 - Every alias points at a category that exists.
 - Every catalogue category produces a link Barbora's app claims.
 
-`npm run harness` drives the built app on an emulated phone against a stub backend, covering the modal stack, the keyboard against a nested modal, layout on every tab, and view restoration across an app switch, a modal, and an eviction. See [`scripts/harness/README.md`](../scripts/harness/README.md).
+`npm run harness` drives the built app on an emulated phone against a stub backend. See [`scripts/harness/README.md`](../scripts/harness/README.md), and [`app-behaviour.md`](app-behaviour.md) for the phone behaviour the scenarios exist to hold in place.
 
 Left to manual acceptance, on real devices:
 

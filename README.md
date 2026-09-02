@@ -15,6 +15,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Soft deletion and recovery
 - Live refresh when the other person edits data
 - Installable PWA layout for Android and iOS, remembering your tab and scroll position across app switches and eviction
+- The Android back button closes what is open — dialogs innermost first, then the settings page you are on, then home from another tab — before it leaves the app
 - Lithuanian interface copy and metadata
 - Automatic dish-type and cuisine classification with manual editing
 - Library search across recipe names, ingredients, dish types, and cuisines
@@ -23,7 +24,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 
 ## Run locally
 
-Requirements: Node 24 or later.
+Requirements: Node 24 or later — the test script uses `--test-isolation=none`, which older versions do not accept.
 
 ```bash
 npm ci
@@ -35,11 +36,13 @@ The Supabase project URL and publishable key are included in `src/lib/supabase.t
 ## Testing
 
 ```bash
-npm test          # 52 unit tests: the parser, classifier, Barbora mapper, crawler
+npm test          # 96 unit tests, none of which need a browser
 npm run harness   # the real app on an emulated phone, against a fake Supabase
 ```
 
-The harness exists because this app's bugs are rarely logic bugs. They are about what a thumb can reach with the keyboard up, and where you land after switching apps — which no unit test sees. It builds the app against an in-memory stub, drives it in a phone-emulated browser, and checks layout, the keyboard, modal stacking, and view restoration. It never touches the real Supabase project.
+The unit tests cover the parser, the classifier, the Barbora mapper and crawler, and the rules the phone taught us: what counts as the household's own scrolling, when a remembered position has gone stale, what the back button should undo, and whether the loading screen belongs on screen.
+
+The harness exists because this app's bugs are rarely logic bugs. They are about what a thumb can reach with the keyboard up, and where you land after switching apps — which no unit test sees. It builds the app against an in-memory stub, drives it in a phone-emulated browser, and runs seven scenarios: layout on every tab, the keyboard against a nested modal, the modal stack, view restoration across app switches and eviction, the on-device scroll log, a week of shopping and cooking, and the back button. It never touches the real Supabase project, so a scenario may delete every recipe without consequence.
 
 It needs Playwright, which is installed on demand rather than carried as a dependency:
 
@@ -49,7 +52,9 @@ npm i --no-save playwright@1.62.1
 
 [`scripts/harness/README.md`](scripts/harness/README.md) explains the scenarios, how to add one, and the pitfalls — above all that Playwright's own `click()` scrolls the page and will invent bugs that are not there.
 
-The app also keeps its own record of what happened to the scroll position — the last 60 events, readable on the phone under **Nustatymai → Slinkties žurnalas**, because the moment restoration fails in has no console attached.
+The app also keeps its own record of what happened to the scroll position — the last 150 events, readable on the phone under **Nustatymai → Slinkties žurnalas**, because the moment restoration fails in has no console attached. Reading one is described in the harness README; it is what found every scroll fault that mattered.
+
+[`docs/app-behaviour.md`](docs/app-behaviour.md) explains where the code lives and what each phone behaviour does and why.
 
 ## First use
 
@@ -99,5 +104,7 @@ Barbora's bot protection currently refuses the crawler, so the catalogue is refr
 - Ingredient quantities and shopping-item checkboxes are intentionally absent.
 - 17 of 217 ingredients still link to their section's aisle because Barbora's tree does not distinguish them safely (for example dry versus canned chickpeas). The picker closes the gap for anything worth choosing by hand.
 - Barbora's app-link files contain at least one retired route that launches the app and then returns a 404. Links therefore always preserve the crawler's current website path and use plain HTTPS with `target="_blank"`. Whether the link opens the app is decided by the OS and Barbora's association files. On iOS the preference may have to be granted once — long-press a category link in Notes and choose **Open in Barbora**.
-- The PWA restores the active tab, each tab's scroll position, and the expanded library recipe after iOS evicts and reloads it. Unsaved editor drafts are not persisted. Scroll restoration is still reported as failing on at least one real device where every scenario passes — **Nustatymai → Slinkties žurnalas** records what the phone actually did, so the next report can say which half of it broke.
+- The PWA restores the active tab, each tab's scroll position, and the expanded library recipe across an app switch and after the phone evicts and reloads it. A remembered position lasts an hour, so opening the app the next morning starts at the top; the tab survives either way. Unsaved editor drafts are not persisted.
+- A cold start paints the menu before it switches to the tab you were on, because the tab is only known once the first read lands. Brief, and only on a cold start.
+- Back does not step up a level inside the category picker; it closes the picker. Settings pages and dialogs do step back one at a time.
 - No recipe images or licensing machinery.
