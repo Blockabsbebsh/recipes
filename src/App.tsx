@@ -7,6 +7,7 @@ import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREF
 import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
 import type { CategoryIndex } from './lib/barboraMapping'
 import { clearTrace, environment, formatTrace, navigationKind, readTrace, trace, visualTop } from './lib/scrollTrace'
+import { showsSetupSplash } from './lib/readiness'
 import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
 type Tab = 'current' | 'library' | 'shop' | 'deleted'
@@ -24,6 +25,17 @@ const EMPTY_SCROLL: Record<Tab, number> = { current: 0, library: 0, shop: 0, del
 
 /** How long a restored position is held against the phone moving the page. */
 const HOLD_MS = 2_000
+
+/**
+ * How long to wait for the page to be tall enough to hold the position.
+ *
+ * A second was not enough. On iOS the app came back showing its own loading
+ * screen for 1454ms, and a page with nothing on it is 62px tall — so the
+ * restore spent its whole budget against a page that could not have held the
+ * position yet, gave up, and the household came back to the top. Waiting is
+ * free; a wait that ends too early is not.
+ */
+const RESTORE_PATIENCE_MS = 8_000
 
 /**
  * How long a scroll position is worth coming back to.
@@ -197,7 +209,11 @@ function App() {
   // The position being held just after a restore, while the phone settles.
   const hold = useRef<{ tab: Tab; target: number; reason: string; startedAt: number; until: number } | null>(null)
 
-  const persistedViewKey = session && household ? viewStateKey(session.user.id, household.id) : null
+  // Supabase replaces the session object every time it revalidates the token,
+  // which the phone provokes on every app switch. Anything that would re-fetch
+  // has to key off who the user is, not off that object's identity.
+  const userId = session?.user.id ?? null
+  const persistedViewKey = userId && household ? viewStateKey(userId, household.id) : null
 
   /**
    * Put the page back where it was, once it is tall enough to go there.
@@ -215,8 +231,16 @@ function App() {
       trace('restore-skipped', { reason, tab: nextTab })
       return
     }
+    const startedAt = Date.now()
     let frames = 0
     const attempt = () => {
+      // Somewhere else now, or the household has taken over. Either way this
+      // restore is answering a question nobody is asking any more.
+      if (tabRef.current !== nextTab) return
+      if (interactionAt.current > startedAt) {
+        trace('restore-abandoned', { reason, tab: nextTab, target, y: window.scrollY })
+        return
+      }
       const reachable = document.documentElement.scrollHeight - window.innerHeight
       if (reachable >= target) {
         window.scrollTo(0, target)
@@ -224,13 +248,12 @@ function App() {
         holdPosition(nextTab, target, reason)
         return
       }
-      // Give up after about a second: the content is shorter than it was.
-      if (frames < 60) {
+      if (Date.now() - startedAt < RESTORE_PATIENCE_MS) {
         frames += 1
         window.requestAnimationFrame(attempt)
         return
       }
-      trace('restore-gave-up', { reason, tab: nextTab, target, reachable: Math.max(0, Math.round(reachable)) })
+      trace('restore-gave-up', { reason, tab: nextTab, target, frames, reachable: Math.max(0, Math.round(reachable)) })
     }
     window.requestAnimationFrame(attempt)
   }
@@ -270,6 +293,16 @@ function App() {
     const vp = visualTop()
     // Believe whichever says we have drifted: on iOS they can disagree.
     if (Math.abs(y - held.target) <= 8 && (vp < 0 || Math.abs(vp - held.target) <= 8)) return false
+    // A page too short to hold the position clamps every correction, and the
+    // clamp reports as another drift — which on the phone became forty
+    // corrections in one second, the app arguing with a page that had nothing
+    // on it. Hand over to the restore, which waits for the height instead.
+    if (document.documentElement.scrollHeight - window.innerHeight < held.target) {
+      hold.current = null
+      trace('restore-waiting', { reason: held.reason, tab: held.tab, target: held.target, from, y, vp })
+      restoreScroll(held.tab, held.reason)
+      return true
+    }
     window.scrollTo(0, held.target)
     const landed = window.scrollY
     trace('restore-again', { reason: held.reason, tab: held.tab, target: held.target, from, y, vp, now: landed })
@@ -364,13 +397,13 @@ function App() {
   }, [])
 
   const findHousehold = useCallback(async () => {
-    if (!session) return
+    if (!userId) return
     setSetupChecked(false)
     setError(null)
     const { data: memberships, error: membershipError } = await supabase
       .from('household_members')
       .select('household_id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .limit(1)
     if (membershipError) {
       setError(membershipError.message)
@@ -383,13 +416,13 @@ function App() {
       const { data: owned } = await supabase
         .from('households')
         .select('id')
-        .eq('owner_id', session.user.id)
+        .eq('owner_id', userId)
         .limit(1)
       householdId = owned?.[0]?.id
       if (householdId) {
         const { error: repairError } = await supabase.from('household_members').insert({
           household_id: householdId,
-          user_id: session.user.id,
+          user_id: userId,
         })
         if (repairError) setError(repairError.message)
       }
@@ -409,11 +442,11 @@ function App() {
     if (householdError) setError(householdError.message)
     else setHousehold(householdRow as Household)
     setSetupChecked(true)
-  }, [session])
+  }, [userId])
 
   useEffect(() => {
-    if (session) void findHousehold()
-  }, [session, findHousehold])
+    if (userId) void findHousehold()
+  }, [userId, findHousehold])
 
   const loadData = useCallback(async () => {
     if (!household) return
@@ -1193,7 +1226,7 @@ function App() {
 
   if (!authReady) return <Splash />
   if (!session) return <AuthScreen />
-  if (!setupChecked) return <Splash />
+  if (showsSetupSplash({ setupChecked, hasHousehold: household !== null })) return <Splash />
   if (!household) return <HouseholdSetup loading={loading} error={error} onCreate={createHousehold} onJoin={joinHousehold} />
 
   return (

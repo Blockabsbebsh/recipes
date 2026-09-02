@@ -55,6 +55,21 @@ break `layout` styled a class the app does not render, so the "broken" run was
 the same app. Check the mutation took effect before believing the scenario
 survived it.
 
+**Chromium clamps a scroll honestly; iOS does not.** Asked to scroll past the
+end, Chromium lands at the end and stops. iOS reports the position it was asked
+for and then bounces back, so a correction that reads as successful is undone a
+frame later — which is how forty corrections fitted into one second on the
+phone and none at all here. The loop cannot be reproduced; what the scenario
+checks instead is the thing that prevents it, that the app waits for the height
+rather than scrolling at a page which cannot reach.
+
+**Some faults only a phone can show you.** The app dropping to its loading
+screen on every resume was invisible here, because the stub never makes the
+client revalidate its token and it is that revalidation which triggers the
+re-check. The phone's log found it; a unit test on `showsSetupSplash` pins it.
+When a scenario cannot reach a fault, say so and pin the rule somewhere that
+can, rather than writing a check that passes for the wrong reason.
+
 **Confirm a finding with a second, independent measurement before believing it.** If the DOM says an element moved, check whether something in the harness moved it.
 
 **A synthetic gesture must dispatch its scroll before `touchend`.** A scroll
@@ -90,6 +105,8 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `scrolltrace` | keeping the trace in memory instead of localStorage | `the trace never recorded a "boot" event` (nothing survived the reload) |
 | `scrolltrace` | the loading screen recording that it appeared | `the loading screen did not record that it appeared` |
 | `layout` | measuring against the screen rather than the zoomed viewport | `page scrolls sideways: 566px of content in 390px` |
+| `appswitch` | waiting longer than a second for the page to grow back | `a page that came back short for three seconds landed at 0px instead of 1500px` |
+| `appswitch` | waiting for the height instead of scrolling at a page that cannot reach | `the app kept scrolling at a page too short to hold the position instead of waiting for it to grow` |
 | `appswitch` | holding the position after the restore reports success | `the web view moving after the app came back left the library at 0px instead of 1500px` |
 | `appswitch` | asking whether the household touched the screen before correcting | `scrolling to 300px on the way back in was undone, landing at 1500px` |
 | `appswitch` | correcting on the scroll event rather than a timer | `the page sat at the top for 499ms before jumping back` |
@@ -150,6 +167,8 @@ The lines that answer questions the harness cannot:
 | --- | --- |
 | `boot nav=… os=ios mode=installed` | the app started from nothing. No `boot` after an app switch means it was never reloaded, whatever the screen showed. |
 | `splash shown=yes` / `splash shown=gone ms=…` | the app's own loading screen rendered, and for how long. Seeing the loading screen with no `splash` line means the platform painted a stored image of an earlier launch, not the app. |
+| `restore-waiting` | the page was too short to hold the position, so the app stopped scrolling at it and waited for the height. |
+| `restore-abandoned` | the household scrolled while a restore was still waiting, so it stood down. |
 | `leave-by-link to=/…` | the app was left by tapping through to the shop, rather than by the app switcher. Whether a `boot` follows says if that killed it. |
 | `mark note=pastebėta` | the household saw something here. |
 

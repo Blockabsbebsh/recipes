@@ -194,6 +194,8 @@ The first trace from the phone ruled out the whole persistence layer: the positi
 
 Three things must never be mistaken for the household's own scrolling, all found on a phone rather than in a scenario. A gesture that was still settling when the app went away is cancelled: Android holds the pending timer while the app is backgrounded and runs it on the way back, after the system has moved the page to the top, and the position it settled on was a zero written over the one about to be restored — which is why the scroll survived one switch and was lost on the next. A touch that moved nothing is a tap, and a tap says nothing about where the page should be. And a correction that clamps because the page came back shorter than it was hands over to the height-aware restore rather than assuming it landed.
 
+Coming back to the app is not a cold start, and for a while it was treated as one. Supabase hands out a new session object each time it revalidates the token, which the phone provokes on every app switch, and the household check was keyed off that object — so stepping out to the shop for two seconds blanked the page to the loading screen and re-queried over the network. The check now keys off the user, and a re-check of a household already in hand never blanks the app (`showsSetupSplash`). That loading screen was also why the position was lost on iOS: a page with nothing on it is 62px tall, so the restore spent its whole budget against a page that could not have held the position, and gave up. It now waits up to eight seconds for the height, stands down if the household scrolls meanwhile, and stops scrolling at a page it cannot reach instead of arguing with it forty times a second.
+
 A remembered position lasts an hour. Stepping out to Barbora and back should return you to the row you were reading; opening the app the next morning should not, because the list has changed underneath and landing halfway down it reads as a fault. The tab survives either way. Per-tab positions are kept within that hour — switching tabs and coming back is the one case that always worked, and matches what a tab bar does everywhere else.
 
 The log also records what the harness cannot reach: whether the app's own loading screen rendered and for how long, whether the app was left by tapping a shop link or by the app switcher, and which phone the log came from. A `mark` button writes a line the household controls, so they can point at the moment they saw something. What the platform paints over a resuming web app — iOS reuses a stored image of an earlier launch, Android draws a manifest splash on relaunch — is not the app rendering, and a `splash` line separates the two.
@@ -202,7 +204,7 @@ The log exists to separate two failures that look identical from the outside: a 
 
 ## Tests
 
-`npm test` runs 62 tests. Covered:
+`npm test` runs 66 tests. Covered:
 
 - Tree construction preserves parent/child relationships and Barbora's order, including a rebuild of all 636 reviewed categories from the pages they came from.
 - URL normalization rejects products, queries, foreign hosts, and impossible depths; cycles are unrepresentable by construction.
