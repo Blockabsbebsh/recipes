@@ -163,6 +163,27 @@ An optional tree search may be added later, but it must navigate to a result ins
 - The Android `intent://` experiment for package `lt.barbora` was removed because the app did not handle the intent. Plain HTTPS links let Android's own App Links or Digital Asset Links do the right thing when Barbora registers them.
 - The temporary **Nuorodų testas** screen was removed after device behavior was established. An ordinary category link falls back to a browser when Barbora is not installed or the association is unavailable.
 
+## What `authenticated` may do
+
+Row security governs which rows a signed-in account can read and write, and it
+governed every verb the app uses. It does not govern `TRUNCATE`, and Postgres
+never consults a policy for it — so the `TRUNCATE` privilege that came with the
+default grant let any signed-in account empty every table for every household.
+Sign-up is open and the publishable key is in a public repository, so that was
+anybody at all. It is revoked now, along with `TRIGGER` (attaching a trigger to
+a shared table is the right to run code when someone else writes to it) and
+`REFERENCES`, and the default privileges for future tables are revoked too.
+
+Two narrower limits sit beside it. `invite_code` and `invite_code_set_at` are
+not writable by a client at all: they are generated and rotated by the database,
+and a client that could pin its own code could opt out of rotation by holding
+one still. And an account may own five households rather than unlimited ones —
+private to their owner, so never exposure, but a way to fill a disk. Five rather
+than one because a person may reasonably keep a second kitchen.
+
+Text columns have length ceilings. The longest of anything real in the database
+is a 190-character note; unbounded text is the cheapest way to fill a free tier.
+
 ## Invite codes
 
 A code is twelve uppercase hex characters and lasts a week.
@@ -182,6 +203,8 @@ characters is 48 bits, where the same rate would need some nine thousand years.
 Hex has no `O`, `I` or `L`, so nothing in a code can be misread when it is read
 off one phone and typed into another; `join_household` strips anything that is
 not a letter or a digit, so spacing and punctuation do not matter either.
+
+Attempts are serialised per caller with a transaction-scoped advisory lock, because counting and then inserting is not a limit under concurrency: parallel calls all read the same count before any of them wrote a row, so twenty at once all saw zero. The address limit stays best-effort — locking on two keys invites deadlock, and the per-account limit is the one that binds.
 
 Attempts are limited: five per account every fifteen minutes, twenty per address every hour, counted in `private.join_attempts`. Joining is a once-ever act and twice if the code was mistyped, so the limit is generous for a person and ruinous for a script.
 
