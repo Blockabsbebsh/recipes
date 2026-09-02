@@ -27,6 +27,18 @@ const EMPTY_SCROLL: Record<Tab, number> = { current: 0, library: 0, shop: 0, del
 const HOLD_MS = 2_000
 
 /**
+ * How long a flick's momentum is followed, and how still the page has to be
+ * before the resting position is taken as final.
+ *
+ * Taking a snapshot a fixed moment after the finger lifts records wherever the
+ * page happened to be mid-flight. A log from the phone caught it exactly: the
+ * position was taken at 572px, the page coasted on to 907px and stayed there
+ * for nine seconds, and 572 is what came back.
+ */
+const MOMENTUM_MS = 2_500
+const STILL_MS = 150
+
+/**
  * How long to wait for the page to be tall enough to hold the position.
  *
  * A second was not enough. On iOS the app came back showing its own loading
@@ -559,28 +571,71 @@ function App() {
     let touching = false
     let scrolled = false
     let pointerAt = 0
-    let settleTimer = 0
+    let stillTimer = 0
+    // A flick keeps scrolling after the finger has gone. That is still the
+    // household scrolling, and it ends where they meant to be.
+    let coasting = false
+    let coastUntil = 0
+    let lastY = 0
+    let lastStep = 0
 
+    const step = () => {
+      const y = window.scrollY
+      const size = Math.abs(y - lastY)
+      lastY = y
+      return size
+    }
+    const restStill = () => {
+      window.clearTimeout(stillTimer)
+      stillTimer = window.setTimeout(() => {
+        coasting = false
+        captureScroll('settle')
+      }, STILL_MS)
+    }
     const startGesture = () => {
       touching = true
       scrolled = false
+      coasting = false
+      lastY = window.scrollY
+      lastStep = 0
       interactionAt.current = Date.now()
     }
     const endGesture = () => {
       touching = false
       interactionAt.current = Date.now()
-      window.clearTimeout(settleTimer)
+      window.clearTimeout(stillTimer)
       // A touch that moved nothing is a tap, and a tap says nothing about
-      // where the page should be. Only a gesture that actually scrolled earns
-      // the wait for momentum to run out and the resting position to be taken.
-      if (scrolled) settleTimer = window.setTimeout(() => captureScroll('settle'), 400)
+      // where the page should be. Only a gesture that actually scrolled is
+      // followed to where it comes to rest.
+      if (!scrolled) return
+      coasting = true
+      coastUntil = Date.now() + MOMENTUM_MS
+      restStill()
     }
     const notePointer = () => { pointerAt = Date.now(); interactionAt.current = pointerAt }
     const rememberScroll = () => {
       if (touching || Date.now() - pointerAt < 150) {
         scrolled = true
+        lastStep = step()
         captureScroll('scroll')
-      } else if (!correctDrift('scroll')) trace('scroll-ignored', { y: window.scrollY, vp: visualTop() })
+        return
+      }
+      if (coasting) {
+        const size = step()
+        // Momentum decelerates. A jump bigger than the flick that started it
+        // is the system moving the page, not the finger still being obeyed —
+        // and the page going to the top as the app is put away looks exactly
+        // like that.
+        if (Date.now() < coastUntil && size <= lastStep * 1.6 + 48) {
+          lastStep = size
+          captureScroll('coast')
+          restStill()
+          return
+        }
+        coasting = false
+        window.clearTimeout(stillTimer)
+      }
+      if (!correctDrift('scroll')) trace('scroll-ignored', { y: window.scrollY, vp: visualTop() })
     }
 
     const save = (reason: string) => {
@@ -594,7 +649,8 @@ function App() {
       // the top by the system — and the settled position it records is a zero
       // that overwrites the very place we are about to restore.
       touching = false
-      window.clearTimeout(settleTimer)
+      coasting = false
+      window.clearTimeout(stillTimer)
       const state = document.visibilityState
       trace('visibility', { state, y: window.scrollY, vp: visualTop() })
       if (state === 'hidden') save('hide')
@@ -625,7 +681,7 @@ function App() {
     document.addEventListener('resume', onResume)
     return () => {
       save('teardown')
-      window.clearTimeout(settleTimer)
+      window.clearTimeout(stillTimer)
       window.removeEventListener('touchstart', startGesture)
       window.removeEventListener('touchend', endGesture)
       window.removeEventListener('touchcancel', endGesture)

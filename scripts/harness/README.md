@@ -80,6 +80,13 @@ models a gesture no phone produces, and turned five passing cases red when the
 app started asking whether a touch had actually moved anything. `userScroll`
 and `scrollAndLeave` wait a frame; anything new must too.
 
+**A synthetic flick must decelerate to a stop, never teleport at the end.**
+The first one moved in shrinking steps and then jumped the remaining 290px to
+its target — which is a discontinuity, exactly what the app is right to refuse
+as the system moving the page, and the case failed on the harness's own
+artefact. `fling` decays to rest and returns where it landed; assert against
+that, not against a number you chose.
+
 **Scroll to somewhere the page is not.** `userScroll(page, 1500)` on a page
 already at 1500px fires no scroll event and no gesture: the case runs, asserts
 its target, and proves nothing. One mid-gesture case sat green like that until
@@ -107,6 +114,8 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `layout` | measuring against the screen rather than the zoomed viewport | `page scrolls sideways: 566px of content in 390px` |
 | `appswitch` | waiting longer than a second for the page to grow back | `a page that came back short for three seconds landed at 0px instead of 1500px` |
 | `appswitch` | waiting for the height instead of scrolling at a page that cannot reach | `the app kept scrolling at a page too short to hold the position instead of waiting for it to grow` |
+| `appswitch` | following a flick to where it stops, rather than snapshotting 400ms after the lift | `a flick that came to rest at 1294px saved 1203px` |
+| `appswitch` | telling momentum apart from the page being thrown to the top | `the page jumping to the top just after a flick saved 0px instead of about 1500px` |
 | `appswitch` | holding the position after the restore reports success | `the web view moving after the app came back left the library at 0px instead of 1500px` |
 | `appswitch` | asking whether the household touched the screen before correcting | `scrolling to 300px on the way back in was undone, landing at 1500px` |
 | `appswitch` | correcting on the scroll event rather than a timer | `the page sat at the top for 499ms before jumping back` |
@@ -169,6 +178,7 @@ The lines that answer questions the harness cannot:
 | `splash shown=yes` / `splash shown=gone ms=…` | the app's own loading screen rendered, and for how long. Seeing the loading screen with no `splash` line means the platform painted a stored image of an earlier launch, not the app. |
 | `restore-waiting` | the page was too short to hold the position, so the app stopped scrolling at it and waited for the height. |
 | `restore-abandoned` | the household scrolled while a restore was still waiting, so it stood down. |
+| `capture from=coast` | a flick's momentum, still being followed. The `settle` after it is where the page came to rest. |
 | `leave-by-link to=/…` | the app was left by tapping through to the shop, rather than by the app switcher. Whether a `boot` follows says if that killed it. |
 | `mark note=pastebėta` | the household saw something here. |
 
