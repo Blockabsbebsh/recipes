@@ -71,6 +71,21 @@ export function formatTrace(entries = readTrace()) {
     .join('\n')
 }
 
+/**
+ * Where the page *looks* to be, which on iOS is not always where it says it
+ * is: the visual viewport can sit at the top of the document while
+ * `window.scrollY` still reports the position we restored. A trace where
+ * `y` and `vp` disagree is the whole answer.
+ */
+export function visualTop() {
+  try {
+    const viewport = window.visualViewport
+    return viewport ? Math.round(viewport.pageTop) : -1
+  } catch {
+    return -1
+  }
+}
+
 /** How this page came to exist: `navigate`, `reload`, `back_forward`. */
 export function navigationKind() {
   try {

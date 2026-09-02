@@ -184,6 +184,30 @@ export async function appswitch(page, base) {
   now = await scrollY(page)
   if (Math.abs(now - target) > 40) findings.push(`switching away after the page was hidden left the library at ${now}px instead of ${target}px`)
 
+  // The phone is not finished when it hands the app back: iOS moves the web
+  // view again a moment later, after the restore has already reported success.
+  await userScroll(page, target)
+  await page.waitForTimeout(100)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(200)
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(400)
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await page.waitForTimeout(2600)
+  now = await scrollY(page)
+  if (Math.abs(now - target) > 40) findings.push(`the web view moving after the app came back left the library at ${now}px instead of ${target}px`)
+
+  // Which must not turn into the app fighting the household: scrolling
+  // somewhere else on the way back in has to stick.
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(200)
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(200)
+  await userScroll(page, 300)
+  await page.waitForTimeout(2600)
+  now = await scrollY(page)
+  if (Math.abs(now - 300) > 40) findings.push(`scrolling to 300px on the way back in was undone, landing at ${now}px`)
+
   // Backgrounded with a modal open, which parks the body at the top.
   await userScroll(page, target)
   await page.waitForTimeout(100)

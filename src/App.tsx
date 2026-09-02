@@ -6,7 +6,7 @@ import { ingredientLookupKey, ingredientNameWithoutQuantity, normalizeTitle, par
 import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
 import { SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
 import type { CategoryIndex } from './lib/barboraMapping'
-import { clearTrace, formatTrace, navigationKind, readTrace, trace } from './lib/scrollTrace'
+import { clearTrace, formatTrace, navigationKind, readTrace, trace, visualTop } from './lib/scrollTrace'
 import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
 type Tab = 'current' | 'library' | 'shop' | 'deleted'
@@ -172,6 +172,9 @@ function App() {
   const tabRef = useRef<Tab>('current')
   const expandedRecipeRef = useRef<string | null>(null)
   const scrollByTab = useRef<Record<Tab, number>>({ ...EMPTY_SCROLL })
+  // When the household last touched the screen, so a correction can tell its
+  // own scrolling apart from the system's.
+  const interactionAt = useRef(0)
 
   const persistedViewKey = session && household ? viewStateKey(session.user.id, household.id) : null
 
@@ -196,7 +199,8 @@ function App() {
       const reachable = document.documentElement.scrollHeight - window.innerHeight
       if (reachable >= target) {
         window.scrollTo(0, target)
-        trace('restore', { reason, tab: nextTab, target, frames, y: window.scrollY })
+        trace('restore', { reason, tab: nextTab, target, frames, y: window.scrollY, vp: visualTop() })
+        holdPosition(nextTab, target, reason)
         return
       }
       // Give up after about a second: the content is shorter than it was.
@@ -208,6 +212,33 @@ function App() {
       trace('restore-gave-up', { reason, tab: nextTab, target, reachable: Math.max(0, Math.round(reachable)) })
     }
     window.requestAnimationFrame(attempt)
+  }
+
+  /**
+   * Scrolling back once is not enough, because the phone is not finished.
+   *
+   * iOS hands the app back and then moves the web view again a moment later —
+   * after the restore has already reported success, which is how a trace can
+   * show the position landing and the household still see the top of the page.
+   * Check a few times over the next two seconds and put it back, unless the
+   * household has touched the screen since, in which case wherever they are
+   * now is where they meant to be.
+   */
+  function holdPosition(nextTab: Tab, target: number, reason: string) {
+    const startedAt = Date.now()
+    for (const after of [300, 900, 1800]) {
+      window.setTimeout(() => {
+        if (tabRef.current !== nextTab) return
+        if (interactionAt.current > startedAt) return
+        const y = window.scrollY
+        const vp = visualTop()
+        // Believe whichever says we have drifted: on iOS they can disagree.
+        const drifted = Math.abs(y - target) > 8 || (vp >= 0 && Math.abs(vp - target) > 8)
+        if (!drifted) return
+        window.scrollTo(0, target)
+        trace('restore-again', { reason, tab: nextTab, target, after, y, vp, now: window.scrollY })
+      }, after)
+    }
   }
 
   /**
@@ -223,15 +254,15 @@ function App() {
   function captureScroll(from: string) {
     const y = window.scrollY
     if (document.visibilityState === 'hidden') {
-      trace('capture-skipped', { from, y, why: 'hidden' })
+      trace('capture-skipped', { from, y, vp: visualTop(), why: 'hidden' })
       return
     }
     if (document.body.style.position === 'fixed') {
-      trace('capture-skipped', { from, y, why: 'modal' })
+      trace('capture-skipped', { from, y, vp: visualTop(), why: 'modal' })
       return
     }
     scrollByTab.current[tabRef.current] = y
-    trace('capture', { from, tab: tabRef.current, y })
+    trace('capture', { from, tab: tabRef.current, y, vp: visualTop() })
   }
 
   function persistViewState(reason: string) {
@@ -446,17 +477,18 @@ function App() {
     let pointerAt = 0
     let settleTimer = 0
 
-    const startGesture = () => { touching = true }
+    const startGesture = () => { touching = true; interactionAt.current = Date.now() }
     const endGesture = () => {
       touching = false
+      interactionAt.current = Date.now()
       // Momentum runs on after the finger lifts; take the resting position.
       window.clearTimeout(settleTimer)
       settleTimer = window.setTimeout(() => captureScroll('settle'), 400)
     }
-    const notePointer = () => { pointerAt = Date.now() }
+    const notePointer = () => { pointerAt = Date.now(); interactionAt.current = pointerAt }
     const rememberScroll = () => {
       if (touching || Date.now() - pointerAt < 150) captureScroll('scroll')
-      else trace('scroll-ignored', { y: window.scrollY })
+      else trace('scroll-ignored', { y: window.scrollY, vp: visualTop() })
     }
 
     const save = (reason: string) => {
@@ -465,22 +497,22 @@ function App() {
     }
     const onVisibilityChange = () => {
       const state = document.visibilityState
-      trace('visibility', { state, y: window.scrollY })
+      trace('visibility', { state, y: window.scrollY, vp: visualTop() })
       if (state === 'hidden') save('hide')
       else restoreScroll(tabRef.current, 'visible')
     }
     const onPageHide = (event: PageTransitionEvent) => {
-      trace('pagehide', { persisted: event.persisted, y: window.scrollY })
+      trace('pagehide', { persisted: event.persisted, y: window.scrollY, vp: visualTop() })
       save('pagehide')
     }
     const restoreOnReturn = (event: PageTransitionEvent) => {
-      trace('pageshow', { persisted: event.persisted, y: window.scrollY })
+      trace('pageshow', { persisted: event.persisted, y: window.scrollY, vp: visualTop() })
       if (event.persisted) restoreScroll(tabRef.current, 'pageshow')
     }
     // Chrome and Android freeze a backgrounded tab instead of unloading it;
     // Safari does not fire these at all, and its absence is itself a finding.
-    const onFreeze = () => { trace('freeze', { y: window.scrollY }); save('freeze') }
-    const onResume = () => { trace('resume', { y: window.scrollY }); restoreScroll(tabRef.current, 'resume') }
+    const onFreeze = () => { trace('freeze', { y: window.scrollY, vp: visualTop() }); save('freeze') }
+    const onResume = () => { trace('resume', { y: window.scrollY, vp: visualTop() }); restoreScroll(tabRef.current, 'resume') }
     window.addEventListener('touchstart', startGesture, { passive: true })
     window.addEventListener('touchend', endGesture, { passive: true })
     window.addEventListener('touchcancel', endGesture, { passive: true })
@@ -510,7 +542,7 @@ function App() {
   }, [persistedViewKey, viewStateReady])
 
   useEffect(() => {
-    trace('boot', { nav: navigationKind(), y: window.scrollY })
+    trace('boot', { nav: navigationKind(), y: window.scrollY, vp: visualTop() })
     const previous = window.history.scrollRestoration
     window.history.scrollRestoration = 'manual'
     return () => { window.history.scrollRestoration = previous }
