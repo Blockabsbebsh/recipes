@@ -13,7 +13,7 @@ globalThis.window = {
   performance: { getEntriesByType: () => [{ type: 'reload' }] },
 }
 
-const { clearTrace, formatTrace, navigationKind, readTrace, trace } = await import('./scrollTrace.js')
+const { clearTrace, formatTrace, navigationKind, readTrace, trace, visualTop } = await import('./scrollTrace.js')
 
 test.beforeEach(() => { store.clear() })
 
@@ -70,4 +70,11 @@ test('prints one readable line per event', () => {
 
 test('reports how the page was loaded', () => {
   assert.equal(navigationKind(), 'reload')
+})
+
+test('reports where the page looks to be, and says so when it cannot tell', () => {
+  assert.equal(visualTop(), -1, 'no visual viewport to ask')
+  window.visualViewport = { pageTop: 1116.4 }
+  assert.equal(visualTop(), 1116)
+  delete window.visualViewport
 })

@@ -60,6 +60,8 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `modals` | Escape closing the topmost modal | `Escape did not leave 2 modal(s) open` |
 | `scrolltrace` | recording anything at all | `the trace never recorded a "capture" event` |
 | `scrolltrace` | keeping the trace in memory instead of localStorage | `the trace never recorded a "boot" event` (nothing survived the reload) |
+| `appswitch` | holding the position after the restore reports success | `the web view moving after the app came back left the library at 0px instead of 1500px` |
+| `appswitch` | asking whether the household touched the screen before correcting | `scrolling to 300px on the way back in was undone, landing at 1500px` |
 
 Do the same for any scenario you add.
 
@@ -76,14 +78,25 @@ Read the tail after an app switch. It answers one question:
 | Tail | Reading |
 | --- | --- |
 | `write … y=0` before the app went away | the position was lost *before* leaving — some capture site recorded a scroll the household did not make |
+| `restore … y=1500 vp=0` | the page believes it is scrolled and the phone is showing the top: `y` and `vp` disagreeing is always the answer on its own |
+| `restore … y=1500`, then `scroll-ignored y=0` a second or two later | the phone moved the web view *after* handing the app back; `restore-again` says the correction caught it |
 | `write … y=1500`, then `boot nav=reload`, then `restore-gave-up` | the position survived; the restore ran out of frames before the list was tall enough |
 | `write … y=1500`, then `boot nav=reload`, then `restore … y=0` | the restore landed and something scrolled back afterwards |
 | no `boot nav=reload` at all | iOS resumed the page rather than reloading it, so this is the `visibility` path, not the load path |
 
+Every entry carries `y` (`window.scrollY`) and `vp` (`visualViewport.pageTop`,
+or `-1` where the browser will not say). They normally agree; on iOS they need
+not, and where they disagree `vp` is what the household is looking at.
+
 `capture-skipped` says a scroll was seen and deliberately not recorded, with
 `why=hidden` or `why=modal`. `scroll-ignored` says the page moved with no touch
 behind it — that is the system, and seeing a run of them next to a lost position
-is the strongest signal there is.
+is the strongest signal there is. `restore-again` says the position was put back
+after the phone moved it post-resume; `after=` is how long after the restore.
+
+Reading the log requires opening Settings, which parks the body at the top and
+therefore writes a `capture-skipped … why=modal` of its own. The last two lines
+of any trace you read are usually you, opening it.
 
 ## Adding a scenario
 

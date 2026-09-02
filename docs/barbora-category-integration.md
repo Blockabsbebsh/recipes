@@ -188,11 +188,15 @@ A scroll is only recorded when a touch produced it. iOS shifts the web view as i
 
 Restoration still fails on at least one real device where the harness passes: the tab comes back, the scroll does not. The moment it fails in has no console attached, and iOS frequently reloads the web view before one could be, so the app keeps its own record: the last 60 scroll events — every capture, every write to `localStorage`, every visibility, `pagehide`, `pageshow`, `freeze` and `resume` transition, and the outcome of every restore — under `recipes:scroll-trace:v1`, printed in **Nustatymai → Slinkties žurnalas** with copy and clear.
 
-It exists to separate two failures that look identical from the outside: a position already lost before the app went away (a capture site recorded a scroll the household did not make) from a position that survived and was not put back (the restore ran out of frames, or the page was reloaded and the list was still short). The tail after one app switch says which. The reading table is in [`scripts/harness/README.md`](../scripts/harness/README.md); the `scrolltrace` harness scenario keeps the record itself honest, including that it survives the reload.
+Every entry carries both `window.scrollY` and `visualViewport.pageTop`, because on iOS the page can report a position it is not showing.
+
+The first trace from the phone ruled out the whole persistence layer: the position was saved correctly on `visibilitychange`, restored correctly on the way back, and then the web view moved to the top on its own a few seconds later, with nothing left to put it back. Restoring now holds: for two seconds after a restore lands, a drift away from the target with no touch behind it is corrected, and a touch since the restore cancels the correction so the app never fights the household.
+
+The log exists to separate two failures that look identical from the outside: a position already lost before the app went away (a capture site recorded a scroll the household did not make) from a position that survived and was not put back (the restore ran out of frames, or the page was reloaded and the list was still short). The tail after one app switch says which. The reading table is in [`scripts/harness/README.md`](../scripts/harness/README.md); the `scrolltrace` harness scenario keeps the record itself honest, including that it survives the reload.
 
 ## Tests
 
-`npm test` runs 60 tests. Covered:
+`npm test` runs 61 tests. Covered:
 
 - Tree construction preserves parent/child relationships and Barbora's order, including a rebuild of all 636 reviewed categories from the pages they came from.
 - URL normalization rejects products, queries, foreign hosts, and impossible depths; cycles are unrepresentable by construction.
