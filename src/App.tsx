@@ -588,11 +588,15 @@ function App() {
   async function joinHousehold(code: string, displayName: string) {
     setLoading(true)
     setError(null)
-    const { error: joinError } = await supabase.rpc('join_household', {
+    const { data, error: joinError } = await supabase.rpc('join_household', {
       p_invite_code: code,
       p_display_name: displayName.trim() || null,
     })
+    // A wrong code answers null rather than raising: the attempt has to be
+    // recorded for the rate limit, and an exception would roll that away with
+    // it. Only being throttled comes back as an error.
     if (joinError) setError(joinError.message)
+    else if (!data) setError('Neteisingas virtuvės kodas.')
     else await findHousehold()
     setLoading(false)
   }

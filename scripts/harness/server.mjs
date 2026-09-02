@@ -95,7 +95,22 @@ const server = createServer(async (req, res) => {
 
   if (url.pathname.startsWith('/rest/v1/rpc/')) {
     const fn = url.pathname.split('/').pop()
-    if (fn === 'join_household') return send(res, 200, HOUSEHOLD_ID)
+    // Answers null for a code it does not know, exactly as the real function
+    // does — a stub that always succeeded would hide the client's handling of
+    // the one answer a wrong code gives.
+    if (fn === 'join_household') {
+      const sent = (await readBody(req))?.p_invite_code ?? ''
+      const code = String(sent).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+      const known = db.households?.[0]?.invite_code?.toUpperCase()
+      if (!code || code !== known) return send(res, 200, null)
+      // The real function adds the caller to the household; a stub that only
+      // answered with an id would let a scenario "join" and change nothing.
+      db.household_members ??= []
+      if (!db.household_members.some((row) => row.user_id === USER_ID)) {
+        db.household_members.push({ id: randomUUID(), household_id: HOUSEHOLD_ID, user_id: USER_ID, display_name: null })
+      }
+      return send(res, 200, HOUSEHOLD_ID)
+    }
     // The one procedure the app relies on doing real work: everything in the
     // basket becomes something to cook, and the basket is emptied. Stubbing it
     // as a no-op would let a scenario "complete a shop" and prove nothing.

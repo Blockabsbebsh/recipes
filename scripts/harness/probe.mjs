@@ -808,6 +808,65 @@ export async function back(page, base) {
   return findings
 }
 
+/**
+ * Joining a household with an invite code.
+ *
+ * The only way a second person ever gets in, and the only flow where a wrong
+ * answer is the expected one. A bad code answers null rather than raising,
+ * because the attempt has to survive the call for the rate limit to see it —
+ * so nothing but the client turns that null into a message, and if it stops
+ * doing so the app reports nothing at all and stays where it is.
+ */
+export async function join(page, base) {
+  const findings = []
+  await signIn(page, base)
+
+  // Leave the household through the stub's own API, then come back to the
+  // setup screen the way a new account arrives at it.
+  await page.evaluate(async (api) => {
+    await fetch(`${api}/rest/v1/household_members?user_id=eq.00000000-0000-4000-8000-000000000002`, {
+      method: 'DELETE',
+      headers: { apikey: 'harness-key', authorization: 'Bearer fake-access-token' },
+    })
+    await fetch(`${api}/rest/v1/households?id=eq.00000000-0000-4000-8000-000000000001`, {
+      method: 'PATCH',
+      headers: { apikey: 'harness-key', authorization: 'Bearer fake-access-token', 'content-type': 'application/json' },
+      body: JSON.stringify({ owner_id: '00000000-0000-4000-8000-000000000099' }),
+    })
+  }, process.env.HARNESS_STUB)
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForTimeout(2500)
+
+  // The setup screen opens on "create a kitchen"; joining is the other tab.
+  // It reverts there whenever the component remounts, so ask for it each time
+  // rather than assuming a failed attempt left us where we were.
+  const openJoinForm = async () => {
+    if (await page.locator('.code-input').count() === 0) await tap(page, 'button', 'Prisijungti')
+  }
+  await openJoinForm()
+  if (await page.locator('.code-input').count() === 0) {
+    const seen = await page.evaluate(() => document.body.innerText.slice(0, 200).replace(/\s+/g, ' '))
+    findings.push(`a member with no household did not reach the join form; saw "${seen}"`)
+    return findings
+  }
+
+  // A code the household does not have.
+  await page.fill('.code-input', 'FFFFFFFFFFFF')
+  await page.locator('form button, button.primary').first().click()
+  await page.waitForTimeout(1200)
+  const complaint = await page.locator('.form-notice').allInnerTexts().catch(() => [])
+  if (!complaint.join(' ').trim()) findings.push('a wrong invite code was accepted in silence')
+  if (await page.locator('.code-input').count() === 0) findings.push('a wrong invite code let the app through anyway')
+
+  // The real one, typed the way it would be read off another phone.
+  await openJoinForm()
+  await page.fill('.code-input', 'abcd 1234')
+  await page.locator('form button, button.primary').first().click()
+  await page.waitForTimeout(2500)
+  if (await page.locator('.bottom-nav').count() === 0) findings.push('the correct invite code did not get in')
+  return findings
+}
+
 /** Modals stack, close topmost-first, and never strand the one underneath. */
 export async function modals(page, base) {
   const findings = []
@@ -830,4 +889,4 @@ export async function modals(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back }
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back, join }
