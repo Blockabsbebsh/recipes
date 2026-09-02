@@ -8,89 +8,12 @@ import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, mapIngredient, shopp
 import type { CategoryIndex } from './lib/barboraMapping'
 import { clearTrace, environment, formatTrace, navigationKind, readTrace, trace, visualTop } from './lib/scrollTrace'
 import { showsSetupSplash } from './lib/readiness'
-import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
+import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, Tab, VocabularyIngredient } from './lib/types'
+import { HOLD_MS, MOMENTUM_MS, RESTORE_PATIENCE_MS, STILL_MS, createGesture, hasDrifted, keepable, reaches } from './lib/scrollMemory'
+import { EMPTY_SCROLL, SCROLL_MEMORY_MS, positionsFrom, readViewState, viewStateKey, writeViewState } from './lib/viewState'
+import type { PersistedViewState } from './lib/viewState'
 
-type Tab = 'current' | 'library' | 'shop' | 'deleted'
 type RecipeDestination = 'library' | 'queue'
-
-type PersistedViewState = {
-  version: 1
-  tab: Tab
-  scrollByTab: Record<Tab, number>
-  expandedRecipeId: string | null
-  savedAt: number
-}
-
-const EMPTY_SCROLL: Record<Tab, number> = { current: 0, library: 0, shop: 0, deleted: 0 }
-
-/** How long a restored position is held against the phone moving the page. */
-const HOLD_MS = 2_000
-
-/**
- * How long a flick's momentum is followed, and how still the page has to be
- * before the resting position is taken as final.
- *
- * Taking a snapshot a fixed moment after the finger lifts records wherever the
- * page happened to be mid-flight. A log from the phone caught it exactly: the
- * position was taken at 572px, the page coasted on to 907px and stayed there
- * for nine seconds, and 572 is what came back.
- */
-const MOMENTUM_MS = 2_500
-const STILL_MS = 150
-
-/**
- * How long to wait for the page to be tall enough to hold the position.
- *
- * A second was not enough. On iOS the app came back showing its own loading
- * screen for 1454ms, and a page with nothing on it is 62px tall — so the
- * restore spent its whole budget against a page that could not have held the
- * position yet, gave up, and the household came back to the top. Waiting is
- * free; a wait that ends too early is not.
- */
-const RESTORE_PATIENCE_MS = 8_000
-
-/**
- * How long a scroll position is worth coming back to.
- *
- * Stepping out to the shop's app and back should return you to the row you
- * were reading. Opening the app the next morning should not: the list has
- * changed underneath, and landing halfway down it reads as a bug rather than
- * a kindness. The tab you were on survives either way — that is cheap to
- * recognise and easy to correct. A position halfway down a changed list is
- * neither.
- */
-const SCROLL_MEMORY_MS = 60 * 60 * 1_000
-
-function viewStateKey(userId: string, householdId: string) {
-  return `recipes:view:v1:${userId}:${householdId}`
-}
-
-function readViewState(key: string): PersistedViewState | null {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) ?? 'null') as Partial<PersistedViewState> | null
-    if (!parsed || parsed.version !== 1 || !['current', 'library', 'shop', 'deleted'].includes(parsed.tab ?? '')) return null
-    const savedScroll = parsed.scrollByTab as Partial<Record<Tab, unknown>> | undefined
-    const scroll = (tab: Tab) => {
-      const value = savedScroll?.[tab]
-      return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0
-    }
-    return {
-      version: 1,
-      tab: parsed.tab as Tab,
-      scrollByTab: {
-        current: scroll('current'),
-        library: scroll('library'),
-        shop: scroll('shop'),
-        deleted: scroll('deleted'),
-      },
-      expandedRecipeId: typeof parsed.expandedRecipeId === 'string' ? parsed.expandedRecipeId : null,
-      // Anything written before this field existed is old by definition.
-      savedAt: typeof parsed.savedAt === 'number' && Number.isFinite(parsed.savedAt) ? parsed.savedAt : 0,
-    }
-  } catch {
-    return null
-  }
-}
 
 const blankDraft = (): RecipeDraft => ({ title: '', ingredients: [], notes: '', sourceUrl: '', dishType: 'Kita', cuisine: 'Tarptautinė' })
 
@@ -253,8 +176,8 @@ function App() {
         trace('restore-abandoned', { reason, tab: nextTab, target, y: window.scrollY })
         return
       }
-      const reachable = document.documentElement.scrollHeight - window.innerHeight
-      if (reachable >= target) {
+      const scrollHeight = document.documentElement.scrollHeight
+      if (reaches({ scrollHeight, innerHeight: window.innerHeight, target })) {
         window.scrollTo(0, target)
         trace('restore', { reason, tab: nextTab, target, frames, y: window.scrollY, vp: visualTop() })
         holdPosition(nextTab, target, reason)
@@ -265,7 +188,7 @@ function App() {
         window.requestAnimationFrame(attempt)
         return
       }
-      trace('restore-gave-up', { reason, tab: nextTab, target, frames, reachable: Math.max(0, Math.round(reachable)) })
+      trace('restore-gave-up', { reason, tab: nextTab, target, frames, reachable: Math.max(0, Math.round(scrollHeight - window.innerHeight)) })
     }
     window.requestAnimationFrame(attempt)
   }
@@ -303,13 +226,12 @@ function App() {
     }
     const y = window.scrollY
     const vp = visualTop()
-    // Believe whichever says we have drifted: on iOS they can disagree.
-    if (Math.abs(y - held.target) <= 8 && (vp < 0 || Math.abs(vp - held.target) <= 8)) return false
+    if (!hasDrifted({ target: held.target, y, vp })) return false
     // A page too short to hold the position clamps every correction, and the
     // clamp reports as another drift — which on the phone became forty
     // corrections in one second, the app arguing with a page that had nothing
     // on it. Hand over to the restore, which waits for the height instead.
-    if (document.documentElement.scrollHeight - window.innerHeight < held.target) {
+    if (!reaches({ scrollHeight: document.documentElement.scrollHeight, innerHeight: window.innerHeight, target: held.target })) {
       hold.current = null
       trace('restore-waiting', { reason: held.reason, tab: held.tab, target: held.target, from, y, vp })
       restoreScroll(held.tab, held.reason)
@@ -345,9 +267,7 @@ function App() {
       trace('capture-skipped', { from, y, vp: visualTop(), why: 'modal' })
       return
     }
-    // Rubber-banding past the top reports a negative scroll, which is a
-    // gesture in progress rather than a place to come back to.
-    scrollByTab.current[tabRef.current] = Math.max(0, Math.round(y))
+    scrollByTab.current[tabRef.current] = keepable(y)
     trace('capture', { from, tab: tabRef.current, y, vp: visualTop() })
   }
 
@@ -360,11 +280,8 @@ function App() {
       expandedRecipeId: expandedRecipeRef.current,
       savedAt: Date.now(),
     }
-    try {
-      window.localStorage.setItem(persistedViewKey, JSON.stringify(state))
+    if (writeViewState(persistedViewKey, state)) {
       trace('write', { reason, tab: state.tab, y: state.scrollByTab[state.tab] })
-    } catch {
-      // A full or unavailable localStorage must never make the app unusable.
     }
   }
 
@@ -522,19 +439,18 @@ function App() {
     if (!persistedViewKey || !dataReady) return
     const saved = readViewState(persistedViewKey)
     const nextTab = saved?.tab ?? 'current'
-    const age = saved ? Date.now() - saved.savedAt : Number.POSITIVE_INFINITY
-    const stillWorthIt = age < SCROLL_MEMORY_MS
+    const positions = positionsFrom(saved)
     trace('load', {
       nav: navigationKind(),
       tab: nextTab,
-      y: saved?.scrollByTab[nextTab] ?? 0,
-      age: Number.isFinite(age) ? Math.round(age / 1000) : -1,
-      kept: stillWorthIt,
+      y: positions[nextTab],
+      age: saved ? Math.round((Date.now() - saved.savedAt) / 1000) : -1,
+      kept: saved ? Date.now() - saved.savedAt < SCROLL_MEMORY_MS : false,
     })
     const expandedStillExists = saved?.expandedRecipeId
       ? recipes.some((recipe) => recipe.id === saved.expandedRecipeId && !recipe.deleted_at)
       : false
-    scrollByTab.current = saved && stillWorthIt ? { ...EMPTY_SCROLL, ...saved.scrollByTab } : { ...EMPTY_SCROLL }
+    scrollByTab.current = positions
     tabRef.current = nextTab
     expandedRecipeRef.current = expandedStillExists ? saved?.expandedRecipeId ?? null : null
     setTab(nextTab)
@@ -568,74 +484,46 @@ function App() {
      * scroll with no touch behind it is the system moving the page, and is
      * exactly the position we must not save.
      */
-    let touching = false
-    let scrolled = false
-    let pointerAt = 0
+    // What each movement of the page means is decided in one place, by the
+    // rules in `scrollMemory`. What is left here is the wiring: the page's
+    // events in, a position remembered or a drift corrected out.
+    const gesture = createGesture({ momentumMs: MOMENTUM_MS })
     let stillTimer = 0
-    // A flick keeps scrolling after the finger has gone. That is still the
-    // household scrolling, and it ends where they meant to be.
-    let coasting = false
-    let coastUntil = 0
-    let lastY = 0
-    let lastStep = 0
 
-    const step = () => {
-      const y = window.scrollY
-      const size = Math.abs(y - lastY)
-      lastY = y
-      return size
-    }
-    const restStill = () => {
+    /** Take the position once the page has stopped moving. */
+    const waitForStillness = () => {
       window.clearTimeout(stillTimer)
       stillTimer = window.setTimeout(() => {
-        coasting = false
-        captureScroll('settle')
+        if (gesture.rest()) captureScroll('settle')
       }, STILL_MS)
     }
     const startGesture = () => {
-      touching = true
-      scrolled = false
-      coasting = false
-      lastY = window.scrollY
-      lastStep = 0
+      gesture.start(window.scrollY)
       interactionAt.current = Date.now()
     }
     const endGesture = () => {
-      touching = false
       interactionAt.current = Date.now()
       window.clearTimeout(stillTimer)
-      // A touch that moved nothing is a tap, and a tap says nothing about
-      // where the page should be. Only a gesture that actually scrolled is
-      // followed to where it comes to rest.
-      if (!scrolled) return
-      coasting = true
-      coastUntil = Date.now() + MOMENTUM_MS
-      restStill()
+      if (gesture.end(Date.now())) waitForStillness()
     }
-    const notePointer = () => { pointerAt = Date.now(); interactionAt.current = pointerAt }
+    const notePointer = () => {
+      const now = Date.now()
+      gesture.pointer(now)
+      interactionAt.current = now
+    }
     const rememberScroll = () => {
-      if (touching || Date.now() - pointerAt < 150) {
-        scrolled = true
-        lastStep = step()
-        captureScroll('scroll')
-        return
-      }
-      if (coasting) {
-        const size = step()
-        // Momentum decelerates. A jump bigger than the flick that started it
-        // is the system moving the page, not the finger still being obeyed —
-        // and the page going to the top as the app is put away looks exactly
-        // like that.
-        if (Date.now() < coastUntil && size <= lastStep * 1.6 + 48) {
-          lastStep = size
-          captureScroll('coast')
-          restStill()
+      switch (gesture.scroll(window.scrollY, Date.now())) {
+        case 'gesture':
+          captureScroll('scroll')
           return
-        }
-        coasting = false
-        window.clearTimeout(stillTimer)
+        case 'coast':
+          captureScroll('coast')
+          waitForStillness()
+          return
+        default:
+          window.clearTimeout(stillTimer)
+          if (!correctDrift('scroll')) trace('scroll-ignored', { y: window.scrollY, vp: visualTop() })
       }
-      if (!correctDrift('scroll')) trace('scroll-ignored', { y: window.scrollY, vp: visualTop() })
     }
 
     const save = (reason: string) => {
@@ -648,8 +536,7 @@ function App() {
       // and runs it on the way back, by which time the page has been moved to
       // the top by the system — and the settled position it records is a zero
       // that overwrites the very place we are about to restore.
-      touching = false
-      coasting = false
+      gesture.cancel()
       window.clearTimeout(stillTimer)
       const state = document.visibilityState
       trace('visibility', { state, y: window.scrollY, vp: visualTop() })
