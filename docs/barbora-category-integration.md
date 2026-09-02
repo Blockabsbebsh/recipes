@@ -168,11 +168,21 @@ An optional tree search may be added later, but it must navigate to a result ins
 Row security governs which rows a signed-in account can read and write, and it
 governed every verb the app uses. It does not govern `TRUNCATE`, and Postgres
 never consults a policy for it — so the `TRUNCATE` privilege that came with the
-default grant let any signed-in account empty every table for every household.
-Sign-up is open and the publishable key is in a public repository, so that was
-anybody at all. It is revoked now, along with `TRIGGER` (attaching a trigger to
-a shared table is the right to run code when someone else writes to it) and
-`REFERENCES`, and the default privileges for future tables are revoked too.
+default grant let any signed-in account empty every table for every household,
+its own or anyone else's.
+
+How far that reached depends on a setting that is not in this repository. New
+sign-ups are disabled in the Supabase dashboard, so `authenticated` means a
+member of this household or someone holding one of their sessions — which makes
+it a blast-radius problem rather than an open door: either of us could have
+emptied the database, including by accident, from a stray script. Were sign-ups
+ever opened, the same grant would have meant anybody at all, since the
+publishable key is in a public repository. That is the reason to have fixed it
+before opening them rather than after.
+
+It is revoked now, along with `TRIGGER` (attaching a trigger to a shared table
+is the right to run code when someone else writes to it) and `REFERENCES`, and
+the default privileges for future tables are revoked too.
 
 Two narrower limits sit beside it. `invite_code` and `invite_code_set_at` are
 not writable by a client at all: they are generated and rotated by the database,
@@ -185,6 +195,11 @@ Text columns have length ceilings. The longest of anything real in the database
 is a 190-character note; unbounded text is the cheapest way to fill a free tier.
 
 ## Invite codes
+
+Read the section above first: with sign-ups disabled, calling `join_household`
+at all requires an existing account, so everything here is a second line rather
+than the first one.
+
 
 A code is twelve uppercase hex characters and lasts a week.
 

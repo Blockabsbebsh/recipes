@@ -33,6 +33,8 @@ npm run dev
 
 The Supabase project URL and publishable key are included in `src/lib/supabase.ts`. A publishable key is designed to be public; access is enforced by RLS. Never put a Supabase secret/service-role key in this repository.
 
+New sign-ups are disabled in the Supabase dashboard, which is why a public publishable key costs nothing: the key gets you as far as the sign-in screen. That setting is not in this repository, and some of the reasoning in [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md) depends on it — read that before turning sign-ups on.
+
 ## Testing
 
 ```bash
