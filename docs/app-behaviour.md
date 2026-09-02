@@ -27,6 +27,24 @@ without a browser.
 The `Modal` is worth knowing about: it is where Escape, the keyboard inset and
 the back button are handled, so a new dialog gets all three by using it.
 
+## The roster is permanent history
+
+Nothing deletes a `roster_entries` row. "Recently cooked" showing the last five
+days is a filter on the way out, not a lifecycle — a meal cooked in August is
+still in the table, and the whole log grows by one row per meal for ever.
+
+That is deliberate rather than an oversight. Each recipe's *Gaminta prieš…* date
+is computed from the log, so entries older than five days are doing work even
+though nothing lists them. Delete them and every recipe in the library reads
+*Dar negaminta* from the sixth day.
+
+It costs roughly 70KB a year against a 500MB tier, so it can be left alone
+indefinitely. Pruning it is written up in
+[`possible-features.md`](possible-features.md), including the reason not to
+prune on the write.
+
+`skipped` entries are the exception: they are written and read nowhere at all.
+
 ## The back button
 
 On Android the back button is how things get closed, and until now it closed the whole app — mid-recipe, mid-shop, whatever was open. The web has no notion of "close the thing on top"; it has history. So `src/lib/backNav.js` keeps a stack of things a back press should undo and one history entry for each, and every dialog registers itself through the shared `Modal`, nested ones included. Being away from the menu is one more entry, so back comes home before it leaves.
