@@ -71,7 +71,7 @@ The workflow in `.github/workflows/deploy-pages.yml` builds every push to `main`
 
 The repository is public because GitHub Pages needs a paid plan to serve a private one. If Pages is ever unavailable, the same `dist` folder deploys unchanged to Cloudflare Pages, Netlify, or Vercel.
 
-Being public matters for Actions secrets: logs and artifacts are world-readable, so no workflow holding a Supabase secret key may ever gain a trigger that runs pull-request code. See [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
+Being public matters for Actions secrets: logs and artifacts are world-readable. No Supabase secret key is configured any more — the crawl workflow reads one if it is there and reports "not published" when it is not — but if one is ever added again, no workflow holding it may gain a trigger that runs pull-request code. See [`docs/barbora-category-integration.md`](docs/barbora-category-integration.md).
 
 ## Database
 
@@ -96,7 +96,7 @@ npx playwright install chromium   # add --with-deps on Linux only
 npm run crawl:barbora
 ```
 
-Barbora's bot protection currently refuses the crawler, so the catalogue is refreshed rarely and by hand. Nothing in the app depends on a successful run: a blocked run, or one failing any validation check, writes nothing and leaves the published catalogue in place. The **Crawl Barbora categories** workflow runs the same crawl on demand and publishes the result.
+The crawler has never completed a production run: Barbora's bot protection refuses it, and no Supabase secret key is configured for it to publish with. It is kept because the catalogue it produced by hand is the thing the app depends on, and the validation around it is worth having if the crawl is ever revived. Nothing in the app depends on a successful run: a blocked run, or one failing any validation check, writes nothing and leaves the published catalogue in place. The **Crawl Barbora categories** workflow runs the same crawl on demand; with no key configured it reports "not published" instead of writing.
 
 ## Current MVP limits
 
