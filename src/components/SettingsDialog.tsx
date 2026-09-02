@@ -5,7 +5,8 @@ import type { Household, HouseholdTag, IngredientSection, Recipe, VocabularyIngr
 import { IngredientsManager } from './IngredientsManager'
 import { Modal } from './Modal'
 import { RecipeCategoriesManager } from './RecipeCategoriesManager'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { backNav } from '../lib/backNav'
 
 export function SettingsDialog({ household, email, vocabulary, recipes, categories, categoryIndex, onCreateIngredient, onUpdateIngredient, onDeleteIngredient, onCreateCategory, onUpdateCategory, onDeleteCategory, onClose }: {
   household: Household
@@ -23,6 +24,21 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
   onClose: () => void
 }) {
   const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories' | 'trace'>('menu')
+  /**
+   * Settings has pages inside one dialog rather than a dialog each, so the
+   * back button saw a single layer and closed the lot. A page of its own is a
+   * place you can come back from, whether or not it happens to be a dialog.
+   *
+   * One entry for being off the menu, not one per page: registering again on
+   * every move would drop and add in the same breath, and going back is
+   * asynchronous.
+   */
+  const insidePage = view !== 'menu'
+  useEffect(() => {
+    if (!insidePage) return
+    const remove = backNav.add('settings-view', () => setView('menu'))
+    return () => { remove() }
+  }, [insidePage])
   const [copied, setCopied] = useState(false)
   async function copyCode() {
     await navigator.clipboard.writeText(household.invite_code)
