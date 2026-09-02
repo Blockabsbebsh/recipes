@@ -38,8 +38,9 @@ New sign-ups are disabled in the Supabase dashboard, which is why a public publi
 ## Testing
 
 ```bash
-npm test          # 96 unit tests, none of which need a browser
+npm test          # 104 unit tests, none of which need a browser
 npm run harness   # the real app on an emulated phone, against a fake Supabase
+npm run dbtest    # every migration applied to a throwaway Postgres, then checked
 ```
 
 The unit tests cover the parser, the classifier, the Barbora mapper and crawler, and the rules the phone taught us: what counts as the household's own scrolling, when a remembered position has gone stale, what the back button should undo, and whether the loading screen belongs on screen.
@@ -55,6 +56,8 @@ npm i --no-save playwright@1.62.1
 [`scripts/harness/README.md`](scripts/harness/README.md) explains the scenarios, how to add one, and the pitfalls — above all that Playwright's own `click()` scrolls the page and will invent bugs that are not there.
 
 The app also keeps its own record of what happened to the scroll position — the last 150 events, readable on the phone under **Nustatymai → Slinkties žurnalas**, because the moment restoration fails in has no console attached. Reading one is described in the harness README; it is what found every scroll fault that mattered.
+
+The database has a harness of its own. Every policy, grant and trigger in `supabase/migrations/` used to be written, reviewed by reading, and applied to production without ever being run against a test; `npm run dbtest` applies them all to a throwaway PostgreSQL and checks what they actually do — who can read whose kitchen, what a signed-in account may write, where the ceilings are, and whether the throttle on joining survives twenty simultaneous requests. Its first run found two faults that were live at the time: creating a household had been broken for a day, and every column grant in the project was decoration. [`scripts/dbtest/README.md`](scripts/dbtest/README.md) has both stories and the mutations that keep the checks honest.
 
 [`docs/app-behaviour.md`](docs/app-behaviour.md) explains where the code lives and what each phone behaviour does and why. [`docs/possible-features.md`](docs/possible-features.md) lists what was considered and deliberately not built, with the reasoning kept so it does not have to be worked out again.
 
@@ -80,6 +83,8 @@ Being public matters for Actions secrets: logs and artifacts are world-readable.
 The live schema is in Supabase project `recipes` (`malrgdecuaqtkwnloixa`). The reproducible SQL lives in `supabase/migrations/`, applied in filename order. Ingredients are a per-household vocabulary with two independent axes: `section` is the part of a shop it is bought in, `food_type` is what the food actually is. Recipes carry free-form tags through `recipe_tags`.
 
 Every public table has RLS. Policies authorize through `household_members`, not user-editable JWT metadata. The two household RPCs authenticate the caller and have execution revoked from `PUBLIC` and `anon`; `publish_barbora_categories` is revoked from browser clients entirely and granted only to the server-side role.
+
+Grants are as narrow as the app allows and are pinned by a test, because RLS does not cover everything. TRUNCATE is not subject to row security at all, and a column a policy does not mention is a column a policy cannot protect. Supabase grants the client roles everything on `public` by default, so both of those were open until a table-level revoke replaced the blanket with an explicit list. A new table now starts closed and is opened deliberately.
 
 Recipe classifications reuse the existing normalized tag relation. Machine-readable names use `Tipas: ` for the single dish-type axis and `Virtuvė: ` for cuisine; the UI removes those prefixes. Dish type controls library grouping, while both axes participate in search. New recipes are classified locally with deterministic Lithuanian/English keyword rules and can be corrected in the editor.
 
