@@ -16,7 +16,7 @@ without a browser.
 | `src/lib/viewState.js` | the record kept between visits — tab, per-tab position, expanded recipe — and when a position has gone stale |
 | `src/lib/backNav.js` | the stack of things the back button should undo |
 | `src/lib/scrollTrace.js` | the on-device log, and the environment it was recorded on |
-| `src/lib/readiness.js` | whether the loading screen belongs on screen |
+| `src/lib/readiness.js` | whether the loading screen belongs on screen, and whether the household check failed or merely came back empty |
 | `src/lib/ingredientMapping.js` | what the four Barbora columns say about an ingredient |
 | `src/hooks/useHouseholdData.ts` | the five reads, the realtime subscription, and the coalescing refresh |
 | `src/hooks/useRecipeWriting.ts` | saving, importing, deleting and restoring recipes |
@@ -43,6 +43,35 @@ the rare case they disagree — a different person on a shared device, say.
 Only the tab is treated this way. A scroll position painted before the list
 exists would be clamped to the top and would have to be restored again anyway,
 which is what `restoreScroll` is for.
+
+## When the backend cannot be reached
+
+The household check has two failure modes that look identical once it has
+finished: the household genuinely does not exist, and we could not find out.
+Both leave the app holding `null`.
+
+Treating them the same was a real fault. With the network down the membership
+read fails, the check finishes empty, and two people who had been cooking from
+this app for months were shown `Sukurkite savo virtuvę` — an invitation to
+create a household on top of the one they already have. Accepting it would
+have left them with two memberships and the app choosing between them by
+whichever row came back first.
+
+So the app tracks whether the check *failed* as well as what it *found*, and
+`showsUnreachable` in `src/lib/readiness.js` holds the rule: only a check that
+completed and genuinely found nothing may offer the setup screen. A failed one
+gets a screen that says the recipes are still there, prints the technical error
+in small type — `TypeError: Failed to fetch` is meaningless to the household
+but is the difference between no signal and a real fault when it gets read out
+to me — and offers to try again.
+
+Nothing is shown for the first seven seconds, and that is correct: supabase-js
+retries a failed GET three times, a second apart and doubling. The loading
+screen during that is the client being patient, not the app being stuck.
+
+A failure never displaces a household already on screen. The check runs again
+whenever the user changes, and a flaky connection is not news that the recipes
+are gone.
 
 ## Two people at once
 

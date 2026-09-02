@@ -328,7 +328,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const saved = await page.evaluate(() => {
-    const raw = Object.entries(localStorage).find(([k]) => k.startsWith('recipes:view'))
+    const raw = Object.entries(localStorage).find(([k]) => k.startsWith('recipes:view:v1:'))
     return raw ? JSON.parse(raw[1]).scrollByTab?.library : null
   })
   if (saved === null) findings.push('backgrounding with a modal open saved no view state at all')
@@ -378,7 +378,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const kept = await page.evaluate(() => {
-    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view:v1:'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
   if (kept === null) findings.push('the switch after a mid-gesture one saved no view state at all')
@@ -451,7 +451,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const afterFling = await page.evaluate(() => {
-    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view:v1:'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
   if (afterFling === null) findings.push('a flick saved no view state at all')
@@ -478,7 +478,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const afterJump = await page.evaluate(() => {
-    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view:v1:'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
   if (afterJump !== null && afterJump < target - 100) findings.push(`the page jumping to the top just after a flick saved ${afterJump}px instead of about ${target}px`)
@@ -510,7 +510,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const afterTap = await page.evaluate(() => {
-    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view:v1:'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
   if (afterTap === null) findings.push('a tap on the way back in saved no view state at all')
