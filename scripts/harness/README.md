@@ -45,6 +45,22 @@ A finding beginning with `note:` is advisory: reported, but it does not fail the
 
 **Confirm a finding with a second, independent measurement before believing it.** If the DOM says an element moved, check whether something in the harness moved it.
 
+**A synthetic gesture must dispatch its scroll before `touchend`.** A scroll
+event does not fire until the next frame, so on a real device it always
+arrives while the finger is still down — and the app relies on that to tell a
+scroll from a tap. Dispatching `touchend` in the same task as `window.scrollTo`
+models a gesture no phone produces, and turned five passing cases red when the
+app started asking whether a touch had actually moved anything. `userScroll`
+and `scrollAndLeave` wait a frame; anything new must too.
+
+**Scroll to somewhere the page is not.** `userScroll(page, 1500)` on a page
+already at 1500px fires no scroll event and no gesture: the case runs, asserts
+its target, and proves nothing. One mid-gesture case sat green like that until
+a trace dump showed no capture lines in it at all.
+
+**`DUMP_TRACE=1` prints the app's own scroll trace** at the end of `appswitch`,
+which is the fastest way to find out why a scenario disagrees with a phone.
+
 **Scroll the way a finger does, with `userScroll`.** The app only remembers a scroll that a touch produced, because a scroll with no contact behind it is the system moving the web view — the thing that must not be saved. A bare `window.scrollTo` therefore stands for the *system*, and the two are not interchangeable. `appswitch` relies on the difference: it uses `userScroll` for the household's scrolling and a bare `scrollTo` for iOS shifting the page.
 
 **A green suite means nothing until you re-run it on the merged result.** The `appswitch` scenario was strengthened in review while the fix it tested was written against the weaker version. Both were merged, the combination was never run, and the app shipped with the bug the scenario was already catching. Run the suite against `main` after every merge, not only against your branch.
@@ -64,6 +80,9 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `appswitch` | asking whether the household touched the screen before correcting | `scrolling to 300px on the way back in was undone, landing at 1500px` |
 | `appswitch` | correcting on the scroll event rather than a timer | `the page sat at the top for 499ms before jumping back` |
 | `appswitch` | letting a scroll position go stale | `opening the app the next day landed at 1500px instead of the top` |
+| `appswitch` | cancelling a settling gesture when the app goes away | `the switch after a mid-gesture one saved 0px instead of 1500px` |
+| `appswitch` | treating a tap as a scroll | `a tap on the way back in saved 0px instead of 1500px` |
+| `appswitch` | waiting for the height when a correction clamps | `a page that came back short for two seconds landed at 0px instead of 1500px` |
 
 Do the same for any scenario you add.
 
