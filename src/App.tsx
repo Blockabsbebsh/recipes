@@ -877,7 +877,7 @@ function HouseholdSetup({ loading, error, onCreate, onJoin }: {
           <label>Jūsų vardas <span className="optional">nebūtina</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></label>
           {mode === 'create'
             ? <label>Virtuvės pavadinimas<input required value={name} onChange={(event) => setName(event.target.value)} /></label>
-            : <label>Pakvietimo kodas<input className="code-input" required maxLength={8} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} /></label>}
+            : <label>Pakvietimo kodas<input className="code-input" required maxLength={20} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} /></label>}
           {error && <p className="form-notice">{error}</p>}
           <button className="button primary wide" disabled={loading}>{loading ? 'Ruošiama…' : mode === 'create' ? 'Sukurti virtuvę' : 'Prisijungti prie virtuvės'}</button>
         </form>

@@ -65,9 +65,9 @@ This blocks nothing. The catalogue is published, its links do not expire, and Ba
 
 `.github/workflows/crawl-barbora-categories.yml`, `workflow_dispatch` only, in a `barbora-catalogue` concurrency group that never cancels a running crawl. It sets up Node 24, runs the test suite before touching Barbora, installs a pinned Playwright and Chromium, crawls, validates, writes a job summary of the diff, uploads the catalogue and report as an artifact, and publishes through `scripts/barbora/publish.js`.
 
-The `SUPABASE_URL` and `SUPABASE_SECRET_KEY` repository secrets are configured and are passed only to the publication step, never logged. The `publish` input allows a deliberate dry run. Playwright is installed in the workflow rather than in `package.json`, so the Pages deployment does not carry browser automation on every push.
+The `SUPABASE_URL` and `SUPABASE_SECRET_KEY` repository secrets are **no longer configured**: the key has been removed from GitHub and is not used anywhere. The workflow reads them if present and writes "not published" to its summary when they are absent, so a run today crawls and validates but cannot publish. The paragraph below describes the rules that apply if a key is ever added again. The `publish` input allows a deliberate dry run. Playwright is installed in the workflow rather than in `package.json`, so the Pages deployment does not carry browser automation on every push.
 
-Because the repository is public, its Actions logs and artifacts are world-readable. That is safe as things stand — the workflow is manual-only, never checks out untrusted code, and the key reaches one step that does not log it — but **never give this workflow a `pull_request_target` trigger or any trigger that runs PR-authored code while those secrets are in scope**, and do not enable step debug logging on a run that uses the key. The secret key bypasses RLS entirely, so its blast radius is the whole database.
+Because the repository is public, its Actions logs and artifacts are world-readable. With no key configured there is nothing to leak, and the workflow is manual-only and never checks out untrusted code. Should a key be added again: **never give this workflow a `pull_request_target` trigger or any trigger that runs PR-authored code while those secrets are in scope**, and do not enable step debug logging on a run that uses the key. The secret key bypasses RLS entirely, so its blast radius is the whole database.
 
 No `schedule` yet: it waits on the crawler being able to reach Barbora at all.
 
@@ -163,6 +163,37 @@ An optional tree search may be added later, but it must navigate to a result ins
 - The Android `intent://` experiment for package `lt.barbora` was removed because the app did not handle the intent. Plain HTTPS links let Android's own App Links or Digital Asset Links do the right thing when Barbora registers them.
 - The temporary **Nuorodų testas** screen was removed after device behavior was established. An ordinary category link falls back to a browser when Barbora is not installed or the association is unavailable.
 
+## Invite codes
+
+A code is twelve uppercase hex characters and lasts a week.
+
+It used to be eight characters and last forever, which made it a permanent
+credential: anyone still holding one could join the household and read and
+write everything in it, years after the message it was pasted into. Supabase's
+own advisor flagged the function it unlocks — `join_household` is
+`SECURITY DEFINER` and callable by any signed-in account, which it has to be,
+because someone joining is not a member yet and RLS would refuse the insert.
+The function is sound; the code was the weak part.
+
+Rotation alone would not have fixed it. Eight hex characters is 32 bits, about
+4.3 billion, and at a thousand guesses a second a week is roughly 14% of that
+space — a lottery an attacker enters weekly and eventually wins. Twelve
+characters is 48 bits, where the same rate would need some nine thousand years.
+Hex has no `O`, `I` or `L`, so nothing in a code can be misread when it is read
+off one phone and typed into another; `join_household` strips anything that is
+not a letter or a digit, so spacing and punctuation do not matter either.
+
+Rotation runs from `pg_cron` — daily at 03:15 UTC, replacing any code older
+than seven days — rather than from the app. A code that only expires when
+somebody opens the app has not expired. `private.rotate_stale_invite_codes()`
+and `private.new_invite_code()` live in the `private` schema, which PostgREST
+does not expose, and are revoked from every browser-facing role.
+
+The one cost: a code goes stale a week after it is issued, so an invitation
+that sits unused over a fortnight has to be read again from **Nustatymai →
+Pakviesti prisijungti**. For a two-person household that is a once-ever
+inconvenience.
+
 ## Names that are contracts
 
 Three sets of strings in this repository are agreements with something outside
@@ -189,7 +220,7 @@ would have been silent and expensive. Move these blocks; do not retype them.
 ## Outstanding work
 
 1. **Device regression testing** on both phones for the links themselves, especially the iOS Universal Link preference for the current dairy path. The app's own behaviour on both phones — scroll, resume, back — has been checked against real logs.
-2. **The crawler is parked**, so no `schedule` on the workflow and no successful production run of it yet. An offline mode parsing hand-saved pages is the likeliest way forward.
+2. **The crawler is parked and has never completed a production run.** Barbora's bot protection refuses it, and there is no longer a secret key for it to publish with. Nothing in the app depends on it running; the catalogue it would refresh was gathered by hand. An offline mode parsing hand-saved pages is the likeliest way forward if it is ever revived.
 3. **One pending migration-history entry**: the two recipe-import files have been renamed to the exact versions recorded remotely (`20260831181733` and `20260831181818`), after verifying their SQL hashes match the database. The classification backfill's effects are already present, but version `20260831220714` was never recorded. Reconcile it once with `supabase migration repair 20260831220714 --status applied --linked`, then verify with `supabase migration list --linked`. Do not use `db pull`, because this is data/migration history rather than missing schema. If repairing is unavailable, the migration is idempotent and may instead be replayed with `supabase db push --include-all`.
 
 ## Tests
