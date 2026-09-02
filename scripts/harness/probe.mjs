@@ -221,6 +221,10 @@ export async function keyboard(page, base) {
 export async function appswitch(page, base) {
   const findings = []
   const target = 1500
+  const traceCount = (kind, extra = {}) => page.evaluate(([k, e]) => {
+    const entries = JSON.parse(localStorage.getItem('recipes:scroll-trace:v1') ?? '[]')
+    return entries.filter((entry) => entry.kind === k && Object.entries(e).every(([f, v]) => entry[f] === v)).length
+  }, [kind, extra])
   await signIn(page, base)
   await openTab(page, 1)
   await userScroll(page, target)
@@ -360,9 +364,53 @@ export async function appswitch(page, base) {
   // height gets the household back to where they were.
   await userScroll(page, 600)
   await page.waitForTimeout(300)
-  await scrollAndLeave(page, target, 150, 2200)
+  // Three seconds, because that is what the phone did: iOS showed the app's
+  // own loading screen for 1454ms on resume, during which the page was 62px
+  // tall, and the restore ran out of frames while it waited.
+  await scrollAndLeave(page, target, 150, 3000)
   now = await scrollY(page)
-  if (Math.abs(now - target) > 40) findings.push(`a page that came back short for two seconds landed at ${now}px instead of ${target}px`)
+  if (Math.abs(now - target) > 40) findings.push(`a page that came back short for three seconds landed at ${now}px instead of ${target}px`)
+
+  // The phone's own ordering: the position is restored while the page is
+  // still tall, and only then does the page go short underneath it — on iOS
+  // because the app dropped to its loading screen, which leaves 62px of page.
+  // Every correction after that clamps, and the clamp reads as another drift.
+  await userScroll(page, target)
+  await page.waitForTimeout(300)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(200)
+  const stormBefore = await traceCount('restore-again')
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(250)
+  await page.evaluate(() => {
+    const shrink = document.createElement('style')
+    shrink.id = 'harness-shrink'
+    shrink.textContent = 'main { max-height: 900px; overflow: hidden }'
+    document.head.append(shrink)
+    // And the page keeps coming back to the top while it is short, which is
+    // what the phone did: every correction was answered by another 62px.
+    window.__pin = () => { if (window.scrollY > 62) window.scrollTo(0, 62) }
+    window.addEventListener('scroll', window.__pin)
+    window.scrollTo(0, 0)
+  })
+  await page.waitForTimeout(1500)
+  await page.evaluate(() => {
+    document.getElementById('harness-shrink')?.remove()
+    window.removeEventListener('scroll', window.__pin)
+  })
+  await page.waitForTimeout(1500)
+  const storm = (await traceCount('restore-again')) - stormBefore
+  if (storm > 4) findings.push(`the page going short set off ${storm} corrections, which is the app arguing with it`)
+  // Chromium clamps a scroll honestly and stops; iOS reports the scroll it was
+  // asked for and then bounces back, which is how forty corrections fitted
+  // into one second there. The loop itself cannot be reproduced here, so what
+  // is checked is the thing that prevents it: the app must notice the page
+  // cannot reach the position and wait for the height rather than scroll at it.
+  if ((await traceCount('restore-waiting')) === 0) {
+    findings.push('the app kept scrolling at a page too short to hold the position instead of waiting for it to grow')
+  }
+  now = await scrollY(page)
+  if (Math.abs(now - target) > 40) findings.push(`the page going short after the restore landed left it at ${now}px instead of ${target}px`)
 
   // A tap is not a scroll. Touching the screen on the way back in — which is
   // how you dismiss anything — must not record wherever the system has left
@@ -405,6 +453,26 @@ export async function appswitch(page, base) {
       console.log(`      ${at} ${kind} ${Object.entries(rest).map(([k, v]) => `${k}=${v}`).join(' ')}`)
     }
   }
+
+  // Coming back is not a cold start. Dropping to the loading screen blanks
+  // the page, and a page with nothing on it is 62px tall — too short to hold
+  // the position, so the restore runs out of frames and gives up. Counting
+  // corrections too: a page that cannot reach the target must not be scrolled
+  // at over and over.
+  const splashesBefore = await traceCount('splash', { shown: 'yes' })
+  const correctionsBefore = await traceCount('restore-again')
+  await userScroll(page, target)
+  await page.waitForTimeout(300)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(400)
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(2500)
+  const splashes = (await traceCount('splash', { shown: 'yes' })) - splashesBefore
+  if (splashes > 0) findings.push(`coming back to the app rendered the loading screen ${splashes} time(s)`)
+  const corrections = (await traceCount('restore-again')) - correctionsBefore
+  if (corrections > 4) findings.push(`coming back set off ${corrections} corrections, which is the app fighting the page`)
+  now = await scrollY(page)
+  if (Math.abs(now - target) > 40) findings.push(`coming back through the loading screen landed at ${now}px instead of ${target}px`)
 
   // A position is worth coming back to for an hour, not overnight: the tab
   // survives the night, the scroll does not.
