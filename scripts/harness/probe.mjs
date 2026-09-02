@@ -32,9 +32,9 @@ export async function tap(page, selector, text) {
   await page.waitForTimeout(500)
 }
 
-export async function signIn(page, base) {
+export async function signIn(page, base, email = 'testas@example.com') {
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.fill('input[type="email"]', 'testas@example.com')
+  await page.fill('input[type="email"]', email)
   await page.fill('input[type="password"]', 'labas1234')
   await page.locator('form button').first().click()
   await page.waitForSelector('.bottom-nav button', { timeout: 15000 })
@@ -867,6 +867,179 @@ export async function join(page, base) {
   return findings
 }
 
+/**
+ * Two people, one household, at the same time.
+ *
+ * Two people is this app's entire premise and nothing tested it: the stub
+ * served one session, so every scenario has been a single person alone. What
+ * that hides is not the merge — Supabase delivers the refresh — but what each
+ * app does while it is holding a picture of the household that has stopped
+ * being true.
+ *
+ * The stub has no realtime, so the other side converges by reloading. That is
+ * the honest model anyway: realtime is a refresh arriving sooner, not a
+ * different outcome.
+ */
+export async function concurrent(page, base) {
+  const findings = []
+  const other = await (await page.context().browser().newContext(PHONE)).newPage()
+  page.on('dialog', (dialog) => void dialog.accept())
+  other.on('dialog', (dialog) => void dialog.accept())
+  await signIn(page, base)
+  await signIn(other, base, 'kitas@example.com')
+
+  const chips = (who) => who.locator('.queue-chip').count()
+  const chipNames = (who) => who.locator('.queue-chip span').allInnerTexts()
+  const meals = (who) => who.locator('.meal-card').count()
+  const titleAt = (who, index) => who.locator('.recipe-tile-summary strong').nth(index).innerText()
+  /** Open one library tile without closing whichever is already open. */
+  const openRecipe = async (who, index = 0) => {
+    await who.evaluate((i) => {
+      const summary = document.querySelectorAll('.recipe-tile-summary')[i]
+      if (summary?.getAttribute('aria-expanded') !== 'true') summary?.click()
+    }, index)
+    await who.waitForTimeout(400)
+  }
+  /**
+   * Act on the tile showing this title, wherever the library has put it.
+   *
+   * In two passes with a wait between: a tile's buttons do not exist until
+   * React has re-rendered it open, so expanding and clicking in one evaluate
+   * finds nothing however correct it looks.
+   */
+  const tapWithin = async (who, title, label) => {
+    const tileOf = (wanted) => [...document.querySelectorAll('.recipe-tile')]
+      .find((node) => node.querySelector('strong')?.textContent === wanted)
+    const found = await who.evaluate(([wanted, source]) => {
+      const tile = new Function(`return ${source}`)()(wanted)
+      if (!tile) return false
+      const summary = tile.querySelector('.recipe-tile-summary')
+      if (summary?.getAttribute('aria-expanded') !== 'true') summary.click()
+      return true
+    }, [title, tileOf.toString()])
+    if (!found) return false
+    await who.waitForTimeout(600)
+    const done = await who.evaluate(([wanted, action, source]) => {
+      const tile = new Function(`return ${source}`)()(wanted)
+      const button = [...(tile?.querySelectorAll('button') ?? [])]
+        .find((node) => (node.textContent || '').includes(action))
+      if (!button) return false
+      button.click()
+      return true
+    }, [title, label, tileOf.toString()])
+    await who.waitForTimeout(800)
+    return done
+  }
+
+  // Scenarios share one database and run in order, so this makes what it needs
+  // rather than trusting the fixture: an earlier scenario empties the basket.
+  await openTab(page, 1)
+  await openRecipe(page, 0)
+  const doomed = await titleAt(page, 0)
+  await tapWithin(page, doomed, 'Į krepšelį')
+  const survivor = await titleAt(page, 1)
+  await tapWithin(page, survivor, 'Į krepšelį')
+  await openTab(page, 2)
+  if (await chips(page) < 2) findings.push(`planning two recipes left ${await chips(page)} in the basket`)
+
+  // The other person bins one of them.
+  await openTab(other, 1)
+  if (!await tapWithin(other, doomed, 'Ištrinti')) findings.push(`the other person could not find "${doomed}" to delete`)
+
+  // The one holding the basket catches up.
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForTimeout(3000)
+  await openTab(page, 2)
+  if ((await chipNames(page)).includes(doomed)) {
+    findings.push(`a recipe deleted by the other person is still in the basket as "${doomed}"`)
+  }
+  // The list itself, not just the chip: each ingredient names the recipes that
+  // want it, so a binned recipe still shopping for groceries shows up there.
+  const attributions = await page.locator('.ingredient-recipe-tags span').allInnerTexts()
+  if (attributions.includes(doomed)) {
+    findings.push(`the shopping list is still buying ingredients for "${doomed}", which is in the bin`)
+  }
+
+  // Hiding it is not the same as removing it. A queue row for a deleted recipe
+  // is invisible to both people, cannot be taken out, and is dropped without a
+  // word at the checkout — so deleting has to clear it, not just stop drawing
+  // it. Checked before the stale case below deliberately creates one.
+  const orphaned = await page.evaluate(async (api) => {
+    const ask = (path) => fetch(`${api}/rest/v1/${path}`, {
+      headers: { apikey: 'harness-key', authorization: 'Bearer fake-access-token' },
+    }).then((response) => response.json())
+    const [queue, recipes] = await Promise.all([ask('shopping_queue?select=*'), ask('recipes?select=*')])
+    const binned = new Set(recipes.filter((recipe) => recipe.deleted_at).map((recipe) => recipe.id))
+    return queue.filter((entry) => binned.has(entry.recipe_id)).length
+  }, process.env.HARNESS_STUB)
+  if (orphaned > 0) findings.push(`${orphaned} basket row(s) point at a recipe in the bin, where nobody can reach them`)
+
+  // Whatever the basket shows must be what the shop produces. A chip that
+  // cannot become a meal is a promise the app does not keep.
+  const planned = await chips(page)
+  await openTab(page, 0)
+  const mealsBefore = await meals(page)
+  await openTab(page, 2)
+  if (planned > 0) {
+    await tap(page, '.complete-button')
+    await page.waitForTimeout(1500)
+    await openTab(page, 0)
+    const gained = (await meals(page)) - mealsBefore
+    if (gained !== planned) findings.push(`the basket showed ${planned} recipe(s) and the shop produced ${gained} meal(s)`)
+  } else {
+    findings.push('the basket was empty by the time the shop was finished, so nothing was checked')
+  }
+
+  // A stale app acting on a recipe that has already gone.
+  await openTab(other, 1)
+  const next = await titleAt(other, 0)
+  await openTab(page, 1)
+  await openRecipe(page, 0)                       // `page` sees it and still believes in it
+  await tapWithin(other, next, 'Ištrinti')
+  await tapWithin(page, next, 'Į krepšelį')
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForTimeout(3000)
+  await openTab(page, 2)
+  if ((await chipNames(page)).includes(next)) {
+    findings.push(`a recipe deleted moments earlier was added to the basket anyway as "${next}"`)
+  }
+  // Here the queue row genuinely exists — a stale app put it there — so this is
+  // the case where refusing to draw a binned recipe is the only thing standing
+  // between the household and a shopping list for a dinner they cannot cook.
+  const staleAttributions = await page.locator('.ingredient-recipe-tags span').allInnerTexts()
+  if (staleAttributions.includes(next)) {
+    findings.push(`the shopping list is buying ingredients for "${next}", which the other person had already binned`)
+  }
+
+  // Both remove the same thing from the basket.
+  await openTab(page, 1)
+  const shared = await titleAt(page, 0)
+  await tapWithin(page, shared, 'Į krepšelį')
+  await other.reload({ waitUntil: 'networkidle' })
+  await other.waitForTimeout(3000)
+  await openTab(other, 2)
+  await openTab(page, 2)
+  if (await chips(page) > 0 && await chips(other) > 0) {
+    await tap(page, '.queue-chip button')
+    await page.waitForTimeout(600)
+    await tap(other, '.queue-chip button')
+    await other.waitForTimeout(600)
+    for (const who of [page, other]) {
+      await who.reload({ waitUntil: 'networkidle' })
+      await who.waitForTimeout(3000)
+      await openTab(who, 2)
+    }
+    if (await chips(other) !== await chips(page)) {
+      findings.push(`after both removed from the basket they disagree: ${await chips(other)} against ${await chips(page)}`)
+    }
+  } else {
+    findings.push(`the shared-removal case had ${await chips(page)} and ${await chips(other)} chips, so it checked nothing`)
+  }
+
+  await other.context().close()
+  return findings
+}
+
 /** Modals stack, close topmost-first, and never strand the one underneath. */
 export async function modals(page, base) {
   const findings = []
@@ -889,4 +1062,4 @@ export async function modals(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back, join }
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back, join, concurrent }

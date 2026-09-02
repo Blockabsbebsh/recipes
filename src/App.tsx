@@ -641,7 +641,11 @@ function App() {
     const grouped = new Map<string, { item: string; section: IngredientSection; href: string | null; recipes: Set<string> }>()
     queue.forEach((entry) => {
       const recipe = recipeById.get(entry.recipe_id)
-      recipe?.recipe_ingredients.forEach((ingredient) => {
+      // A recipe in the bin buys nothing: `complete_shopping` refuses to turn
+      // it into a meal, so listing its ingredients promises a dinner that will
+      // not happen. The menu has always taken this view; the basket did not.
+      if (!recipe || recipe.deleted_at) return
+      recipe.recipe_ingredients.forEach((ingredient) => {
         const key = ingredientLookupKey(ingredient.item)
         const known = vocabularyByName.get(key)
         const section = known?.section ?? 'Other'
@@ -1043,7 +1047,8 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
           <div className="queue-chips">
             {queue.map((entry) => {
               const recipe = recipeById.get(entry.recipe_id)
-              return recipe ? <div className="queue-chip" key={entry.id}><span>{recipe.title}</span><button aria-label={`Pašalinti „${recipe.title}“`} onClick={() => onRemove(entry)}>×</button></div> : null
+              if (!recipe || recipe.deleted_at) return null
+              return <div className="queue-chip" key={entry.id}><span>{recipe.title}</span><button aria-label={`Pašalinti „${recipe.title}“`} onClick={() => onRemove(entry)}>×</button></div>
             })}
           </div>
           <section className="shopping-card">

@@ -5,6 +5,10 @@ import { readFileSync } from 'node:fs'
 const uuid = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 export const HOUSEHOLD_ID = uuid(1)
 export const USER_ID = uuid(2)
+// The other person in the household. Two people is the app's premise, and a
+// stub that only ever serves one cannot test what happens when both are using
+// it at once.
+export const OTHER_USER_ID = uuid(3)
 
 const VOCAB = JSON.parse(readFileSync(new URL('./vocab.json', import.meta.url), 'utf8'))
 
@@ -93,7 +97,10 @@ export function makeData() {
 
   return {
     households: [{ id: HOUSEHOLD_ID, name: 'Mūsų virtuvė', invite_code: 'ABCD1234', owner_id: USER_ID, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }],
-    household_members: [{ household_id: HOUSEHOLD_ID, user_id: USER_ID, display_name: 'Testas', created_at: new Date().toISOString() }],
+    household_members: [
+      { household_id: HOUSEHOLD_ID, user_id: USER_ID, display_name: 'Testas', created_at: new Date().toISOString() },
+      { household_id: HOUSEHOLD_ID, user_id: OTHER_USER_ID, display_name: 'Kitas', created_at: new Date().toISOString() },
+    ],
     recipes, ingredients, tags, roster_entries, shopping_queue,
     recipe_ingredients: recipes.flatMap((r) => r.recipe_ingredients),
     recipe_tags: [],

@@ -7,7 +7,7 @@
 import { createServer } from 'node:http'
 import { readFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
-import { HOUSEHOLD_ID, USER_ID, makeData } from './fixtures.mjs'
+import { HOUSEHOLD_ID, OTHER_USER_ID, USER_ID, makeData } from './fixtures.mjs'
 
 const catalogue = JSON.parse(
   readFileSync(new URL('../../data/barbora-categories.json', import.meta.url), 'utf8'),
@@ -18,9 +18,28 @@ db.barbora_categories = catalogue.categories.map((c) => ({
   sort_order: c.sortOrder, active: true,
 }))
 
-const USER = { id: USER_ID, email: 'testas@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() }
 const MONTH = 30 * 24 * 3600
-const SESSION = { access_token: 'fake-access-token', token_type: 'bearer', expires_in: MONTH, expires_at: Math.floor(Date.now() / 1000) + MONTH, refresh_token: 'fake-refresh-token', user: USER }
+const person = (id, email) => ({ id, email, aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() })
+
+// Two members of one household, told apart by the address they sign in with.
+// Their tokens differ, so a request says which of them it belongs to.
+const PEOPLE = {
+  'testas@example.com': person(USER_ID, 'testas@example.com'),
+  'kitas@example.com': person(OTHER_USER_ID, 'kitas@example.com'),
+}
+const USER = PEOPLE['testas@example.com']
+const tokenFor = (user) => `fake-access-token-${user.id}`
+const sessionFor = (user) => ({
+  access_token: tokenFor(user), token_type: 'bearer', expires_in: MONTH,
+  expires_at: Math.floor(Date.now() / 1000) + MONTH, refresh_token: `fake-refresh-${user.id}`, user,
+})
+const SESSION = sessionFor(USER)
+
+/** Which member a request is from, by its bearer token. */
+const callerOf = (req) => {
+  const auth = String(req.headers.authorization || '')
+  return Object.values(PEOPLE).find((user) => auth.includes(user.id)) ?? USER
+}
 
 /** `household_id=eq.<uuid>` and friends; anything unrecognised is ignored. */
 function applyFilters(rows, params) {
@@ -89,8 +108,9 @@ const server = createServer(async (req, res) => {
 
   if (url.pathname.startsWith('/auth/v1')) {
     if (url.pathname.endsWith('/logout')) return send(res, 204)
-    if (url.pathname.endsWith('/user')) return send(res, 200, USER)
-    return send(res, 200, SESSION)          // token, signup, recover
+    if (url.pathname.endsWith('/user')) return send(res, 200, callerOf(req))
+    const asked = (await readBody(req))?.email
+    return send(res, 200, sessionFor(PEOPLE[asked] ?? USER))   // token, signup, recover
   }
 
   if (url.pathname.startsWith('/rest/v1/rpc/')) {
