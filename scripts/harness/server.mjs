@@ -96,6 +96,28 @@ const server = createServer(async (req, res) => {
   if (url.pathname.startsWith('/rest/v1/rpc/')) {
     const fn = url.pathname.split('/').pop()
     if (fn === 'join_household') return send(res, 200, HOUSEHOLD_ID)
+    // The one procedure the app relies on doing real work: everything in the
+    // basket becomes something to cook, and the basket is emptied. Stubbing it
+    // as a no-op would let a scenario "complete a shop" and prove nothing.
+    if (fn === 'complete_shopping') {
+      db.shopping_queue ??= []
+      db.roster_entries ??= []
+      const moved = db.shopping_queue.length
+      for (const entry of db.shopping_queue) {
+        db.roster_entries.push({
+          id: `roster-${db.roster_entries.length + 1}-${entry.recipe_id}`,
+          household_id: entry.household_id,
+          recipe_id: entry.recipe_id,
+          added_by: entry.added_by,
+          added_at: new Date().toISOString(),
+          status: 'ready',
+          resolved_at: null,
+          resolved_by: null,
+        })
+      }
+      db.shopping_queue = []
+      return send(res, 200, moved)
+    }
     return send(res, 200, null)
   }
 

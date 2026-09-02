@@ -626,6 +626,90 @@ export async function scrolltrace(page, base) {
   return findings
 }
 
+/**
+ * The week, run through: basket to menu to cooked, and back again.
+ *
+ * These are the writes the household actually makes, and until now nothing
+ * touched them — the suite rendered the lists and never ticked anything off.
+ * Every destructive step asks first, so the confirmations are accepted here
+ * rather than dismissed, which is what Playwright does by default and would
+ * make half of this silently pass.
+ */
+export async function planning(page, base) {
+  const findings = []
+  page.on('dialog', (dialog) => void dialog.accept())
+  await signIn(page, base)
+
+  const chips = () => page.locator('.queue-chip').count()
+  const readyMeals = () => page.locator('.meal-card').count()
+  // The library remembers which recipe was open, so tapping the summary again
+  // closes it. Ask for it open rather than toggling and hoping.
+  const openRecipe = async () => {
+    await page.evaluate(() => {
+      const summary = document.querySelector('.recipe-tile-summary')
+      if (summary?.getAttribute('aria-expanded') !== 'true') summary?.click()
+    })
+    await page.waitForTimeout(400)
+  }
+
+  // Into the basket, from the library.
+  await openTab(page, 2)
+  const basketBefore = await chips()
+  await openTab(page, 1)
+  await openRecipe()
+  await tap(page, '.recipe-tile button', 'Į krepšelį')
+  await openTab(page, 2)
+  if (await chips() !== basketBefore + 1) findings.push(`adding a recipe to the basket left ${await chips()} chips, not ${basketBefore + 1}`)
+
+  // And out of it again.
+  await tap(page, '.queue-chip button')
+  await page.waitForTimeout(400)
+  if (await chips() !== basketBefore) findings.push(`removing one left ${await chips()} chips, not ${basketBefore}`)
+
+  // Shopping done: everything planned becomes something to cook.
+  const planned = await chips()
+  // Count the meals on the menu itself: a tab that is not rendered has none.
+  await openTab(page, 0)
+  const mealsBefore = await readyMeals()
+  await openTab(page, 2)
+  await tap(page, '.complete-button')
+  await page.waitForTimeout(1200)
+  if (await chips() !== 0) findings.push(`the basket still holds ${await chips()} chips after shopping`)
+  const tabNow = await page.evaluate(() => document.querySelector('.bottom-nav button.active')?.textContent ?? '')
+  if (!/Meniu/.test(tabNow)) findings.push(`finishing the shop left the app on "${tabNow}" rather than the menu`)
+  // Carry on from the menu whether or not it took us there: a finding is worth
+  // nothing if the step after it throws and takes the whole list with it.
+  await openTab(page, 0)
+  if (await readyMeals() !== mealsBefore + planned) {
+    findings.push(`${planned} planned recipes became ${await readyMeals() - mealsBefore} meals`)
+  }
+
+  // Cooked, and then not.
+  const beforeCooking = await readyMeals()
+  await tap(page, '.resolve.cooked')
+  await page.waitForTimeout(600)
+  if (await readyMeals() !== beforeCooking - 1) findings.push(`marking one cooked left ${await readyMeals()} meals, not ${beforeCooking - 1}`)
+  if (await page.locator('.undo-toast').count() === 0) findings.push('marking a meal cooked offered no way to undo it')
+  await tap(page, '.undo-toast button')
+  await page.waitForTimeout(900)
+  if (await readyMeals() !== beforeCooking) findings.push(`undoing left ${await readyMeals()} meals, not ${beforeCooking}`)
+
+  // Deleted, and then not.
+  await openTab(page, 1)
+  const inLibrary = await page.locator('.recipe-tile').count()
+  await openRecipe()
+  await tap(page, '.recipe-tile button', 'Ištrinti')
+  await page.waitForTimeout(800)
+  if (await page.locator('.recipe-tile').count() !== inLibrary - 1) findings.push('deleting a recipe did not take it out of the library')
+  await openTab(page, 3)
+  if (await page.locator('.library-card').count() === 0) findings.push('a deleted recipe did not appear under Ištrinti')
+  await tap(page, '.library-card button', 'Atkurti')
+  await page.waitForTimeout(800)
+  await openTab(page, 1)
+  if (await page.locator('.recipe-tile').count() !== inLibrary) findings.push('restoring a recipe did not put it back in the library')
+  return findings
+}
+
 /** Modals stack, close topmost-first, and never strand the one underneath. */
 export async function modals(page, base) {
   const findings = []
@@ -648,4 +732,4 @@ export async function modals(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace }
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning }
