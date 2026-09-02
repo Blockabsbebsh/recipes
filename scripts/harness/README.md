@@ -150,7 +150,7 @@ Do the same for any scenario you add.
 
 ## The scroll trace
 
-The app keeps its last 60 scroll-related events in `localStorage` under
+The app keeps its last 150 scroll-related events in `localStorage` under
 `recipes:scroll-trace:v1`, and prints them in **Nustatymai → Slinkties žurnalas**.
 It exists because the one moment that matters — the phone backgrounding the app —
 has no console attached, and iOS often reloads the web view before you could
@@ -197,7 +197,7 @@ The lines that answer questions the harness cannot:
 | Line | |
 | --- | --- |
 | `boot nav=… os=ios mode=installed` | the app started from nothing. No `boot` after an app switch means it was never reloaded, whatever the screen showed. |
-| `splash shown=yes` / `splash shown=gone ms=…` | the app's own loading screen rendered, and for how long. Seeing the loading screen with no `splash` line means the platform painted a stored image of an earlier launch, not the app. |
+| `splash shown=yes` / `splash shown=gone ms=…` | the app's own loading screen rendered, and for how long. A loading screen with no `splash` line beside it is the platform painting over a resuming app, not this app — the one time it mattered, the line was there and the app was rendering it. |
 | `restore-waiting` | the page was too short to hold the position, so the app stopped scrolling at it and waited for the height. |
 | `restore-abandoned` | the household scrolled while a restore was still waiting, so it stood down. |
 | `capture from=coast` | a flick's momentum, still being followed. The `settle` after it is where the page came to rest. |
