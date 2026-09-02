@@ -7,6 +7,7 @@ import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, mapIngredient, shopp
 import type { CategoryIndex } from './lib/barboraMapping'
 import { environment, navigationKind, trace, visualTop } from './lib/scrollTrace'
 import { showsSetupSplash } from './lib/readiness'
+import { useHouseholdData } from './hooks/useHouseholdData'
 import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RecipeDestination, RosterEntry, Tab, VocabularyIngredient } from './lib/types'
 import { HOLD_MS, MOMENTUM_MS, RESTORE_PATIENCE_MS, STILL_MS, createGesture, hasDrifted, keepable, reaches } from './lib/scrollMemory'
 import { EMPTY_SCROLL, SCROLL_MEMORY_MS, positionsFrom, readViewState, viewStateKey, writeViewState } from './lib/viewState'
@@ -105,15 +106,9 @@ function App() {
   const [barboraCategories, setBarboraCategories] = useState<BarboraCategory[]>([])
   const [authReady, setAuthReady] = useState(false)
   const [household, setHousehold] = useState<Household | null>(null)
-  const [vocabulary, setVocabulary] = useState<VocabularyIngredient[]>([])
-  const [tags, setTags] = useState<HouseholdTag[]>([])
   const [setupChecked, setSetupChecked] = useState(false)
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [roster, setRoster] = useState<RosterEntry[]>([])
-  const [queue, setQueue] = useState<QueueEntry[]>([])
   const [tab, setTab] = useState<Tab>('current')
   const [libraryExpanded, setLibraryExpanded] = useState<string | null>(null)
-  const [dataReady, setDataReady] = useState(false)
   const [viewStateReady, setViewStateReady] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -138,6 +133,11 @@ function App() {
   // has to key off who the user is, not off that object's identity.
   const userId = session?.user.id ?? null
   const persistedViewKey = userId && household ? viewStateKey(userId, household.id) : null
+
+  const {
+    recipes, roster, queue, vocabulary, tags,
+    ready: dataReady, reload: loadData, setRoster, setQueue,
+  } = useHouseholdData(household, setError)
 
   /**
    * Put the page back where it was, once it is tall enough to go there.
@@ -304,10 +304,6 @@ function App() {
       setAuthReady(true)
       if (!nextSession) {
         setHousehold(null)
-        setRecipes([])
-        setRoster([])
-        setQueue([])
-        setDataReady(false)
         setViewStateReady(false)
       }
     })
@@ -366,61 +362,7 @@ function App() {
     if (userId) void findHousehold()
   }, [userId, findHousehold])
 
-  const loadData = useCallback(async () => {
-    if (!household) return
-    const [recipeResult, rosterResult, queueResult, vocabularyResult, tagResult] = await Promise.all([
-      supabase
-        .from('recipes')
-        .select('*, recipe_ingredients(*), recipe_tags(tag:tags(id, name))')
-        .eq('household_id', household.id)
-        .order('updated_at', { ascending: false }),
-      supabase
-        .from('roster_entries')
-        .select('*')
-        .eq('household_id', household.id)
-        .order('added_at', { ascending: false }),
-      supabase
-        .from('shopping_queue')
-        .select('*')
-        .eq('household_id', household.id)
-        .order('added_at', { ascending: true }),
-      supabase
-        .from('ingredients')
-        .select('*')
-        .eq('household_id', household.id)
-        .order('name', { ascending: true }),
-      supabase
-        .from('tags')
-        .select('id, household_id, name')
-        .eq('household_id', household.id)
-        .order('name', { ascending: true }),
-    ])
-    const firstError = recipeResult.error || rosterResult.error || queueResult.error || vocabularyResult.error || tagResult.error
-    if (firstError) {
-      setError(firstError.message)
-      return
-    }
-    const vocabularyRows = (vocabularyResult.data || []) as VocabularyIngredient[]
-    const nameById = new Map(vocabularyRows.map((entry) => [entry.id, entry.name]))
-    // recipe_ingredients still carries a denormalised `item`, but the vocabulary
-    // is the source of truth for the name, so resolve through it here. That
-    // leaves the column unread and free to be dropped.
-    setRecipes(((recipeResult.data || []) as Recipe[]).map((recipe) => ({
-      ...recipe,
-      recipe_ingredients: recipe.recipe_ingredients.map((ingredient) => ({
-        ...ingredient,
-        item: nameById.get(ingredient.ingredient_id) ?? ingredient.item,
-      })),
-    })))
-    setRoster((rosterResult.data || []) as RosterEntry[])
-    setQueue((queueResult.data || []) as QueueEntry[])
-    setVocabulary(vocabularyRows)
-    setTags((tagResult.data || []) as HouseholdTag[])
-    setDataReady(true)
-  }, [household])
-
   useEffect(() => {
-    setDataReady(false)
     setViewStateReady(false)
   }, [household?.id])
 
@@ -598,29 +540,6 @@ function App() {
       })
     return () => { cancelled = true }
   }, [session])
-
-  useEffect(() => {
-    if (!household) return
-    void loadData()
-    let timer: number | undefined
-    const refreshSoon = () => {
-      window.clearTimeout(timer)
-      timer = window.setTimeout(() => void loadData(), 180)
-    }
-    const channel = supabase.channel(`household:${household.id}`)
-    ;['recipes', 'recipe_ingredients', 'recipe_tags', 'tags', 'roster_entries', 'shopping_queue', 'ingredients'].forEach((table) => {
-      channel.on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table, filter: `household_id=eq.${household.id}` },
-        refreshSoon,
-      )
-    })
-    channel.subscribe()
-    return () => {
-      window.clearTimeout(timer)
-      void supabase.removeChannel(channel)
-    }
-  }, [household, loadData])
 
   const activeRecipes = useMemo(() => recipes.filter((recipe) => !recipe.deleted_at), [recipes])
   const deletedRecipes = useMemo(() => recipes.filter((recipe) => recipe.deleted_at), [recipes])
