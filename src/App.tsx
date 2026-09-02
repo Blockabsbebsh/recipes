@@ -174,10 +174,33 @@ function App() {
 
   const persistedViewKey = session && household ? viewStateKey(session.user.id, household.id) : null
 
+  /**
+   * Put the page back where it was, once it is tall enough to go there.
+   *
+   * Restoring happens as soon as the data arrives, but React still has to
+   * render the restored tab, and on a slow phone that takes several frames.
+   * Scrolling into a page that is still short silently clamps to the top —
+   * which is why scrolling after a fixed two frames worked against a fast
+   * stub and not on a real device. Wait for the height instead of guessing at
+   * a delay, and touch the scroll only once it can actually land.
+   */
   function restoreScroll(nextTab: Tab) {
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => window.scrollTo(0, scrollByTab.current[nextTab] ?? 0))
-    })
+    const target = scrollByTab.current[nextTab] ?? 0
+    if (target <= 0) return
+    let frames = 0
+    const attempt = () => {
+      const reachable = document.documentElement.scrollHeight - window.innerHeight
+      if (reachable >= target) {
+        window.scrollTo(0, target)
+        return
+      }
+      // Give up after about a second: the content is shorter than it was.
+      if (frames < 60) {
+        frames += 1
+        window.requestAnimationFrame(attempt)
+      }
+    }
+    window.requestAnimationFrame(attempt)
   }
 
   function saveViewState(captureScroll = true) {
@@ -376,13 +399,40 @@ function App() {
      * either overwrites the position we mean to come back to, which is how
      * switching apps used to return you to the top of the library.
      */
-    const rememberScroll = () => {
+    /**
+     * Remember where the finger left the page, not every scroll that happens.
+     *
+     * iOS shifts the web view as it backgrounds the app, sometimes before it
+     * reports the page hidden and often within a second of the last real
+     * scroll — so neither the visibility flag nor a time window separates the
+     * two. What does separate them is contact: the household's scrolling
+     * happens while a touch is down, or settles shortly after it lifts. A
+     * scroll with no touch behind it is the system moving the page, and is
+     * exactly the position we must not save.
+     */
+    let touching = false
+    let pointerAt = 0
+    let settleTimer = 0
+
+    const capture = () => {
       if (document.visibilityState === 'hidden') return
       if (document.body.style.position === 'fixed') return
       scrollByTab.current[tabRef.current] = window.scrollY
     }
+    const startGesture = () => { touching = true }
+    const endGesture = () => {
+      touching = false
+      // Momentum runs on after the finger lifts; take the resting position.
+      window.clearTimeout(settleTimer)
+      settleTimer = window.setTimeout(capture, 400)
+    }
+    const notePointer = () => { pointerAt = Date.now() }
+    const rememberScroll = () => {
+      if (touching || Date.now() - pointerAt < 150) capture()
+    }
+
     const save = () => {
-      rememberScroll()
+      capture()
       const state: PersistedViewState = {
         version: 1,
         tab: tabRef.current,
@@ -397,19 +447,28 @@ function App() {
     }
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') save()
-      else window.requestAnimationFrame(() => window.scrollTo(0, scrollByTab.current[tabRef.current] ?? 0))
+      else restoreScroll(tabRef.current)
     }
     const restoreOnReturn = (event: PageTransitionEvent) => {
-      if (event.persisted) {
-        window.requestAnimationFrame(() => window.scrollTo(0, scrollByTab.current[tabRef.current] ?? 0))
-      }
+      if (event.persisted) restoreScroll(tabRef.current)
     }
+    window.addEventListener('touchstart', startGesture, { passive: true })
+    window.addEventListener('touchend', endGesture, { passive: true })
+    window.addEventListener('touchcancel', endGesture, { passive: true })
+    window.addEventListener('wheel', notePointer, { passive: true })
+    window.addEventListener('keydown', notePointer)
     window.addEventListener('scroll', rememberScroll, { passive: true })
     window.addEventListener('pagehide', save)
     window.addEventListener('pageshow', restoreOnReturn)
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       save()
+      window.clearTimeout(settleTimer)
+      window.removeEventListener('touchstart', startGesture)
+      window.removeEventListener('touchend', endGesture)
+      window.removeEventListener('touchcancel', endGesture)
+      window.removeEventListener('wheel', notePointer)
+      window.removeEventListener('keydown', notePointer)
       window.removeEventListener('scroll', rememberScroll)
       window.removeEventListener('pagehide', save)
       window.removeEventListener('pageshow', restoreOnReturn)
