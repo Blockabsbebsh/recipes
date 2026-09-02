@@ -31,6 +31,8 @@ The catalogue comes from the real `data/barbora-categories.json`, so the categor
 - **`keyboard`** — opens the ingredient editor (a modal inside a modal), raises the keyboard, and checks the backdrop still covers the screen and the buttons are still reachable.
 - **`appswitch`** — leaves the app and returns, leaves with a modal open, and reopens after eviction. Each must land back where you were.
 - **`modals`** — three modals deep, Escape closes the topmost one at a time.
+- **`planning`** — a week run through: into the basket and out, the shop finished, a meal cooked and un-cooked, a recipe deleted and restored.
+- **`back`** — the phone's back button closes dialogs innermost-first, comes home from another tab, and leaves the app when there is nothing left of ours.
 - **`scrolltrace`** — the on-device scroll trace records the app switch, survives the reload it exists to explain, stays inside its cap, and prints in Settings.
 
 A finding beginning with `note:` is advisory: reported, but it does not fail the run. Use it for judgement calls rather than regressions.
@@ -69,6 +71,16 @@ client revalidate its token and it is that revalidation which triggers the
 re-check. The phone's log found it; a unit test on `showsSetupSplash` pins it.
 When a scenario cannot reach a fault, say so and pin the rule somewhere that
 can, rather than writing a check that passes for the wrong reason.
+
+**`history.length` cannot see a spent entry.** Going back keeps the forward
+entry, so the count never drops and an assertion on it can never fire. The
+observable symptom of a stale entry is a back press that does nothing — so the
+check is that back eventually *leaves the app*, which has to be the last thing
+a scenario does.
+
+**Accept dialogs, do not let Playwright dismiss them.** Every destructive step
+in this app asks first, and Playwright answers no by default — half of
+`planning` would pass while doing nothing. `page.on('dialog', d => d.accept())`.
 
 **Confirm a finding with a second, independent measurement before believing it.** If the DOM says an element moved, check whether something in the harness moved it.
 
@@ -112,6 +124,10 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `scrolltrace` | keeping the trace in memory instead of localStorage | `the trace never recorded a "boot" event` (nothing survived the reload) |
 | `scrolltrace` | the loading screen recording that it appeared | `the loading screen did not record that it appeared` |
 | `layout` | measuring against the screen rather than the zoomed viewport | `page scrolls sideways: 566px of content in 390px` |
+| `planning` | reloading after an undo | `undoing left 10 meals, not 11` |
+| `planning` | going to the menu when a shop is finished | `finishing the shop left the app on "Krepšelis"` |
+| `back` | taking a dialog's history entry with it when it is closed by hand | `with nothing open, back stayed in the app instead of leaving it` |
+| `back` | ignoring the pop our own going-back causes | `Escape did not leave 2 modal(s) open` (in `modals`, which shares the mechanism) |
 | `appswitch` | waiting longer than a second for the page to grow back | `a page that came back short for three seconds landed at 0px instead of 1500px` |
 | `appswitch` | waiting for the height instead of scrolling at a page that cannot reach | `the app kept scrolling at a page too short to hold the position instead of waiting for it to grow` |
 | `appswitch` | following a flick to where it stops, rather than snapshotting 400ms after the lift | `a flick that came to rest at 1294px saved 1203px` |

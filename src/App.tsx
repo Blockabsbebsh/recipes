@@ -6,6 +6,7 @@ import { cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFI
 import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, shoppingUrl } from './lib/barboraMapping'
 import { environment, navigationKind, trace, visualTop } from './lib/scrollTrace'
 import { showsSetupSplash } from './lib/readiness'
+import { backNav } from './lib/backNav'
 import { useHouseholdData } from './hooks/useHouseholdData'
 import { useVocabulary } from './hooks/useVocabulary'
 import { useRecipeCategories } from './hooks/useRecipeCategories'
@@ -476,6 +477,32 @@ function App() {
       document.removeEventListener('resume', onResume)
     }
   }, [persistedViewKey, viewStateReady])
+
+  /**
+   * The phone's back button, which on Android is how everything is closed.
+   *
+   * Anything open takes it first — dialogs register themselves. With nothing
+   * open, back from any other tab returns to the menu, and from the menu it
+   * leaves the app, which is what the household expects of every other app on
+   * the phone.
+   */
+  useEffect(() => {
+    const onPop = () => { backNav.onPop() }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  // One entry for being away from the menu, not one per tab. Registering
+  // again on every switch means a drop and an add in the same breath, and
+  // going back is asynchronous — the queued back lands after the new push and
+  // undoes it, so the app walks off its own page a few taps later.
+  const awayFromMenu = tab !== 'current'
+  useEffect(() => {
+    if (!awayFromMenu) return
+    const remove = backNav.add('tab', () => changeTab('current'))
+    return () => { remove() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awayFromMenu])
 
   useEffect(() => {
     trace('boot', { nav: navigationKind(), ...environment(), y: window.scrollY, vp: visualTop() })

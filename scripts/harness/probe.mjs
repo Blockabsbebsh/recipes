@@ -710,6 +710,77 @@ export async function planning(page, base) {
   return findings
 }
 
+/**
+ * The phone's back button, which on Android is how everything is closed.
+ *
+ * Pressed through the browser rather than simulated: `history.back()` is the
+ * same event the hardware button produces, and the whole difficulty of this is
+ * that the app's own closing has to share a history stack with it.
+ */
+export async function back(page, base) {
+  const findings = []
+  const open = () => page.locator('.modal-backdrop').count()
+  const press = async () => {
+    await page.goBack().catch(() => {})
+    await page.waitForTimeout(500)
+  }
+  await signIn(page, base)
+
+  // One dialog: back closes it rather than the app.
+  await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
+  if (await open() !== 1) findings.push('settings did not open')
+  await press()
+  if (await open() !== 0) findings.push('back did not close the dialog')
+  if (await page.locator('.bottom-nav').count() === 0) findings.push('back left the app instead of closing the dialog')
+
+  // Three deep: one press each, innermost first.
+  await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
+  await tap(page, 'button', 'Ingredientai')
+  await tap(page, '.manager-row button', 'Keisti')
+  await tap(page, '.category-field-button, button', 'Barbora kategorija')
+  if (await open() !== 3) findings.push(`three dialogs deep reported ${await open()} open`)
+  for (const expected of [2, 1, 0]) {
+    await press()
+    if (await open() !== expected) findings.push(`back left ${await open()} dialog(s) open, not ${expected}`)
+  }
+
+  // Taking a dialog's entry off must not read as a back press of its own, or
+  // closing the inner dialog closes the one underneath with it.
+  await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
+  await tap(page, 'button', 'Ingredientai')
+  await tap(page, '.manager-row button', 'Keisti')
+  if (await open() !== 2) findings.push(`expected two dialogs before closing the inner one, saw ${await open()}`)
+  await tap(page, '.modal-backdrop:last-of-type .icon-button')
+  await page.waitForTimeout(600)
+  if (await open() !== 1) findings.push(`closing the inner dialog by hand left ${await open()} open, not 1`)
+  await tap(page, '.modal .icon-button')
+  await page.waitForTimeout(400)
+  await openTab(page, 2)
+  await press()
+  const tabNow = await page.evaluate(() => document.querySelector('.bottom-nav button.active')?.textContent ?? '')
+  if (!/Meniu/.test(tabNow)) findings.push(`after closing a dialog by hand, back left the app on "${tabNow}" rather than the menu`)
+
+  // From another tab, back comes home.
+  await openTab(page, 1)
+  await press()
+  const home = await page.evaluate(() => document.querySelector('.bottom-nav button.active')?.textContent ?? '')
+  if (!/Meniu/.test(home)) findings.push(`back from the library landed on "${home}" rather than the menu`)
+
+  // And from home, with nothing open, back leaves — which is the check that
+  // catches a dialog closed by hand leaving its history entry behind, because
+  // that stale entry would silently swallow this press. Last, because there is
+  // no app left afterwards. (`history.length` cannot see it: going back keeps
+  // the forward entry, so the count never drops.)
+  await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
+  await tap(page, '.modal .icon-button')
+  await page.waitForTimeout(500)
+  await press()
+  if (await page.locator('.bottom-nav').count() !== 0) {
+    findings.push('with nothing open, back stayed in the app instead of leaving it')
+  }
+  return findings
+}
+
 /** Modals stack, close topmost-first, and never strand the one underneath. */
 export async function modals(page, base) {
   const findings = []
@@ -732,4 +803,4 @@ export async function modals(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning }
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back }

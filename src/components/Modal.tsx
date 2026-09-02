@@ -1,7 +1,17 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { backNav } from '../lib/backNav'
 
 export function Modal({ title, onClose, wide = false, children }: { title: string; onClose: () => void; wide?: boolean; children: React.ReactNode }) {
+  // Every dialog in the app is one of these, nested ones included, so this is
+  // the one place that has to know the phone's back button closes things.
+  const backKey = useId()
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
+  useEffect(() => {
+    const remove = backNav.add(backKey, () => closeRef.current())
+    return () => { remove() }
+  }, [backKey])
   const backdrop = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
