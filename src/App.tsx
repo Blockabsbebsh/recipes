@@ -270,7 +270,12 @@ function App() {
     // Believe whichever says we have drifted: on iOS they can disagree.
     if (Math.abs(y - held.target) <= 8 && (vp < 0 || Math.abs(vp - held.target) <= 8)) return false
     window.scrollTo(0, held.target)
-    trace('restore-again', { reason: held.reason, tab: held.tab, target: held.target, from, y, vp, now: window.scrollY })
+    const landed = window.scrollY
+    trace('restore-again', { reason: held.reason, tab: held.tab, target: held.target, from, y, vp, now: landed })
+    // A page that has come back shorter than it was clamps the correction to
+    // whatever it can reach. Hand it to the restore, which waits for the
+    // height instead of assuming it.
+    if (Math.abs(landed - held.target) > 8) restoreScroll(held.tab, held.reason)
     return true
   }
 
@@ -296,7 +301,7 @@ function App() {
     }
     // Rubber-banding past the top reports a negative scroll, which is a
     // gesture in progress rather than a place to come back to.
-    scrollByTab.current[tabRef.current] = Math.max(0, y)
+    scrollByTab.current[tabRef.current] = Math.max(0, Math.round(y))
     trace('capture', { from, tab: tabRef.current, y, vp: visualTop() })
   }
 
@@ -518,21 +523,30 @@ function App() {
      * exactly the position we must not save.
      */
     let touching = false
+    let scrolled = false
     let pointerAt = 0
     let settleTimer = 0
 
-    const startGesture = () => { touching = true; interactionAt.current = Date.now() }
+    const startGesture = () => {
+      touching = true
+      scrolled = false
+      interactionAt.current = Date.now()
+    }
     const endGesture = () => {
       touching = false
       interactionAt.current = Date.now()
-      // Momentum runs on after the finger lifts; take the resting position.
       window.clearTimeout(settleTimer)
-      settleTimer = window.setTimeout(() => captureScroll('settle'), 400)
+      // A touch that moved nothing is a tap, and a tap says nothing about
+      // where the page should be. Only a gesture that actually scrolled earns
+      // the wait for momentum to run out and the resting position to be taken.
+      if (scrolled) settleTimer = window.setTimeout(() => captureScroll('settle'), 400)
     }
     const notePointer = () => { pointerAt = Date.now(); interactionAt.current = pointerAt }
     const rememberScroll = () => {
-      if (touching || Date.now() - pointerAt < 150) captureScroll('scroll')
-      else if (!correctDrift('scroll')) trace('scroll-ignored', { y: window.scrollY, vp: visualTop() })
+      if (touching || Date.now() - pointerAt < 150) {
+        scrolled = true
+        captureScroll('scroll')
+      } else if (!correctDrift('scroll')) trace('scroll-ignored', { y: window.scrollY, vp: visualTop() })
     }
 
     const save = (reason: string) => {
@@ -540,6 +554,13 @@ function App() {
       persistViewState(reason)
     }
     const onVisibilityChange = () => {
+      // Whatever gesture was still settling belongs to the moment before the
+      // app went away. Android holds the timer while the app is backgrounded
+      // and runs it on the way back, by which time the page has been moved to
+      // the top by the system — and the settled position it records is a zero
+      // that overwrites the very place we are about to restore.
+      touching = false
+      window.clearTimeout(settleTimer)
       const state = document.visibilityState
       trace('visibility', { state, y: window.scrollY, vp: visualTop() })
       if (state === 'hidden') save('hide')

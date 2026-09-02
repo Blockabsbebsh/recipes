@@ -43,6 +43,12 @@ export async function signIn(page, base) {
 
 export const scrollY = (page) => page.evaluate(() => Math.round(window.scrollY))
 
+// A scroll event does not dispatch until the next frame. On a real device it
+// therefore arrives while the finger is still down, and the app relies on
+// that: a touch that moved nothing is a tap, and a tap is not a position.
+// Dispatching touchend in the same task as the scroll models a gesture no
+// phone produces, so every synthetic gesture here waits a frame first.
+
 /**
  * Scroll the way a finger does. The app only remembers a scroll a gesture
  * started, so a bare `window.scrollTo` stands for the system moving the web
@@ -50,14 +56,53 @@ export const scrollY = (page) => page.evaluate(() => Math.round(window.scrollY))
  * whenever the scroll is meant to be the household's own.
  */
 export async function userScroll(page, y) {
-  await page.evaluate((top) => {
+  await page.evaluate(async (top) => {
     window.dispatchEvent(new Event('touchstart', { bubbles: true }))
     window.dispatchEvent(new Event('touchmove', { bubbles: true }))
     window.scrollTo(0, top)
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
     window.dispatchEvent(new Event('touchend', { bubbles: true }))
   }, y)
   // Long enough for the app to take the resting position after the lift.
   await page.waitForTimeout(700)
+}
+
+/**
+ * Scroll and leave immediately, with the gesture still settling.
+ *
+ * Android holds the pending timer while the app is backgrounded and runs it on
+ * the way back — after the system has moved the page to the top — so the
+ * position it settles on is a zero written over the one we mean to restore.
+ * Timings here are the ones from the phone: the app is away for less than the
+ * settle delay, so the timer lands after it returns.
+ */
+export async function scrollAndLeave(page, y, awayMs = 150, shortMs = 600) {
+  await page.evaluate(async (top) => {
+    window.dispatchEvent(new Event('touchstart', { bubbles: true }))
+    window.dispatchEvent(new Event('touchmove', { bubbles: true }))
+    window.scrollTo(0, top)
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    window.dispatchEvent(new Event('touchend', { bubbles: true }))
+  }, y)
+  await page.waitForTimeout(60)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(awayMs)
+  await setVisibility(page, 'visible')
+  // The system moves the page as it hands the app back, and the page comes
+  // back shorter than it was for a moment — Android's toolbar animation, which
+  // is why the restore on the phone took 17 frames rather than landing at
+  // once. The restore is therefore still waiting when the settling gesture
+  // from before the switch runs, with the page sitting at the top.
+  await page.evaluate(() => {
+    const shrink = document.createElement('style')
+    shrink.id = 'harness-shrink'
+    shrink.textContent = 'main { max-height: 300px; overflow: hidden }'
+    document.head.append(shrink)
+    window.scrollTo(0, 0)
+  })
+  await page.waitForTimeout(shortMs)
+  await page.evaluate(() => document.getElementById('harness-shrink')?.remove())
+  await page.waitForTimeout(1200)
 }
 
 /** Switch tabs the way a thumb does. */
@@ -262,6 +307,78 @@ export async function appswitch(page, base) {
   now = await scrollY(page)
   if (Math.abs(now - target) > 60) findings.push(`reopening on a slow connection landed at ${now}px instead of ${target}px`)
   await page.context().unroute('**/rest/v1/**')
+
+  // Leaving mid-gesture, which is what switching apps with a swipe looks
+  // like. The position has to survive it, and — the part that actually broke
+  // on Android — has to still be there for the switch after that one.
+  // From somewhere else, so the gesture genuinely moves the page: scrolling
+  // to where the page already is fires no scroll event and tests nothing.
+  await userScroll(page, 600)
+  await page.waitForTimeout(300)
+  await scrollAndLeave(page, target)
+  now = await scrollY(page)
+  if (Math.abs(now - target) > 40) findings.push(`leaving mid-gesture came back to ${now}px instead of ${target}px`)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(300)
+  const kept = await page.evaluate(() => {
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
+  })
+  if (kept !== null && Math.abs(kept - target) > 40) findings.push(`the switch after a mid-gesture one saved ${kept}px instead of ${target}px`)
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(1200)
+  now = await scrollY(page)
+  if (Math.abs(now - target) > 40) findings.push(`the switch after a mid-gesture one came back to ${now}px instead of ${target}px`)
+
+  // A page can come back short for longer than the position is held. Every
+  // correction then clamps to what it can reach, and only waiting for the
+  // height gets the household back to where they were.
+  await userScroll(page, 600)
+  await page.waitForTimeout(300)
+  await scrollAndLeave(page, target, 150, 2200)
+  now = await scrollY(page)
+  if (Math.abs(now - target) > 40) findings.push(`a page that came back short for two seconds landed at ${now}px instead of ${target}px`)
+
+  // A tap is not a scroll. Touching the screen on the way back in — which is
+  // how you dismiss anything — must not record wherever the system has left
+  // the page while the restore is still waiting for the height.
+  await userScroll(page, target)
+  await page.waitForTimeout(300)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(200)
+  await setVisibility(page, 'visible')
+  await page.evaluate(async () => {
+    const shrink = document.createElement('style')
+    shrink.id = 'harness-shrink'
+    shrink.textContent = 'main { max-height: 300px; overflow: hidden }'
+    document.head.append(shrink)
+    window.scrollTo(0, 0)
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    // A tap: down and up, having moved nothing.
+    window.dispatchEvent(new Event('touchstart', { bubbles: true }))
+    window.dispatchEvent(new Event('touchend', { bubbles: true }))
+  })
+  await page.waitForTimeout(700)
+  await page.evaluate(() => document.getElementById('harness-shrink')?.remove())
+  await page.waitForTimeout(1200)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(300)
+  const afterTap = await page.evaluate(() => {
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
+  })
+  if (afterTap !== null && Math.abs(afterTap - target) > 40) findings.push(`a tap on the way back in saved ${afterTap}px instead of ${target}px`)
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(1200)
+
+  // The app's own scroll trace, for when a scenario disagrees with a phone.
+  if (process.env.DUMP_TRACE) {
+    const entries = await page.evaluate(() => JSON.parse(localStorage.getItem('recipes:scroll-trace:v1') ?? '[]'))
+    for (const entry of entries) {
+      const { at, kind, ...rest } = entry
+      console.log(`      ${at} ${kind} ${Object.entries(rest).map(([k, v]) => `${k}=${v}`).join(' ')}`)
+    }
+  }
 
   // A position is worth coming back to for an hour, not overnight: the tab
   // survives the night, the scroll does not.
