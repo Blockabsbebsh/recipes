@@ -184,9 +184,15 @@ A scroll is only recorded when a touch produced it. iOS shifts the web view as i
 
 `npm run harness` covers all three cases: leaving and returning, leaving with a modal open, and reopening after eviction. See [`scripts/harness/README.md`](../scripts/harness/README.md).
 
+### Reading what actually happened on the phone
+
+Restoration still fails on at least one real device where the harness passes: the tab comes back, the scroll does not. The moment it fails in has no console attached, and iOS frequently reloads the web view before one could be, so the app keeps its own record: the last 60 scroll events — every capture, every write to `localStorage`, every visibility, `pagehide`, `pageshow`, `freeze` and `resume` transition, and the outcome of every restore — under `recipes:scroll-trace:v1`, printed in **Nustatymai → Slinkties žurnalas** with copy and clear.
+
+It exists to separate two failures that look identical from the outside: a position already lost before the app went away (a capture site recorded a scroll the household did not make) from a position that survived and was not put back (the restore ran out of frames, or the page was reloaded and the list was still short). The tail after one app switch says which. The reading table is in [`scripts/harness/README.md`](../scripts/harness/README.md); the `scrolltrace` harness scenario keeps the record itself honest, including that it survives the reload.
+
 ## Tests
 
-`npm test` runs 52 tests. Covered:
+`npm test` runs 60 tests. Covered:
 
 - Tree construction preserves parent/child relationships and Barbora's order, including a rebuild of all 636 reviewed categories from the pages they came from.
 - URL normalization rejects products, queries, foreign hosts, and impossible depths; cycles are unrepresentable by construction.

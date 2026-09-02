@@ -198,6 +198,9 @@ textarea { resize: vertical; line-height: 1.5; }
 .settings-back { margin: -2px 0 16px; padding: 0; border: 0; background: transparent; color: var(--orange-dark); font-size: .78rem; font-weight: 800; cursor: pointer; }
 .settings-meta { display: grid; gap: 4px; margin: 20px 0; padding: 14px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
 .settings-meta strong { color: var(--ink); overflow-wrap: anywhere; }
+.trace-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+.trace-actions .button { flex: 1 1 30%; font-size: .78rem; }
+.scroll-trace { max-height: 46vh; margin: 0; padding: 12px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); font-size: .7rem; line-height: 1.5; white-space: pre; -webkit-overflow-scrolling: touch; }
 .manager-stack { display: grid; gap: 12px; }
 .manager-sticky-header { position: sticky; z-index: 1; top: -8px; display: grid; gap: 12px; margin: -8px -20px 0; padding: 8px 20px 12px; background: var(--paper); }
 .manager-create { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .7fr) auto; gap: 8px; }
