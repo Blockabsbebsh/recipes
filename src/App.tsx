@@ -17,9 +17,25 @@ type PersistedViewState = {
   tab: Tab
   scrollByTab: Record<Tab, number>
   expandedRecipeId: string | null
+  savedAt: number
 }
 
 const EMPTY_SCROLL: Record<Tab, number> = { current: 0, library: 0, shop: 0, deleted: 0 }
+
+/** How long a restored position is held against the phone moving the page. */
+const HOLD_MS = 2_000
+
+/**
+ * How long a scroll position is worth coming back to.
+ *
+ * Stepping out to the shop's app and back should return you to the row you
+ * were reading. Opening the app the next morning should not: the list has
+ * changed underneath, and landing halfway down it reads as a bug rather than
+ * a kindness. The tab you were on survives either way — that is cheap to
+ * recognise and easy to correct. A position halfway down a changed list is
+ * neither.
+ */
+const SCROLL_MEMORY_MS = 60 * 60 * 1_000
 
 function viewStateKey(userId: string, householdId: string) {
   return `recipes:view:v1:${userId}:${householdId}`
@@ -44,6 +60,8 @@ function readViewState(key: string): PersistedViewState | null {
         deleted: scroll('deleted'),
       },
       expandedRecipeId: typeof parsed.expandedRecipeId === 'string' ? parsed.expandedRecipeId : null,
+      // Anything written before this field existed is old by definition.
+      savedAt: typeof parsed.savedAt === 'number' && Number.isFinite(parsed.savedAt) ? parsed.savedAt : 0,
     }
   } catch {
     return null
@@ -175,6 +193,8 @@ function App() {
   // When the household last touched the screen, so a correction can tell its
   // own scrolling apart from the system's.
   const interactionAt = useRef(0)
+  // The position being held just after a restore, while the phone settles.
+  const hold = useRef<{ tab: Tab; target: number; reason: string; startedAt: number; until: number } | null>(null)
 
   const persistedViewKey = session && household ? viewStateKey(session.user.id, household.id) : null
 
@@ -220,25 +240,38 @@ function App() {
    * iOS hands the app back and then moves the web view again a moment later —
    * after the restore has already reported success, which is how a trace can
    * show the position landing and the household still see the top of the page.
-   * Check a few times over the next two seconds and put it back, unless the
-   * household has touched the screen since, in which case wherever they are
-   * now is where they meant to be.
+   * So the position is held for a moment afterwards rather than set once.
+   *
+   * The correction rides the scroll event itself, not a timer: the phone tells
+   * us it moved the page in the same frame it moves it, and putting the page
+   * back a fixed 300ms later is a jump you can watch happen. The timers stay
+   * behind it only to catch a move that arrives without a scroll event.
    */
   function holdPosition(nextTab: Tab, target: number, reason: string) {
-    const startedAt = Date.now()
-    for (const after of [300, 900, 1800]) {
-      window.setTimeout(() => {
-        if (tabRef.current !== nextTab) return
-        if (interactionAt.current > startedAt) return
-        const y = window.scrollY
-        const vp = visualTop()
-        // Believe whichever says we have drifted: on iOS they can disagree.
-        const drifted = Math.abs(y - target) > 8 || (vp >= 0 && Math.abs(vp - target) > 8)
-        if (!drifted) return
-        window.scrollTo(0, target)
-        trace('restore-again', { reason, tab: nextTab, target, after, y, vp, now: window.scrollY })
-      }, after)
+    hold.current = { tab: nextTab, target, reason, startedAt: Date.now(), until: Date.now() + HOLD_MS }
+    for (const after of [300, 900, 1800]) window.setTimeout(() => correctDrift(`t${after}`), after)
+  }
+
+  /**
+   * Put the page back if it has drifted off the position we just restored.
+   * Answers true when it did, so the caller knows the movement is accounted
+   * for. A touch since the restore ends the hold: wherever the household has
+   * scrolled to is where they meant to be, and the app must not argue.
+   */
+  function correctDrift(from: string) {
+    const held = hold.current
+    if (!held) return false
+    if (Date.now() > held.until || tabRef.current !== held.tab || interactionAt.current > held.startedAt) {
+      hold.current = null
+      return false
     }
+    const y = window.scrollY
+    const vp = visualTop()
+    // Believe whichever says we have drifted: on iOS they can disagree.
+    if (Math.abs(y - held.target) <= 8 && (vp < 0 || Math.abs(vp - held.target) <= 8)) return false
+    window.scrollTo(0, held.target)
+    trace('restore-again', { reason: held.reason, tab: held.tab, target: held.target, from, y, vp, now: window.scrollY })
+    return true
   }
 
   /**
@@ -261,7 +294,9 @@ function App() {
       trace('capture-skipped', { from, y, vp: visualTop(), why: 'modal' })
       return
     }
-    scrollByTab.current[tabRef.current] = y
+    // Rubber-banding past the top reports a negative scroll, which is a
+    // gesture in progress rather than a place to come back to.
+    scrollByTab.current[tabRef.current] = Math.max(0, y)
     trace('capture', { from, tab: tabRef.current, y, vp: visualTop() })
   }
 
@@ -272,6 +307,7 @@ function App() {
       tab: tabRef.current,
       scrollByTab: { ...scrollByTab.current },
       expandedRecipeId: expandedRecipeRef.current,
+      savedAt: Date.now(),
     }
     try {
       window.localStorage.setItem(persistedViewKey, JSON.stringify(state))
@@ -435,11 +471,19 @@ function App() {
     if (!persistedViewKey || !dataReady) return
     const saved = readViewState(persistedViewKey)
     const nextTab = saved?.tab ?? 'current'
-    trace('load', { nav: navigationKind(), tab: nextTab, y: saved?.scrollByTab[nextTab] ?? 0 })
+    const age = saved ? Date.now() - saved.savedAt : Number.POSITIVE_INFINITY
+    const stillWorthIt = age < SCROLL_MEMORY_MS
+    trace('load', {
+      nav: navigationKind(),
+      tab: nextTab,
+      y: saved?.scrollByTab[nextTab] ?? 0,
+      age: Number.isFinite(age) ? Math.round(age / 1000) : -1,
+      kept: stillWorthIt,
+    })
     const expandedStillExists = saved?.expandedRecipeId
       ? recipes.some((recipe) => recipe.id === saved.expandedRecipeId && !recipe.deleted_at)
       : false
-    scrollByTab.current = saved ? { ...EMPTY_SCROLL, ...saved.scrollByTab } : { ...EMPTY_SCROLL }
+    scrollByTab.current = saved && stillWorthIt ? { ...EMPTY_SCROLL, ...saved.scrollByTab } : { ...EMPTY_SCROLL }
     tabRef.current = nextTab
     expandedRecipeRef.current = expandedStillExists ? saved?.expandedRecipeId ?? null : null
     setTab(nextTab)
@@ -488,7 +532,7 @@ function App() {
     const notePointer = () => { pointerAt = Date.now(); interactionAt.current = pointerAt }
     const rememberScroll = () => {
       if (touching || Date.now() - pointerAt < 150) captureScroll('scroll')
-      else trace('scroll-ignored', { y: window.scrollY, vp: visualTop() })
+      else if (!correctDrift('scroll')) trace('scroll-ignored', { y: window.scrollY, vp: visualTop() })
     }
 
     const save = (reason: string) => {

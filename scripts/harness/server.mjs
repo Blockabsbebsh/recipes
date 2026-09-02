@@ -19,7 +19,8 @@ db.barbora_categories = catalogue.categories.map((c) => ({
 }))
 
 const USER = { id: USER_ID, email: 'testas@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() }
-const SESSION = { access_token: 'fake-access-token', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'fake-refresh-token', user: USER }
+const MONTH = 30 * 24 * 3600
+const SESSION = { access_token: 'fake-access-token', token_type: 'bearer', expires_in: MONTH, expires_at: Math.floor(Date.now() / 1000) + MONTH, refresh_token: 'fake-refresh-token', user: USER }
 
 /** `household_id=eq.<uuid>` and friends; anything unrecognised is ignored. */
 function applyFilters(rows, params) {
