@@ -194,6 +194,65 @@ than one because a person may reasonably keep a second kitchen.
 Text columns have length ceilings. The longest of anything real in the database
 is a 190-character note; unbounded text is the cheapest way to fill a free tier.
 
+## Ceilings
+
+Nothing bounded how many rows one household could hold. Through the app that is
+unreachable — you would be tapping "add recipe" for a week — but a session token
+works against PostgREST directly, and a loop does not get bored. The realistic
+case is not malice: it is an import that goes wrong, or a script run twice.
+
+| | |
+| --- | --- |
+| recipes | 10,000 |
+| ingredients | 5,000 |
+| ingredients in one recipe | 500 |
+| roster entries | 50,000 |
+| recipe tags | 50,000 |
+| shopping queue | 2,000 |
+| tags | 1,000 |
+| members | 50 |
+
+Numbers chosen to be unreachable rather than tuned: a household cooking
+something new every day for thirty years reaches eleven thousand roster
+entries. A ceiling that trips is worse than no ceiling, because it trips
+halfway through an import and leaves half of one.
+
+Enforced by triggers rather than policies. A policy on `recipes` that counts
+`recipes` re-enters itself, which Postgres stops with a recursion error —
+inserts would simply break, which is a failure rather than a hole, but a total
+one. A trigger function runs as its owner and never consults row security, so
+there is nothing to recurse into. Each count stops at the ceiling rather than
+counting the whole table, so the cost of the check does not grow with what is
+already stored.
+
+The same reasoning caps households per account at five. The app cannot create a
+second one — the setup screen only appears when you have none — but the API can,
+and the policy allowed it without limit.
+
+## If this is ever opened up
+
+Everything above is sized for two people who know each other, with sign-ups
+disabled. Before inviting anyone else, in rough order of importance:
+
+1. **Sign-up controls.** Email verification on, aggressive sign-up rate limits,
+   and a CAPTCHA if the plan offers one. The publishable key is public, so
+   sign-up being closed is the only thing standing between a stranger and an
+   `authenticated` role.
+2. **Short-lived, single-use, hashed invitations.** The current code is strong
+   (48 bits), expires weekly and is rate-limited, which is enough among people
+   who know each other. What it does not survive is a copy of the database: the
+   codes are stored in plain text. One active invite per household, generated
+   deliberately by the owner, expiring in minutes, stored only as a hash, and
+   invalidated on use, is the shape to move to — a new table and an expiry check
+   at join time, not a rewrite.
+3. **Column-level grants on audit fields.** `created_by`, `added_by` and the
+   timestamps are writable by any member today, which is fine when every member
+   is trusted with the data anyway. It stops being fine when "member" stops
+   meaning "the other person in this kitchen". Note the cost: column grants must
+   be extended for every new column or writes fail silently despite a correct
+   policy, which has bitten this schema once already.
+4. **Re-run the advisors** after each of those.
+
 ## Invite codes
 
 Read the section above first: with sign-ups disabled, calling `join_household`
