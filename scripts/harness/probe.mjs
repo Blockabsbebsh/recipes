@@ -56,15 +56,35 @@ export const scrollY = (page) => page.evaluate(() => Math.round(window.scrollY))
  * whenever the scroll is meant to be the household's own.
  */
 export async function userScroll(page, y) {
-  await page.evaluate(async (top) => {
-    window.dispatchEvent(new Event('touchstart', { bubbles: true }))
-    window.dispatchEvent(new Event('touchmove', { bubbles: true }))
-    window.scrollTo(0, top)
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-    window.dispatchEvent(new Event('touchend', { bubbles: true }))
-  }, y)
+  await gesture(page, y)
   // Long enough for the app to take the resting position after the lift.
   await page.waitForTimeout(700)
+  const landed = await scrollY(page)
+  if (Math.abs(landed - y) > 8) throw new Error(`userScroll(${y}) left the page at ${landed}px`)
+}
+
+/**
+ * One drag: contact, two moves, release.
+ *
+ * The two moves are not decoration. Scrolling to where the page already is
+ * fires no scroll event, so the app sees a touch that moved nothing — a tap —
+ * and correctly records nothing. A case written that way asserts its target,
+ * passes, and tests something that never happened; one sat green in this suite
+ * for exactly that reason. Going by way of another offset means every gesture
+ * moves the page whatever it was doing beforehand.
+ */
+async function gesture(page, y) {
+  await page.evaluate(async (top) => {
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    const waypoint = top > 300 ? top - 200 : top + 200
+    window.dispatchEvent(new Event('touchstart', { bubbles: true }))
+    window.dispatchEvent(new Event('touchmove', { bubbles: true }))
+    window.scrollTo(0, waypoint)
+    await frame()
+    window.scrollTo(0, top)
+    await frame()
+    window.dispatchEvent(new Event('touchend', { bubbles: true }))
+  }, y)
 }
 
 /**
@@ -77,13 +97,7 @@ export async function userScroll(page, y) {
  * settle delay, so the timer lands after it returns.
  */
 export async function scrollAndLeave(page, y, awayMs = 150, shortMs = 600) {
-  await page.evaluate(async (top) => {
-    window.dispatchEvent(new Event('touchstart', { bubbles: true }))
-    window.dispatchEvent(new Event('touchmove', { bubbles: true }))
-    window.scrollTo(0, top)
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-    window.dispatchEvent(new Event('touchend', { bubbles: true }))
-  }, y)
+  await gesture(page, y)
   await page.waitForTimeout(60)
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(awayMs)
@@ -142,9 +156,18 @@ export async function layout(page, base) {
         await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
         await page.waitForTimeout(300)
       }
-      findings.push(...(await page.evaluate(() => {
+      findings.push(...(await page.evaluate((screen) => {
         const out = []
-        const vw = window.innerWidth
+        // Measure against the screen, never against `window.innerWidth`.
+        // With `width=device-width` a page too wide for the screen makes the
+        // browser zoom out to fit, and innerWidth grows with it — so
+        // `scrollWidth > innerWidth` compares a number against itself and can
+        // never be true. Both of this scenario's real checks were written that
+        // way and had never once been able to fire.
+        const vw = screen
+        if (window.innerWidth > screen + 1) {
+          out.push(`the browser zoomed out to fit: ${window.innerWidth}px of layout squeezed into a ${screen}px screen`)
+        }
         if (document.documentElement.scrollWidth > vw + 1) {
           out.push(`page scrolls sideways: ${document.documentElement.scrollWidth}px of content in ${vw}px`)
         }
@@ -160,7 +183,7 @@ export async function layout(page, base) {
           .map((el) => `"${(el.textContent || '').trim().slice(0, 18)}" ${Math.round(el.getBoundingClientRect().height)}px tall`)
         if (small.length) out.push(`note: ${small.length} tap target(s) under 24px: ${[...new Set(small)].slice(0, 3).join(', ')}`)
         return out
-      })).map((f) => `${label.trim()} (${pass}): ${f}`))
+      }, PHONE.viewport.width)).map((f) => `${label.trim()} (${pass}): ${f}`))
     }
   }
   return findings
@@ -275,7 +298,8 @@ export async function appswitch(page, base) {
     const raw = Object.entries(localStorage).find(([k]) => k.startsWith('recipes:view'))
     return raw ? JSON.parse(raw[1]).scrollByTab?.library : null
   })
-  if (saved !== null && Math.abs(saved - target) > 40) findings.push(`backgrounding with a modal open saved ${saved}px instead of ${target}px`)
+  if (saved === null) findings.push('backgrounding with a modal open saved no view state at all')
+  else if (Math.abs(saved - target) > 40) findings.push(`backgrounding with a modal open saved ${saved}px instead of ${target}px`)
   await setVisibility(page, 'visible')
   await page.waitForTimeout(400)
   await tap(page, '.modal .icon-button')
@@ -324,7 +348,8 @@ export async function appswitch(page, base) {
     const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
-  if (kept !== null && Math.abs(kept - target) > 40) findings.push(`the switch after a mid-gesture one saved ${kept}px instead of ${target}px`)
+  if (kept === null) findings.push('the switch after a mid-gesture one saved no view state at all')
+  else if (Math.abs(kept - target) > 40) findings.push(`the switch after a mid-gesture one saved ${kept}px instead of ${target}px`)
   await setVisibility(page, 'visible')
   await page.waitForTimeout(1200)
   now = await scrollY(page)
@@ -367,7 +392,8 @@ export async function appswitch(page, base) {
     const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
-  if (afterTap !== null && Math.abs(afterTap - target) > 40) findings.push(`a tap on the way back in saved ${afterTap}px instead of ${target}px`)
+  if (afterTap === null) findings.push('a tap on the way back in saved no view state at all')
+  else if (Math.abs(afterTap - target) > 40) findings.push(`a tap on the way back in saved ${afterTap}px instead of ${target}px`)
   await setVisibility(page, 'visible')
   await page.waitForTimeout(1200)
 
@@ -435,6 +461,16 @@ export async function scrolltrace(page, base) {
   if (afterReload.length > 60) findings.push(`the trace grew to ${afterReload.length} entries, past its 60-entry cap`)
   const reboot = afterReload.filter((entry) => entry.kind === 'boot').pop()
   if (reboot?.nav !== 'reload') findings.push(`the reload was recorded as nav=${reboot?.nav ?? 'nothing'}`)
+  if (!reboot?.os || !reboot?.mode) findings.push('the trace does not say which phone or whether the app is installed')
+
+  // The loading screen has to witness itself: the household reports seeing it
+  // on a page the trace shows was never reloaded, and only the app can settle
+  // whether it rendered or the platform painted a stored image of it.
+  const splash = afterReload.filter((entry) => entry.kind === 'splash')
+  if (!splash.some((entry) => entry.shown === 'yes')) findings.push('the loading screen did not record that it appeared')
+  const gone = splash.find((entry) => entry.shown === 'gone')
+  if (!gone) findings.push('the loading screen did not record that it went away')
+  else if (!Number.isFinite(Number(gone.ms))) findings.push(`the loading screen recorded no duration, saying ms=${gone.ms}`)
   const tail = afterReload.slice(afterReload.indexOf(reboot)).map((entry) => entry.kind)
   if (!tail.some((kind) => kind.startsWith('restore'))) findings.push('the trace says nothing about what the restore did after the reload')
 

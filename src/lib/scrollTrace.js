@@ -11,7 +11,9 @@
  */
 
 const KEY = 'recipes:scroll-trace:v1'
-const LIMIT = 60
+// Enough for a few minutes of trying to break the app on a phone, which is
+// how these are read: the household does a sequence, then copies the tail.
+const LIMIT = 150
 
 // Consecutive entries of these kinds collapse into the last one. Scrolling a
 // long list would otherwise flush the lifecycle events we are looking for.
@@ -83,6 +85,26 @@ export function visualTop() {
     return viewport ? Math.round(viewport.pageTop) : -1
   } catch {
     return -1
+  }
+}
+
+/**
+ * Which phone, and whether this is the installed app or a browser tab.
+ *
+ * The same log means different things in each: what a resuming web app paints
+ * over itself is the platform's business, and a browser tab does not do it at
+ * all.
+ */
+export function environment() {
+  try {
+    const ua = String(window.navigator.userAgent)
+    const os = /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'other'
+    const standalone =
+      window.navigator.standalone === true ||
+      (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches)
+    return { os, mode: standalone ? 'installed' : 'browser' }
+  } catch {
+    return { os: 'unknown', mode: 'unknown' }
   }
 }
 

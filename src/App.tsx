@@ -4,9 +4,9 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { ingredientLookupKey, ingredientNameWithoutQuantity, normalizeTitle, parseRecipeList, titleSimilarity } from './lib/parser'
 import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
-import { SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
+import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
 import type { CategoryIndex } from './lib/barboraMapping'
-import { clearTrace, formatTrace, navigationKind, readTrace, trace, visualTop } from './lib/scrollTrace'
+import { clearTrace, environment, formatTrace, navigationKind, readTrace, trace, visualTop } from './lib/scrollTrace'
 import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
 type Tab = 'current' | 'library' | 'shop' | 'deleted'
@@ -120,6 +120,7 @@ function BarboraLink({ href, children }: { href: string | null; children: ReactN
     href={href}
     target="_blank"
     rel="noopener noreferrer"
+    onClick={() => trace('leave-by-link', { to: href.replace(BARBORA_ORIGIN, '') })}
   >{children}</a>
 }
 
@@ -607,7 +608,7 @@ function App() {
   }, [persistedViewKey, viewStateReady])
 
   useEffect(() => {
-    trace('boot', { nav: navigationKind(), y: window.scrollY, vp: visualTop() })
+    trace('boot', { nav: navigationKind(), ...environment(), y: window.scrollY, vp: visualTop() })
     const previous = window.history.scrollRestoration
     window.history.scrollRestoration = 'manual'
     return () => { window.history.scrollRestoration = previous }
@@ -1312,7 +1313,20 @@ function App() {
   )
 }
 
+/**
+ * The loading screen — and a witness to itself.
+ *
+ * The household reports seeing this whenever they come back to the app, on a
+ * page the trace shows was never reloaded. Either it renders or it does not,
+ * and only the app can say which: what iOS and Android paint over a resuming
+ * web app is a stored image of an earlier launch, not this component.
+ */
 function Splash() {
+  useEffect(() => {
+    const shownAt = Date.now()
+    trace('splash', { shown: 'yes' })
+    return () => trace('splash', { shown: 'gone', ms: Date.now() - shownAt })
+  }, [])
   return <div className="splash"><div className="brand-mark">R</div><p>Ruošiama virtuvė…</p></div>
 }
 
@@ -1817,12 +1831,16 @@ function ScrollTrace() {
   return <>
     <p className="muted">
       Naujausi įrašai apačioje. <code>capture</code> — įsiminta padėtis, <code>write</code> — įrašyta į atmintį,
-      <code> restore</code> — grąžinta. Perjunkite programą, grįžkite ir pažiūrėkite paskutines eilutes.
+      <code> restore</code> — grąžinta, <code>splash</code> — rodytas užkrovimo langas, <code>boot</code> — programa
+      pasileido iš naujo. „Pažymėti“ įrašo žymą — paspauskite iškart po to, ką norite parodyti.
+      Perjunkite programą, grįžkite ir pažiūrėkite paskutines eilutes.
     </p>
     <div className="trace-actions">
       <button className="button secondary" onClick={() => void copy()}>{copied ? 'Nukopijuota!' : 'Kopijuoti'}</button>
-      <button className="button secondary" onClick={() => { clearTrace(); setEntries([]) }}>Išvalyti</button>
       <button className="button secondary" onClick={() => setEntries(readTrace())}>Atnaujinti</button>
+      {/* So the log can carry what only the household saw. */}
+      <button className="button secondary" onClick={() => { trace('mark', { note: 'pastebėta' }); setEntries(readTrace()) }}>Pažymėti</button>
+      <button className="button secondary" onClick={() => { clearTrace(); setEntries([]) }}>Išvalyti</button>
     </div>
     <pre className="scroll-trace">{text}</pre>
   </>
