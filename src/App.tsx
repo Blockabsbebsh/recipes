@@ -1,15 +1,17 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
-import { ingredientLookupKey, ingredientNameWithoutQuantity, normalizeTitle } from './lib/parser'
-import { classificationTags, classifyRecipe, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
+import { ingredientLookupKey, normalizeTitle } from './lib/parser'
+import { cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
 import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, shoppingUrl } from './lib/barboraMapping'
 import { environment, navigationKind, trace, visualTop } from './lib/scrollTrace'
 import { showsSetupSplash } from './lib/readiness'
 import { useHouseholdData } from './hooks/useHouseholdData'
 import { useVocabulary } from './hooks/useVocabulary'
 import { useRecipeCategories } from './hooks/useRecipeCategories'
-import type { BarboraCategory, Household, IngredientSection, QueueEntry, Recipe, RecipeDraft, RecipeDestination, RosterEntry, Tab, VocabularyIngredient } from './lib/types'
+import { useRecipeWriting } from './hooks/useRecipeWriting'
+import { usePlanning } from './hooks/usePlanning'
+import type { BarboraCategory, Household, IngredientSection, QueueEntry, Recipe, RecipeDestination, RosterEntry, Tab, VocabularyIngredient } from './lib/types'
 import { HOLD_MS, MOMENTUM_MS, RESTORE_PATIENCE_MS, STILL_MS, createGesture, hasDrifted, keepable, reaches } from './lib/scrollMemory'
 import { EMPTY_SCROLL, SCROLL_MEMORY_MS, positionsFrom, readViewState, viewStateKey, writeViewState } from './lib/viewState'
 import type { PersistedViewState } from './lib/viewState'
@@ -18,6 +20,7 @@ import { RecipeEditor } from './components/RecipeEditor'
 import { ImportDialog } from './components/ImportDialog'
 import { MealPicker } from './components/MealPicker'
 import { SettingsDialog } from './components/SettingsDialog'
+
 
 
 
@@ -79,8 +82,6 @@ function App() {
   const [importOpen, setImportOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [undo, setUndo] = useState<{ entryId: string; label: string } | null>(null)
-  const undoTimer = useRef<number | null>(null)
   const tabRef = useRef<Tab>('current')
   const expandedRecipeRef = useRef<string | null>(null)
   const scrollByTab = useRef<Record<Tab, number>>({ ...EMPTY_SCROLL })
@@ -569,280 +570,6 @@ function App() {
     setLoading(false)
   }
 
-  async function saveRecipe(draft: RecipeDraft, existing?: Recipe, destination: RecipeDestination = 'library') {
-    if (!household || !session) return
-    setLoading(true)
-    setError(null)
-    const cleanedIngredients = [...new Map(
-      draft.ingredients
-        .map((item) => ingredientNameWithoutQuantity(item))
-        .filter(Boolean)
-        .map((item) => [ingredientLookupKey(item), item]),
-    ).values()]
-    let recipeId = existing?.id
-    if (existing) {
-      const { error: updateError } = await supabase
-        .from('recipes')
-        .update({ title: draft.title.trim(), notes: draft.notes.trim() || null, source_url: draft.sourceUrl.trim() || null })
-        .eq('id', existing.id)
-      if (updateError) {
-        setError(updateError.message)
-        setLoading(false)
-        return
-      }
-      const { error: deleteIngredientsError } = await supabase
-        .from('recipe_ingredients')
-        .delete()
-        .eq('recipe_id', existing.id)
-      if (deleteIngredientsError) {
-        setError(deleteIngredientsError.message)
-        setLoading(false)
-        return
-      }
-    } else {
-      const { data, error: insertError } = await supabase
-        .from('recipes')
-        .insert({
-          household_id: household.id,
-          title: draft.title.trim(),
-          notes: draft.notes.trim() || null,
-          source_url: draft.sourceUrl.trim() || null,
-          created_by: session.user.id,
-        })
-        .select('id')
-        .single()
-      if (insertError) {
-        setError(insertError.message)
-        setLoading(false)
-        return
-      }
-      recipeId = data.id
-    }
-
-    if (cleanedIngredients.length) {
-      const ingredientIds = await resolveIngredientIds(cleanedIngredients)
-      if (ingredientIds) {
-        const { error: ingredientError } = await supabase.from('recipe_ingredients').insert(
-          ingredientIds.map((ingredient_id, position) => ({
-            household_id: household.id,
-            recipe_id: recipeId,
-            ingredient_id,
-            position,
-          })),
-        )
-        if (ingredientError) setError(ingredientError.message)
-      }
-    }
-    if (!existing && destination === 'queue' && recipeId) {
-      await supabase.from('shopping_queue').insert({
-        household_id: household.id,
-        recipe_id: recipeId,
-        added_by: session.user.id,
-      })
-    }
-    setEditor(null)
-    if (recipeId) await saveRecipeClassification(recipeId, draft)
-    setMessage(existing ? 'Receptas atnaujintas' : destination === 'queue' ? 'Pridėta į krepšelį' : 'Receptas išsaugotas')
-    await loadData()
-    setLoading(false)
-  }
-
-  /**
-   * Maps ingredient names onto vocabulary ids, adding any the household has
-   * not used before so they are offered on every later recipe. Reads the
-   * vocabulary fresh rather than trusting component state, since the other
-   * person may have added something since this page loaded.
-   */
-  async function resolveIngredientIds(names: string[]): Promise<string[] | null> {
-    if (!household) return null
-    const { data: existing, error: readError } = await supabase
-      .from('ingredients')
-      .select('id, name')
-      .eq('household_id', household.id)
-    if (readError) {
-      setError(readError.message)
-      return null
-    }
-    const idByName = new Map((existing || []).map((row) => [ingredientLookupKey(row.name), row.id as string]))
-    const missing = [...new Map(
-      names
-        .map(ingredientNameWithoutQuantity)
-        .filter((name) => name && !idByName.has(ingredientLookupKey(name)))
-        .map((name) => [ingredientLookupKey(name), name]),
-    ).values()]
-    if (missing.length) {
-      const { data: created, error: createError } = await supabase
-        .from('ingredients')
-        .insert(missing.map((name) => ({ household_id: household.id, name })))
-        .select('id, name')
-      if (createError) {
-        setError(createError.message)
-        return null
-      }
-      ;(created || []).forEach((row) => idByName.set(ingredientLookupKey(row.name), row.id as string))
-    }
-    return [...new Set(names
-      .map((name) => idByName.get(ingredientLookupKey(name)))
-      .filter((id): id is string => Boolean(id)))]
-  }
-
-  async function saveRecipeClassification(recipeId: string, draft: RecipeDraft) {
-    if (!household) return
-    const desiredNames = classificationTags(draft)
-    const { data: currentTags, error: tagReadError } = await supabase
-      .from('tags')
-      .select('id, name')
-      .eq('household_id', household.id)
-    if (tagReadError) {
-      setError(tagReadError.message)
-      return
-    }
-    const tagIdByName = new Map((currentTags || []).map((tag) => [tag.name.toLocaleLowerCase('lt'), tag.id as string]))
-    const missing = desiredNames.filter((name) => !tagIdByName.has(name.toLocaleLowerCase('lt')))
-    if (missing.length) {
-      const { data: created, error: createError } = await supabase
-        .from('tags')
-        .insert(missing.map((name) => ({ household_id: household.id, name })))
-        .select('id, name')
-      if (createError && createError.code !== '23505') {
-        setError(createError.message)
-        return
-      }
-      ;(created || []).forEach((tag) => tagIdByName.set(tag.name.toLocaleLowerCase('lt'), tag.id as string))
-      if (createError?.code === '23505') {
-        const { data: refreshed } = await supabase.from('tags').select('id, name').eq('household_id', household.id)
-        ;(refreshed || []).forEach((tag) => tagIdByName.set(tag.name.toLocaleLowerCase('lt'), tag.id as string))
-      }
-    }
-    const { data: classifications, error: classificationReadError } = await supabase
-      .from('tags')
-      .select('id, name')
-      .eq('household_id', household.id)
-    if (classificationReadError) {
-      setError(classificationReadError.message)
-      return
-    }
-    const classificationIds = (classifications || [])
-      .filter((tag) => tag.name.startsWith(DISH_TAG_PREFIX) || tag.name.startsWith(CUISINE_TAG_PREFIX))
-      .map((tag) => tag.id)
-    if (classificationIds.length) {
-      const { error: deleteError } = await supabase
-        .from('recipe_tags')
-        .delete()
-        .eq('recipe_id', recipeId)
-        .in('tag_id', classificationIds)
-      if (deleteError) {
-        setError(deleteError.message)
-        return
-      }
-    }
-    const desiredIds = desiredNames.map((name) => tagIdByName.get(name.toLocaleLowerCase('lt'))).filter((id): id is string => Boolean(id))
-    if (desiredIds.length) {
-      const { error: linkError } = await supabase.from('recipe_tags').insert(
-        desiredIds.map((tag_id) => ({ household_id: household.id, recipe_id: recipeId, tag_id })),
-      )
-      if (linkError) setError(linkError.message)
-    }
-  }
-
-  async function saveImported(drafts: RecipeDraft[]) {
-    const fallbackCategory = recipeCategories.includes('Kita') ? 'Kita' : recipeCategories[0] || 'Kita'
-    for (const draft of drafts) {
-      const detected = classifyRecipe(draft.title, draft.ingredients)
-      await saveRecipe({
-        ...draft,
-        dishType: recipeCategories.includes(detected.dishType) ? detected.dishType : fallbackCategory,
-        cuisine: detected.cuisine,
-      })
-    }
-    setImportOpen(false)
-    setMessage(`Importuota receptų: ${drafts.length}`)
-  }
-
-  async function planRecipe(recipe: Recipe, destination: 'queue' | 'roster') {
-    if (!household || !session) return
-    setError(null)
-    const result = destination === 'queue'
-      ? await supabase.from('shopping_queue').insert({ household_id: household.id, recipe_id: recipe.id, added_by: session.user.id })
-      : await supabase.from('roster_entries').insert({ household_id: household.id, recipe_id: recipe.id, added_by: session.user.id })
-    if (result.error?.code === '23505') setMessage(destination === 'queue' ? 'Šis receptas jau yra krepšelyje' : 'Šis receptas jau yra meniu')
-    else if (result.error) setError(result.error.message)
-    else setMessage(destination === 'queue' ? 'Pridėta į krepšelį' : 'Pridėta į meniu')
-    await loadData()
-  }
-
-  async function resolveEntry(entry: RosterEntry, status: 'cooked' | 'skipped') {
-    if (!session) return
-    const { error: updateError } = await supabase
-      .from('roster_entries')
-      .update({ status, resolved_at: new Date().toISOString(), resolved_by: session.user.id })
-      .eq('id', entry.id)
-    if (updateError) {
-      setError(updateError.message)
-      return
-    }
-    setRoster((current) => current.map((item) => item.id === entry.id ? { ...item, status, resolved_at: new Date().toISOString() } : item))
-    if (undoTimer.current) window.clearTimeout(undoTimer.current)
-    setUndo({ entryId: entry.id, label: status === 'cooked' ? 'Pažymėta kaip pagaminta' : 'Praleista' })
-    undoTimer.current = window.setTimeout(() => setUndo(null), 5_000)
-  }
-
-  async function undoResolution() {
-    if (!undo) return
-    const { error: undoError } = await supabase
-      .from('roster_entries')
-      .update({ status: 'ready', resolved_at: null, resolved_by: null })
-      .eq('id', undo.entryId)
-    if (undoError) setError(undoError.message)
-    else await loadData()
-    if (undoTimer.current) window.clearTimeout(undoTimer.current)
-    setUndo(null)
-  }
-
-  async function removeFromQueue(entry: QueueEntry) {
-    const { error: removeError } = await supabase.from('shopping_queue').delete().eq('id', entry.id)
-    if (removeError) setError(removeError.message)
-    else setQueue((current) => current.filter((item) => item.id !== entry.id))
-  }
-
-  async function completeShopping() {
-    if (!household || queue.length === 0) return
-    if (!window.confirm(`Perkelti suplanuotus receptus (${queue.length}) į „Meniu“ ir išvalyti krepšelį?`)) return
-    setLoading(true)
-    const { data, error: completeError } = await supabase.rpc('complete_shopping', { p_household_id: household.id })
-    if (completeError) setError(completeError.message)
-    else {
-      setMessage(`Apsipirkta — gaminimui paruoštų receptų: ${data}`)
-      changeTab('current')
-      await loadData()
-    }
-    setLoading(false)
-  }
-
-  async function softDelete(recipe: Recipe) {
-    if (!session || !window.confirm(`Perkelti „${recipe.title}“ į ištrintus?`)) return
-    const { error: deleteError } = await supabase
-      .from('recipes')
-      .update({ deleted_at: new Date().toISOString(), deleted_by: session.user.id })
-      .eq('id', recipe.id)
-    if (deleteError) setError(deleteError.message)
-    else {
-      setMessage('Receptas perkeltas į ištrintus')
-      await loadData()
-    }
-  }
-
-  async function restoreRecipe(recipe: Recipe) {
-    const { error: restoreError } = await supabase
-      .from('recipes')
-      .update({ deleted_at: null, deleted_by: null })
-      .eq('id', recipe.id)
-    if (restoreError) setError(restoreError.message)
-    else {
-      setMessage('Receptas atkurtas')
-      await loadData()
-    }
-  }
 
   const categoryIndex = useMemo(() => buildCategoryIndex(barboraCategories), [barboraCategories])
 
@@ -851,6 +578,15 @@ function App() {
   })
   const { createRecipeCategory, updateRecipeCategory, deleteRecipeCategory } = useRecipeCategories({
     household, recipes, tags, reload: loadData, onError: setError, onMessage: setMessage,
+  })
+  const { saveRecipe, saveImported, softDelete, restoreRecipe } = useRecipeWriting({
+    household, userId, vocabulary, recipes, tags, recipeCategories,
+    reload: loadData, onError: setError, onMessage: setMessage, setBusy: setLoading,
+    dismissEditor: () => setEditor(null), dismissImporter: () => setImportOpen(false),
+  })
+  const { undo, planRecipe, resolveEntry, undoResolution, removeFromQueue, completeShopping } = usePlanning({
+    household, userId, queue, reload: loadData, onError: setError, onMessage: setMessage,
+    setBusy: setLoading, setRoster, setQueue, showMenu: () => changeTab('current'),
   })
 
   const vocabularyByName = useMemo(
