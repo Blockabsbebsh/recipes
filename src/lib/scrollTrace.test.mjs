@@ -13,7 +13,7 @@ globalThis.window = {
   performance: { getEntriesByType: () => [{ type: 'reload' }] },
 }
 
-const { clearTrace, formatTrace, navigationKind, readTrace, trace, visualTop } = await import('./scrollTrace.js')
+const { clearTrace, environment, formatTrace, navigationKind, readTrace, trace, visualTop } = await import('./scrollTrace.js')
 
 test.beforeEach(() => { store.clear() })
 
@@ -40,11 +40,21 @@ test('keeps captures apart when they came from different places or reasons', () 
   assert.equal(readTrace().length, 4)
 })
 
-test('keeps only the most recent 60 events', () => {
-  for (let i = 0; i < 90; i += 1) trace('write', { i })
+test('keeps only the most recent 150 events', () => {
+  for (let i = 0; i < 200; i += 1) trace('write', { i })
   const entries = readTrace()
-  assert.equal(entries.length, 60)
-  assert.equal(entries[0].i, 30)
+  assert.equal(entries.length, 150)
+  assert.equal(entries[0].i, 50)
+})
+
+test('reports the phone and whether this is the installed app', () => {
+  window.navigator = { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', standalone: true }
+  assert.deepEqual(environment(), { os: 'ios', mode: 'installed' })
+  window.navigator = { userAgent: 'Mozilla/5.0 (Linux; Android 15)' }
+  window.matchMedia = () => ({ matches: false })
+  assert.deepEqual(environment(), { os: 'android', mode: 'browser' })
+  delete window.navigator
+  assert.deepEqual(environment(), { os: 'unknown', mode: 'unknown' })
 })
 
 test('survives a storage that refuses to write', () => {

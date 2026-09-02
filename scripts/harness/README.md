@@ -43,6 +43,18 @@ A finding beginning with `note:` is advisory: reported, but it does not fail the
 
 **Test the production build, not the dev server.** React StrictMode double-invokes effects in development, which makes mount/cleanup ordering look broken when it is not. `run.mjs` always builds first.
 
+**Never measure a page against `window.innerWidth`.** With
+`width=device-width`, a page too wide for the screen makes the browser zoom out
+to fit, and `innerWidth` grows with it — so `scrollWidth > innerWidth` compares
+a number against itself. Both of `layout`'s real checks were written that way
+and had never once been able to fire; a 140vw card passed clean. Measure
+against `PHONE.viewport.width`.
+
+**A mutation that changes nothing proves nothing either.** The first attempt to
+break `layout` styled a class the app does not render, so the "broken" run was
+the same app. Check the mutation took effect before believing the scenario
+survived it.
+
 **Confirm a finding with a second, independent measurement before believing it.** If the DOM says an element moved, check whether something in the harness moved it.
 
 **A synthetic gesture must dispatch its scroll before `touchend`.** A scroll
@@ -76,6 +88,8 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `modals` | Escape closing the topmost modal | `Escape did not leave 2 modal(s) open` |
 | `scrolltrace` | recording anything at all | `the trace never recorded a "capture" event` |
 | `scrolltrace` | keeping the trace in memory instead of localStorage | `the trace never recorded a "boot" event` (nothing survived the reload) |
+| `scrolltrace` | the loading screen recording that it appeared | `the loading screen did not record that it appeared` |
+| `layout` | measuring against the screen rather than the zoomed viewport | `page scrolls sideways: 566px of content in 390px` |
 | `appswitch` | holding the position after the restore reports success | `the web view moving after the app came back left the library at 0px instead of 1500px` |
 | `appswitch` | asking whether the household touched the screen before correcting | `scrolling to 300px on the way back in was undone, landing at 1500px` |
 | `appswitch` | correcting on the scroll event rather than a timer | `the page sat at the top for 499ms before jumping back` |
@@ -121,6 +135,23 @@ the saved position was older than an hour and the tab started at the top.
 Reading the log requires opening Settings, which parks the body at the top and
 therefore writes a `capture-skipped … why=modal` of its own. The last two lines
 of any trace you read are usually you, opening it.
+
+## Reading a log from a phone
+
+Some things cannot be tested from here at all: what the platform paints over a
+resuming app, whether a link to another app kills the process, how any of it
+feels. For those, the household runs the sequence and sends the log —
+**Nustatymai → Slinkties žurnalas → Kopijuoti**. **Pažymėti** writes a `mark`
+line, so they can point at the moment they saw something.
+
+The lines that answer questions the harness cannot:
+
+| Line | |
+| --- | --- |
+| `boot nav=… os=ios mode=installed` | the app started from nothing. No `boot` after an app switch means it was never reloaded, whatever the screen showed. |
+| `splash shown=yes` / `splash shown=gone ms=…` | the app's own loading screen rendered, and for how long. Seeing the loading screen with no `splash` line means the platform painted a stored image of an earlier launch, not the app. |
+| `leave-by-link to=/…` | the app was left by tapping through to the shop, rather than by the app switcher. Whether a `boot` follows says if that killed it. |
+| `mark note=pastebėta` | the household saw something here. |
 
 ## Adding a scenario
 

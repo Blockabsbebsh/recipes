@@ -196,11 +196,13 @@ Three things must never be mistaken for the household's own scrolling, all found
 
 A remembered position lasts an hour. Stepping out to Barbora and back should return you to the row you were reading; opening the app the next morning should not, because the list has changed underneath and landing halfway down it reads as a fault. The tab survives either way. Per-tab positions are kept within that hour — switching tabs and coming back is the one case that always worked, and matches what a tab bar does everywhere else.
 
+The log also records what the harness cannot reach: whether the app's own loading screen rendered and for how long, whether the app was left by tapping a shop link or by the app switcher, and which phone the log came from. A `mark` button writes a line the household controls, so they can point at the moment they saw something. What the platform paints over a resuming web app — iOS reuses a stored image of an earlier launch, Android draws a manifest splash on relaunch — is not the app rendering, and a `splash` line separates the two.
+
 The log exists to separate two failures that look identical from the outside: a position already lost before the app went away (a capture site recorded a scroll the household did not make) from a position that survived and was not put back (the restore ran out of frames, or the page was reloaded and the list was still short). The tail after one app switch says which. The reading table is in [`scripts/harness/README.md`](../scripts/harness/README.md); the `scrolltrace` harness scenario keeps the record itself honest, including that it survives the reload.
 
 ## Tests
 
-`npm test` runs 61 tests. Covered:
+`npm test` runs 62 tests. Covered:
 
 - Tree construction preserves parent/child relationships and Barbora's order, including a rebuild of all 636 reviewed categories from the pages they came from.
 - URL normalization rejects products, queries, foreign hosts, and impossible depths; cycles are unrepresentable by construction.
