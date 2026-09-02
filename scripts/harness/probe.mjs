@@ -733,13 +733,40 @@ export async function back(page, base) {
   if (await open() !== 0) findings.push('back did not close the dialog')
   if (await page.locator('.bottom-nav').count() === 0) findings.push('back left the app instead of closing the dialog')
 
+  // A page inside a dialog is a place you can come back from too. Settings
+  // keeps its pages in one dialog rather than a dialog each, so back used to
+  // close the whole thing from Ingredients rather than returning to the menu.
+  const heading = () => page.locator('.modal h2').first().innerText()
+  await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
+  await tap(page, 'button', 'Ingredientai')
+  if (!/Ingredientai/.test(await heading())) findings.push('the ingredients page did not open')
+  await press()
+  if (await open() !== 1) {
+    // Do not press again: with nothing of ours left, the next one leaves the
+    // app and takes every finding after it along.
+    findings.push('back from a settings page closed the whole dialog')
+  } else {
+    if (!/Nustatymai/.test(await heading())) findings.push(`back from the ingredients page showed "${await heading()}" rather than the settings menu`)
+    await press()
+    if (await open() !== 0) findings.push('back did not then close settings')
+  }
+
   // Three deep: one press each, innermost first.
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, 'button', 'Ingredientai')
   await tap(page, '.manager-row button', 'Keisti')
   await tap(page, '.category-field-button, button', 'Barbora kategorija')
   if (await open() !== 3) findings.push(`three dialogs deep reported ${await open()} open`)
-  for (const expected of [2, 1, 0]) {
+  // Four presses, not three: the ingredients page inside settings is a place
+  // of its own, so the third press returns to the settings menu rather than
+  // closing it.
+  for (const expected of [2, 1, 1, 0]) {
+    if (await open() === 0) {
+      // Everything shut in fewer presses than there are layers. Pressing on
+      // would leave the app and take the rest of the scenario with it.
+      findings.push('the dialogs closed in fewer presses than there are things to close')
+      break
+    }
     await press()
     if (await open() !== expected) findings.push(`back left ${await open()} dialog(s) open, not ${expected}`)
   }

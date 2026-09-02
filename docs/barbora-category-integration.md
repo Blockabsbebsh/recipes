@@ -173,6 +173,8 @@ An optional tree search may be added later, but it must navigate to a result ins
 
 On Android the back button is how things get closed, and until now it closed the whole app — mid-recipe, mid-shop, whatever was open. The web has no notion of "close the thing on top"; it has history. So `src/lib/backNav.js` keeps a stack of things a back press should undo and one history entry for each, and every dialog registers itself through the shared `Modal`, nested ones included. Being away from the menu is one more entry, so back comes home before it leaves.
 
+A page inside a dialog counts too. Settings keeps its pages — the invite code, the ingredients, the recipe categories, the scroll log — in one dialog rather than a dialog each, so the stack saw a single layer and back closed the lot from halfway in. The pages register themselves the same way, one entry for being off the menu.
+
 The awkward half is that a dialog can also be dismissed the ordinary way. The entry it pushed has to come off with it, and taking it off means going back programmatically — which fires the same event as a real press, so those are counted and ignored. Registering an entry per tab rather than one for being away broke this in a way worth remembering: going back is asynchronous, so a drop and an add in the same breath let the queued back land after the new push and undo it, and a few taps later the app walked off its own page.
 
 ## PWA state restoration
