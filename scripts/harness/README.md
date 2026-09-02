@@ -37,6 +37,8 @@ The catalogue comes from the real `data/barbora-categories.json`, so the categor
 - **`coldstart`** — the app opens on the tab you were last using, and passes through no other on the way.
 - **`concurrent`** — two people, one household, two browsers. What each app does while holding a picture of the household that has stopped being true.
 - **`scrolltrace`** — the on-device scroll trace records the app switch, survives the reload it exists to explain, stays inside its cap, and prints in Settings.
+- **`shapes`** — the two phone shapes nothing else covers: 320px wide, where a row runs out of room across, and 390px tall in landscape, where a modal runs out of room down and strands its buttons.
+- **`offline`** — a cold start with the backend unreachable. It must not sit on the loading screen, must not offer to create a household to someone who already has one, must say why, and must come back when the network does.
 
 A finding beginning with `note:` is advisory: reported, but it does not fail the run. Use it for judgement calls rather than regressions.
 
@@ -154,6 +156,28 @@ the grandchild listening and the next run fails on a port already in use — or
 worse, silently tests the previous build. `run.mjs` spawns each child
 `detached` and kills `-pid`. Anything else it starts must do the same.
 
+**A prefix match will one day match a second key.** Five checks read the saved
+view state by finding the first `localStorage` key starting with
+`recipes:view` — which was unambiguous until `recipes:view:last-tab` was added
+beside `recipes:view:v1:<user>:<household>`. Its value is a bare tab name, so
+`JSON.parse` threw and `appswitch` reported `the scenario itself failed`
+instead of anything about the app. Match the key shape you mean
+(`recipes:view:v1:`), not a namespace someone will extend.
+
+**Wait out the client's own patience before calling it a hang.** supabase-js
+retries a failed GET three times, a second apart and doubling, so a cold start
+with no network sits on the loading screen for seven seconds with nothing
+wrong. The first version of `offline` looked at six and reported a hang that
+was the library working as designed. Find out what the library does before
+choosing a timeout.
+
+**A screen that never renders cannot be tested by looking for it.** `offline`
+checks that the app does not come up showing its tabs over no data — a state
+the app cannot currently reach, so the check was worthless until a mutation
+was found that reaches it: carrying on with a placeholder household when the
+membership read fails. If you cannot break a check on purpose, it is not
+protecting anything.
+
 **`DUMP_TRACE=1` prints the app's own scroll trace** at the end of `appswitch`,
 which is the fastest way to find out why a scenario disagrees with a phone.
 
@@ -195,6 +219,13 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `appswitch` | cancelling a settling gesture when the app goes away | `the switch after a mid-gesture one saved 0px instead of 1500px` |
 | `appswitch` | treating a tap as a scroll | `a tap on the way back in saved 0px instead of 1500px` |
 | `appswitch` | waiting for the height when a correction clamps | `a page that came back short for two seconds landed at 0px instead of 1500px` |
+| `shapes` | a card narrower than the screen | `320px wide, Meniu: 468px of content in 320px` |
+| `shapes` | a modal that fits inside the screen | `landscape: the card runs 86px past the bottom of the screen`, `the close button is off screen` |
+| `offline` | finishing the household check when the read fails | `the app never left its loading screen with the network down` |
+| `offline` | telling a failed check apart from an empty one | `with the network down the app offered to create a household to someone who already has one` |
+| `offline` | the error screen explaining itself | `the app gave up on loading and said nothing about why` |
+| `offline` | refusing to carry on with a placeholder household | `the app showed its tabs as though the data had loaded` |
+| `offline` | the retry button doing anything | `the app did not come back once the network did` |
 
 Do the same for any scenario you add.
 

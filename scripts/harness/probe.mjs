@@ -328,7 +328,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const saved = await page.evaluate(() => {
-    const raw = Object.entries(localStorage).find(([k]) => k.startsWith('recipes:view'))
+    const raw = Object.entries(localStorage).find(([k]) => k.startsWith('recipes:view:v1:'))
     return raw ? JSON.parse(raw[1]).scrollByTab?.library : null
   })
   if (saved === null) findings.push('backgrounding with a modal open saved no view state at all')
@@ -378,7 +378,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const kept = await page.evaluate(() => {
-    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view:v1:'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
   if (kept === null) findings.push('the switch after a mid-gesture one saved no view state at all')
@@ -451,7 +451,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const afterFling = await page.evaluate(() => {
-    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view:v1:'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
   if (afterFling === null) findings.push('a flick saved no view state at all')
@@ -478,7 +478,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const afterJump = await page.evaluate(() => {
-    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view:v1:'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
   if (afterJump !== null && afterJump < target - 100) findings.push(`the page jumping to the top just after a flick saved ${afterJump}px instead of about ${target}px`)
@@ -510,7 +510,7 @@ export async function appswitch(page, base) {
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
   const afterTap = await page.evaluate(() => {
-    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view:v1:'))
     return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
   })
   if (afterTap === null) findings.push('a tap on the way back in saved no view state at all')
@@ -1085,6 +1085,125 @@ export async function coldstart(page, base) {
   return findings
 }
 
+/**
+ * Shapes other than the one phone every other scenario runs on.
+ *
+ * Everything here has been checked at 390×844 in portrait. A landscape phone is
+ * barely 390px tall, and a small one is 320px wide — the first squeezes what a
+ * modal has to fit in, the second squeezes what a row has to fit across.
+ */
+export async function shapes(page, base) {
+  const findings = []
+  await signIn(page, base)
+
+  const faults = (width) => page.evaluate((edge) => {
+    const out = []
+    if (document.documentElement.scrollWidth > edge + 1) {
+      out.push(`${document.documentElement.scrollWidth}px of content in ${edge}px`)
+    }
+    const past = [...document.querySelectorAll('body *')].filter((el) => {
+      const box = el.getBoundingClientRect()
+      return box.width && box.height && getComputedStyle(el).position !== 'fixed' && (box.right > edge + 1 || box.left < -1)
+    })
+    if (past.length) out.push(`${past.length} element(s) past the edge`)
+    return out
+  }, width)
+
+  // A narrow phone, which is where a row runs out of room across.
+  const narrow = { width: 320, height: 568 }
+  await page.setViewportSize(narrow)
+  await page.waitForTimeout(500)
+  for (const [index, label] of ['Meniu', 'Receptai', 'Krepšelis', 'Ištrinti'].entries()) {
+    await openTab(page, index)
+    for (const fault of await faults(narrow.width)) findings.push(`${narrow.width}px wide, ${label}: ${fault}`)
+  }
+
+  // Landscape, which is where a modal runs out of room down. The bottom of the
+  // card carries the buttons, so a card taller than the screen strands them.
+  const landscape = { width: 844, height: 390 }
+  await page.setViewportSize(landscape)
+  await page.waitForTimeout(500)
+  await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
+  await tap(page, 'button', 'Ingredientai')
+  await tap(page, '.manager-row button', 'Keisti')
+  await page.waitForTimeout(400)
+  const stranded = await page.evaluate((height) => {
+    const backdrop = [...document.querySelectorAll('.modal-backdrop')].pop()
+    if (!backdrop) return ['the ingredient editor did not open']
+    const out = []
+    const card = backdrop.querySelector('.modal').getBoundingClientRect()
+    if (card.bottom > height + 1) out.push(`the card runs ${Math.round(card.bottom - height)}px past the bottom of the screen`)
+    if (card.top < -1) out.push(`the card starts ${Math.round(-card.top)}px above the screen`)
+    const close = backdrop.querySelector('.icon-button')?.getBoundingClientRect()
+    if (close && (close.bottom > height + 1 || close.top < -1)) out.push('the close button is off screen')
+    return out
+  }, landscape.height)
+  for (const fault of stranded) findings.push(`landscape: ${fault}`)
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(300)
+  await page.setViewportSize({ width: 390, height: 844 })
+  return findings
+}
+
+/**
+ * What the app does when the backend cannot be reached.
+ *
+ * Not a fault the household can fix, so the only question is whether the app
+ * says so. The answer used to be that it offered to create a household: the
+ * membership read failed, the check finished holding nothing, and "no
+ * household" and "could not find out" look identical from there. Two people
+ * who have been cooking from this app for months were shown `Sukurkite savo
+ * virtuvę`, and taking it would have given them a second, empty one.
+ */
+export async function offline(page, base) {
+  const findings = []
+  await signIn(page, base)
+  await page.waitForTimeout(500)
+
+  // Every read fails from here. The session is already in storage, so the app
+  // gets as far as trying to load the household's data and no further.
+  await page.context().route('**/rest/v1/**', (route) => route.abort())
+  await page.reload({ waitUntil: 'domcontentloaded' })
+
+  // supabase-js retries a failed GET three times, a second apart and doubling,
+  // so nothing has gone wrong for the first seven seconds. Waiting less than
+  // that would report the client's own patience as a hang.
+  const settled = await page
+    .waitForFunction(() => document.querySelectorAll('.splash').length === 0, null, { timeout: 20000 })
+    .then(() => true, () => false)
+  if (!settled) findings.push('the app never left its loading screen with the network down')
+
+  const state = await page.evaluate(() => ({
+    offersHousehold: [...document.querySelectorAll('h1')].some((h) => /Sukurkite savo virtuvę/.test(h.textContent ?? '')),
+    nav: document.querySelectorAll('.bottom-nav').length,
+    said: [...document.querySelectorAll('.banner, .form-notice, .lead')].map((node) => node.textContent?.trim()).filter(Boolean),
+  }))
+  if (state.offersHousehold) {
+    findings.push('with the network down the app offered to create a household to someone who already has one')
+  }
+  if (settled && state.said.length === 0) {
+    findings.push('the app gave up on loading and said nothing about why')
+  }
+  if (state.nav > 0) findings.push('the app showed its tabs as though the data had loaded')
+
+  // And it recovers where it stopped: the button it offers has to do something.
+  // Reloading instead when there is no button keeps a stuck app from throwing
+  // here and taking the findings above down with it.
+  await page.context().unroute('**/rest/v1/**')
+  const offersRetry = await page.evaluate(() =>
+    [...document.querySelectorAll('button')].some((node) => /Bandyti dar kartą/.test(node.textContent ?? '')))
+  if (offersRetry) await tap(page, 'button', 'Bandyti dar kartą')
+  else {
+    findings.push('the app gave the household no way to try again')
+    await page.reload({ waitUntil: 'domcontentloaded' })
+  }
+  const recovered = await page
+    .waitForFunction(() => document.querySelectorAll('.bottom-nav').length > 0, null, { timeout: 15000 })
+    .then(() => true, () => false)
+  if (!recovered) findings.push('the app did not come back once the network did')
+  return findings
+}
+
 /** Modals stack, close topmost-first, and never strand the one underneath. */
 export async function modals(page, base) {
   const findings = []
@@ -1107,4 +1226,4 @@ export async function modals(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back, join, concurrent, coldstart }
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back, join, concurrent, coldstart, shapes, offline }
