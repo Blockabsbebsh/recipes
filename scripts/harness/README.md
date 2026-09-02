@@ -31,6 +31,7 @@ The catalogue comes from the real `data/barbora-categories.json`, so the categor
 - **`keyboard`** — opens the ingredient editor (a modal inside a modal), raises the keyboard, and checks the backdrop still covers the screen and the buttons are still reachable.
 - **`appswitch`** — leaves the app and returns, leaves with a modal open, and reopens after eviction. Each must land back where you were.
 - **`modals`** — three modals deep, Escape closes the topmost one at a time.
+- **`scrolltrace`** — the on-device scroll trace records the app switch, survives the reload it exists to explain, stays inside its cap, and prints in Settings.
 
 A finding beginning with `note:` is advisory: reported, but it does not fail the run. Use it for judgement calls rather than regressions.
 
@@ -57,8 +58,32 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `keyboard` | the backdrop sized to the visual viewport | `backdrop covers 328px of a 664px screen — 336px of live page shows below it` |
 | `appswitch` | recording scrolls with no touch behind them | `switching away when the web view moved first left the library at 0px instead of 1500px` |
 | `modals` | Escape closing the topmost modal | `Escape did not leave 2 modal(s) open` |
+| `scrolltrace` | recording anything at all | `the trace never recorded a "capture" event` |
+| `scrolltrace` | keeping the trace in memory instead of localStorage | `the trace never recorded a "boot" event` (nothing survived the reload) |
 
 Do the same for any scenario you add.
+
+## The scroll trace
+
+The app keeps its last 60 scroll-related events in `localStorage` under
+`recipes:scroll-trace:v1`, and prints them in **Nustatymai → Slinkties žurnalas**.
+It exists because the one moment that matters — the phone backgrounding the app —
+has no console attached, and iOS often reloads the web view before you could
+attach one. `src/lib/scrollTrace.js` is the whole of it.
+
+Read the tail after an app switch. It answers one question:
+
+| Tail | Reading |
+| --- | --- |
+| `write … y=0` before the app went away | the position was lost *before* leaving — some capture site recorded a scroll the household did not make |
+| `write … y=1500`, then `boot nav=reload`, then `restore-gave-up` | the position survived; the restore ran out of frames before the list was tall enough |
+| `write … y=1500`, then `boot nav=reload`, then `restore … y=0` | the restore landed and something scrolled back afterwards |
+| no `boot nav=reload` at all | iOS resumed the page rather than reloading it, so this is the `visibility` path, not the load path |
+
+`capture-skipped` says a scroll was seen and deliberately not recorded, with
+`why=hidden` or `why=modal`. `scroll-ignored` says the page moved with no touch
+behind it — that is the system, and seeing a run of them next to a lost position
+is the strongest signal there is.
 
 ## Adding a scenario
 

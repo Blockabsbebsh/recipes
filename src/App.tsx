@@ -6,6 +6,7 @@ import { ingredientLookupKey, ingredientNameWithoutQuantity, normalizeTitle, par
 import { classificationTags, classifyRecipe, CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
 import { SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl, trailTo } from './lib/barboraMapping'
 import type { CategoryIndex } from './lib/barboraMapping'
+import { clearTrace, formatTrace, navigationKind, readTrace, trace } from './lib/scrollTrace'
 import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RosterEntry, VocabularyIngredient } from './lib/types'
 
 type Tab = 'current' | 'library' | 'shop' | 'deleted'
@@ -184,53 +185,83 @@ function App() {
    * stub and not on a real device. Wait for the height instead of guessing at
    * a delay, and touch the scroll only once it can actually land.
    */
-  function restoreScroll(nextTab: Tab) {
+  function restoreScroll(nextTab: Tab, reason: string) {
     const target = scrollByTab.current[nextTab] ?? 0
-    if (target <= 0) return
+    if (target <= 0) {
+      trace('restore-skipped', { reason, tab: nextTab })
+      return
+    }
     let frames = 0
     const attempt = () => {
       const reachable = document.documentElement.scrollHeight - window.innerHeight
       if (reachable >= target) {
         window.scrollTo(0, target)
+        trace('restore', { reason, tab: nextTab, target, frames, y: window.scrollY })
         return
       }
       // Give up after about a second: the content is shorter than it was.
       if (frames < 60) {
         frames += 1
         window.requestAnimationFrame(attempt)
+        return
       }
+      trace('restore-gave-up', { reason, tab: nextTab, target, reachable: Math.max(0, Math.round(reachable)) })
     }
     window.requestAnimationFrame(attempt)
   }
 
-  function saveViewState(captureScroll = true) {
+  /**
+   * Note where the page is, if the page is somewhere worth noting.
+   *
+   * Every writer of `scrollByTab` comes through here, so one place decides
+   * what counts as the household's own scrolling and one place records the
+   * decision. A hidden page is the system moving the web view as it
+   * backgrounds the app, and a modal parks the body at the top through
+   * `position: fixed` and reports zero; saving either overwrites the position
+   * we mean to come back to.
+   */
+  function captureScroll(from: string) {
+    const y = window.scrollY
+    if (document.visibilityState === 'hidden') {
+      trace('capture-skipped', { from, y, why: 'hidden' })
+      return
+    }
+    if (document.body.style.position === 'fixed') {
+      trace('capture-skipped', { from, y, why: 'modal' })
+      return
+    }
+    scrollByTab.current[tabRef.current] = y
+    trace('capture', { from, tab: tabRef.current, y })
+  }
+
+  function persistViewState(reason: string) {
     if (!persistedViewKey || !viewStateReady) return
-    if (captureScroll) scrollByTab.current[tabRef.current] = window.scrollY
     const state: PersistedViewState = {
       version: 1,
       tab: tabRef.current,
-      scrollByTab: scrollByTab.current,
+      scrollByTab: { ...scrollByTab.current },
       expandedRecipeId: expandedRecipeRef.current,
     }
     try {
       window.localStorage.setItem(persistedViewKey, JSON.stringify(state))
+      trace('write', { reason, tab: state.tab, y: state.scrollByTab[state.tab] })
     } catch {
       // A full or unavailable localStorage must never make the app unusable.
     }
   }
 
   function changeTab(nextTab: Tab) {
-    scrollByTab.current[tabRef.current] = window.scrollY
+    captureScroll('tab')
     tabRef.current = nextTab
     setTab(nextTab)
-    saveViewState(false)
-    restoreScroll(nextTab)
+    persistViewState('tab')
+    restoreScroll(nextTab, 'tab')
   }
 
   function changeExpandedRecipe(recipeId: string | null) {
     expandedRecipeRef.current = recipeId
     setLibraryExpanded(recipeId)
-    saveViewState(false)
+    persistViewState('expand')
   }
 
   useEffect(() => {
@@ -373,6 +404,7 @@ function App() {
     if (!persistedViewKey || !dataReady) return
     const saved = readViewState(persistedViewKey)
     const nextTab = saved?.tab ?? 'current'
+    trace('load', { nav: navigationKind(), tab: nextTab, y: saved?.scrollByTab[nextTab] ?? 0 })
     const expandedStillExists = saved?.expandedRecipeId
       ? recipes.some((recipe) => recipe.id === saved.expandedRecipeId && !recipe.deleted_at)
       : false
@@ -382,7 +414,7 @@ function App() {
     setTab(nextTab)
     setLibraryExpanded(expandedRecipeRef.current)
     setViewStateReady(true)
-    restoreScroll(nextTab)
+    restoreScroll(nextTab, 'load')
     // Restore once for this user/household after its first successful load.
     // Realtime refreshes must not pull an older scroll position back in.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -414,55 +446,54 @@ function App() {
     let pointerAt = 0
     let settleTimer = 0
 
-    const capture = () => {
-      if (document.visibilityState === 'hidden') return
-      if (document.body.style.position === 'fixed') return
-      scrollByTab.current[tabRef.current] = window.scrollY
-    }
     const startGesture = () => { touching = true }
     const endGesture = () => {
       touching = false
       // Momentum runs on after the finger lifts; take the resting position.
       window.clearTimeout(settleTimer)
-      settleTimer = window.setTimeout(capture, 400)
+      settleTimer = window.setTimeout(() => captureScroll('settle'), 400)
     }
     const notePointer = () => { pointerAt = Date.now() }
     const rememberScroll = () => {
-      if (touching || Date.now() - pointerAt < 150) capture()
+      if (touching || Date.now() - pointerAt < 150) captureScroll('scroll')
+      else trace('scroll-ignored', { y: window.scrollY })
     }
 
-    const save = () => {
-      capture()
-      const state: PersistedViewState = {
-        version: 1,
-        tab: tabRef.current,
-        scrollByTab: scrollByTab.current,
-        expandedRecipeId: expandedRecipeRef.current,
-      }
-      try {
-        window.localStorage.setItem(persistedViewKey, JSON.stringify(state))
-      } catch {
-        // A full or unavailable localStorage must never make the app unusable.
-      }
+    const save = (reason: string) => {
+      captureScroll(reason)
+      persistViewState(reason)
     }
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') save()
-      else restoreScroll(tabRef.current)
+      const state = document.visibilityState
+      trace('visibility', { state, y: window.scrollY })
+      if (state === 'hidden') save('hide')
+      else restoreScroll(tabRef.current, 'visible')
+    }
+    const onPageHide = (event: PageTransitionEvent) => {
+      trace('pagehide', { persisted: event.persisted, y: window.scrollY })
+      save('pagehide')
     }
     const restoreOnReturn = (event: PageTransitionEvent) => {
-      if (event.persisted) restoreScroll(tabRef.current)
+      trace('pageshow', { persisted: event.persisted, y: window.scrollY })
+      if (event.persisted) restoreScroll(tabRef.current, 'pageshow')
     }
+    // Chrome and Android freeze a backgrounded tab instead of unloading it;
+    // Safari does not fire these at all, and its absence is itself a finding.
+    const onFreeze = () => { trace('freeze', { y: window.scrollY }); save('freeze') }
+    const onResume = () => { trace('resume', { y: window.scrollY }); restoreScroll(tabRef.current, 'resume') }
     window.addEventListener('touchstart', startGesture, { passive: true })
     window.addEventListener('touchend', endGesture, { passive: true })
     window.addEventListener('touchcancel', endGesture, { passive: true })
     window.addEventListener('wheel', notePointer, { passive: true })
     window.addEventListener('keydown', notePointer)
     window.addEventListener('scroll', rememberScroll, { passive: true })
-    window.addEventListener('pagehide', save)
+    window.addEventListener('pagehide', onPageHide)
     window.addEventListener('pageshow', restoreOnReturn)
     document.addEventListener('visibilitychange', onVisibilityChange)
+    document.addEventListener('freeze', onFreeze)
+    document.addEventListener('resume', onResume)
     return () => {
-      save()
+      save('teardown')
       window.clearTimeout(settleTimer)
       window.removeEventListener('touchstart', startGesture)
       window.removeEventListener('touchend', endGesture)
@@ -470,13 +501,16 @@ function App() {
       window.removeEventListener('wheel', notePointer)
       window.removeEventListener('keydown', notePointer)
       window.removeEventListener('scroll', rememberScroll)
-      window.removeEventListener('pagehide', save)
+      window.removeEventListener('pagehide', onPageHide)
       window.removeEventListener('pageshow', restoreOnReturn)
       document.removeEventListener('visibilitychange', onVisibilityChange)
+      document.removeEventListener('freeze', onFreeze)
+      document.removeEventListener('resume', onResume)
     }
   }, [persistedViewKey, viewStateReady])
 
   useEffect(() => {
+    trace('boot', { nav: navigationKind(), y: window.scrollY })
     const previous = window.history.scrollRestoration
     window.history.scrollRestoration = 'manual'
     return () => { window.history.scrollRestoration = previous }
@@ -1621,14 +1655,14 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, cat
   onDeleteCategory: (category: HouseholdTag) => Promise<void>
   onClose: () => void
 }) {
-  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories'>('menu')
+  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories' | 'trace'>('menu')
   const [copied, setCopied] = useState(false)
   async function copyCode() {
     await navigator.clipboard.writeText(household.invite_code)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
-  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : 'Nustatymai'
+  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : view === 'trace' ? 'Slinkties žurnalas' : 'Nustatymai'
   return (
     <Modal title={title} onClose={onClose} wide={view === 'ingredients'}>
       {view === 'menu' && <>
@@ -1636,6 +1670,7 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, cat
           <button onClick={() => setView('invite')}><span><strong>Pakviesti prisijungti</strong><small>Virtuvės kodas kitam žmogui</small></span><b>›</b></button>
           <button onClick={() => setView('ingredients')}><span><strong>Ingredientai</strong><small>Pavadinimai ir skyriai parduotuvėje</small></span><b>›</b></button>
           <button onClick={() => setView('categories')}><span><strong>Receptų kategorijos</strong><small>Grupės receptų bibliotekoje</small></span><b>›</b></button>
+          <button onClick={() => setView('trace')}><span><strong>Slinkties žurnalas</strong><small>Ką programa įsiminė perjungiant programas</small></span><b>›</b></button>
         </div>
         <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
         <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Atsijungti</button>
@@ -1653,8 +1688,47 @@ function SettingsDialog({ household, email, vocabulary, recipes, categories, cat
         <SettingsBack onClick={() => setView('menu')} />
         <RecipeCategoriesManager categories={categories} recipes={recipes} onCreate={onCreateCategory} onUpdate={onUpdateCategory} onDelete={onDeleteCategory} />
       </>}
+      {view === 'trace' && <>
+        <SettingsBack onClick={() => setView('menu')} />
+        <ScrollTrace />
+      </>}
     </Modal>
   )
+}
+
+/**
+ * The scroll trace, printed.
+ *
+ * Nothing here helps with cooking. It is for the one question the console
+ * cannot answer, because the phone reloads the app before you can attach one:
+ * when you come back from another app and the page is at the top, was the
+ * position already lost before we left, or lost on the way back in?
+ */
+function ScrollTrace() {
+  const [entries, setEntries] = useState(() => readTrace())
+  const [copied, setCopied] = useState(false)
+  const text = formatTrace(entries)
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      // Clipboard access can be refused; the text is on screen either way.
+    }
+  }
+  return <>
+    <p className="muted">
+      Naujausi įrašai apačioje. <code>capture</code> — įsiminta padėtis, <code>write</code> — įrašyta į atmintį,
+      <code> restore</code> — grąžinta. Perjunkite programą, grįžkite ir pažiūrėkite paskutines eilutes.
+    </p>
+    <div className="trace-actions">
+      <button className="button secondary" onClick={() => void copy()}>{copied ? 'Nukopijuota!' : 'Kopijuoti'}</button>
+      <button className="button secondary" onClick={() => { clearTrace(); setEntries([]) }}>Išvalyti</button>
+      <button className="button secondary" onClick={() => setEntries(readTrace())}>Atnaujinti</button>
+    </div>
+    <pre className="scroll-trace">{text}</pre>
+  </>
 }
 
 function SettingsBack({ onClick }: { onClick: () => void }) {

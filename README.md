@@ -49,6 +49,8 @@ npm i --no-save playwright@1.62.1
 
 [`scripts/harness/README.md`](scripts/harness/README.md) explains the scenarios, how to add one, and the pitfalls — above all that Playwright's own `click()` scrolls the page and will invent bugs that are not there.
 
+The app also keeps its own record of what happened to the scroll position — the last 60 events, readable on the phone under **Nustatymai → Slinkties žurnalas**, because the moment restoration fails in has no console attached.
+
 ## First use
 
 1. Create an account in the app and confirm the email if Supabase asks.
@@ -97,5 +99,5 @@ Barbora's bot protection currently refuses the crawler, so the catalogue is refr
 - Ingredient quantities and shopping-item checkboxes are intentionally absent.
 - 17 of 217 ingredients still link to their section's aisle because Barbora's tree does not distinguish them safely (for example dry versus canned chickpeas). The picker closes the gap for anything worth choosing by hand.
 - Barbora's app-link files contain at least one retired route that launches the app and then returns a 404. Links therefore always preserve the crawler's current website path and use plain HTTPS with `target="_blank"`. Whether the link opens the app is decided by the OS and Barbora's association files. On iOS the preference may have to be granted once — long-press a category link in Notes and choose **Open in Barbora**.
-- The PWA restores the active tab, each tab's scroll position, and the expanded library recipe after iOS evicts and reloads it. Unsaved editor drafts are not persisted.
+- The PWA restores the active tab, each tab's scroll position, and the expanded library recipe after iOS evicts and reloads it. Unsaved editor drafts are not persisted. Scroll restoration is still reported as failing on at least one real device where every scenario passes — **Nustatymai → Slinkties žurnalas** records what the phone actually did, so the next report can say which half of it broke.
 - No recipe images or licensing machinery.

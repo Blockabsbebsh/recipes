@@ -229,6 +229,56 @@ export async function appswitch(page, base) {
   return findings
 }
 
+/**
+ * The scroll trace: a diagnostic is worthless if it dies in the event it
+ * exists to explain. It has to survive the reload, record which side of it
+ * lost the position, and be readable without a cable.
+ */
+export async function scrolltrace(page, base) {
+  const findings = []
+  const key = 'recipes:scroll-trace:v1'
+  const entries = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '[]'), key)
+  const kinds = async () => (await entries()).map((entry) => entry.kind)
+
+  await signIn(page, base)
+  await openTab(page, 1)
+  await userScroll(page, 1500)
+  await page.waitForTimeout(600)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(300)
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(600)
+
+  const beforeReload = await kinds()
+  for (const expected of ['boot', 'load', 'capture', 'visibility', 'write']) {
+    if (!beforeReload.includes(expected)) findings.push(`the trace never recorded a "${expected}" event`)
+  }
+  const written = (await entries()).filter((entry) => entry.kind === 'write').pop()
+  if (written && Math.abs(Number(written.y) - 1500) > 40) {
+    findings.push(`the trace says ${written.y}px was written where the finger left 1500px`)
+  }
+
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForTimeout(3500)
+  const afterReload = await entries()
+  if (afterReload.length <= beforeReload.length - 5) findings.push('the trace did not survive the reload')
+  if (afterReload.length > 60) findings.push(`the trace grew to ${afterReload.length} entries, past its 60-entry cap`)
+  const reboot = afterReload.filter((entry) => entry.kind === 'boot').pop()
+  if (reboot?.nav !== 'reload') findings.push(`the reload was recorded as nav=${reboot?.nav ?? 'nothing'}`)
+  const tail = afterReload.slice(afterReload.indexOf(reboot)).map((entry) => entry.kind)
+  if (!tail.some((kind) => kind.startsWith('restore'))) findings.push('the trace says nothing about what the restore did after the reload')
+
+  // And it has to be legible from the phone, which is the only place it runs.
+  await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
+  await tap(page, 'button', 'Slinkties žurnalas')
+  await page.waitForTimeout(300)
+  const printed = await page.locator('.scroll-trace').first().innerText().catch(() => '')
+  if (!/^\d\d:\d\d:\d\d \w/m.test(printed)) findings.push('the settings readout printed no events')
+  if (printed.split('\n').length < 5) findings.push(`the settings readout printed only ${printed.split('\n').length} line(s)`)
+  await page.keyboard.press('Escape')
+  return findings
+}
+
 /** Modals stack, close topmost-first, and never strand the one underneath. */
 export async function modals(page, base) {
   const findings = []
@@ -251,4 +301,4 @@ export async function modals(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals }
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace }
