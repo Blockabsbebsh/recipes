@@ -1040,6 +1040,51 @@ export async function concurrent(page, base) {
   return findings
 }
 
+/**
+ * A cold start opens on the tab you were last using.
+ *
+ * The remembered tab used to arrive with the data, several hundred milliseconds
+ * after the app had already drawn and filled the menu — so every cold start
+ * showed the wrong tab, populated it, and then jumped. Catching that needs the
+ * *first* painted frame rather than the settled one, so the page records every
+ * active tab it ever shows and the check reads the first.
+ */
+export async function coldstart(page, base) {
+  const findings = []
+  await signIn(page, base)
+
+  // Be somewhere other than the menu, and let it be written down.
+  await openTab(page, 2)
+  await page.waitForTimeout(800)
+
+  await page.addInitScript(() => {
+    window.__tabsSeen = []
+    const watch = () => {
+      // Without the badge: the basket's count appears when the data lands, and
+      // "Krepšelis" becoming "6Krepšelis" is not the app changing tabs.
+      const active = document.querySelector('.bottom-nav button.active')?.textContent?.replace(/\d+/g, '').trim()
+      if (active && window.__tabsSeen.at(-1) !== active) window.__tabsSeen.push(active)
+      requestAnimationFrame(watch)
+    }
+    requestAnimationFrame(watch)
+  })
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForTimeout(3500)
+
+  const seen = await page.evaluate(() => window.__tabsSeen ?? [])
+  if (seen.length === 0) {
+    findings.push('the navigation never appeared after a cold start')
+    return findings
+  }
+  if (!/Krepšelis/.test(seen[0])) {
+    findings.push(`a cold start first drew "${seen[0]}" when the basket was where they left off`)
+  }
+  if (seen.length > 1) {
+    findings.push(`a cold start moved through ${seen.length} tabs before settling: ${seen.join(' → ')}`)
+  }
+  return findings
+}
+
 /** Modals stack, close topmost-first, and never strand the one underneath. */
 export async function modals(page, base) {
   const findings = []
@@ -1062,4 +1107,4 @@ export async function modals(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back, join, concurrent }
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back, join, concurrent, coldstart }

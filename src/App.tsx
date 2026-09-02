@@ -14,7 +14,7 @@ import { useRecipeWriting } from './hooks/useRecipeWriting'
 import { usePlanning } from './hooks/usePlanning'
 import type { BarboraCategory, Household, IngredientSection, QueueEntry, Recipe, RecipeDestination, RosterEntry, Tab, VocabularyIngredient } from './lib/types'
 import { HOLD_MS, MOMENTUM_MS, RESTORE_PATIENCE_MS, STILL_MS, createGesture, hasDrifted, keepable, reaches } from './lib/scrollMemory'
-import { EMPTY_SCROLL, SCROLL_MEMORY_MS, positionsFrom, readViewState, viewStateKey, writeViewState } from './lib/viewState'
+import { EMPTY_SCROLL, SCROLL_MEMORY_MS, lastTab, positionsFrom, readViewState, viewStateKey, writeViewState } from './lib/viewState'
 import type { PersistedViewState } from './lib/viewState'
 import { SECTION_LABELS, SECTION_ORDER } from './lib/sections'
 import { RecipeEditor } from './components/RecipeEditor'
@@ -73,7 +73,14 @@ function App() {
   const [authReady, setAuthReady] = useState(false)
   const [household, setHousehold] = useState<Household | null>(null)
   const [setupChecked, setSetupChecked] = useState(false)
-  const [tab, setTab] = useState<Tab>('current')
+  // Start on the tab they were last using rather than on the menu.
+  //
+  // The real record cannot be read this early — it is keyed by user and
+  // household, and neither is known until auth has answered and the household
+  // has been fetched, by which time the app has painted and populated the wrong
+  // tab. Reading the tab alone costs one synchronous lookup, and the record
+  // corrects it a moment later in the rare case they disagree.
+  const [tab, setTab] = useState<Tab>(() => lastTab() ?? 'current')
   const [libraryExpanded, setLibraryExpanded] = useState<string | null>(null)
   const [viewStateReady, setViewStateReady] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -83,7 +90,7 @@ function App() {
   const [importOpen, setImportOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const tabRef = useRef<Tab>('current')
+  const tabRef = useRef<Tab>(tab)
   const expandedRecipeRef = useRef<string | null>(null)
   const scrollByTab = useRef<Record<Tab, number>>({ ...EMPTY_SCROLL })
   // When the household last touched the screen, so a correction can tell its

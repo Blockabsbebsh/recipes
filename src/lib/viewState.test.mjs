@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { EMPTY_SCROLL, SCROLL_MEMORY_MS, parseViewState, positionsFrom, readViewState, viewStateKey, writeViewState } from './viewState.js'
+import { EMPTY_SCROLL, SCROLL_MEMORY_MS, lastTab, parseViewState, positionsFrom, readViewState, rememberLastTab, viewStateKey, writeViewState } from './viewState.js'
 
 const record = (over = {}) => ({
   version: 1,
@@ -75,4 +75,26 @@ test('positions are a copy, so the caller cannot edit the record', () => {
   const positions = positionsFrom(state, state.savedAt)
   positions.shop = 0
   assert.equal(state.scrollByTab.shop, 605)
+})
+
+test('the tab is left where the next cold start can read it', () => {
+  const storage = store()
+  writeViewState('k', record({ tab: 'library' }), storage)
+  assert.equal(lastTab(storage), 'library', 'readable without knowing the user or household')
+})
+
+test('a cold start with nothing stored begins at the menu', () => {
+  assert.equal(lastTab(store()), null)
+})
+
+test('a tab this app does not have is not painted', () => {
+  const storage = store()
+  storage.setItem('recipes:view:last-tab', 'elsewhere')
+  assert.equal(lastTab(storage), null)
+})
+
+test('a storage that refuses does not take the write down with it', () => {
+  const angry = { getItem: () => { throw new Error('denied') }, setItem: () => { throw new Error('quota') } }
+  assert.doesNotThrow(() => rememberLastTab('shop', angry))
+  assert.equal(lastTab(angry), null)
 })

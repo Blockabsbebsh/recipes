@@ -12,6 +12,8 @@ export const TABS: readonly Tab[]
 export const EMPTY_SCROLL: Record<Tab, number>
 export const SCROLL_MEMORY_MS: number
 
+export function rememberLastTab(tab: Tab, storage?: Storage): void
+export function lastTab(storage?: Storage): Tab | null
 export function viewStateKey(userId: string, householdId: string): string
 export function parseViewState(raw: string | null): PersistedViewState | null
 export function readViewState(key: string, storage?: Storage): PersistedViewState | null

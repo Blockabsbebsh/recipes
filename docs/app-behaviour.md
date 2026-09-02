@@ -27,6 +27,23 @@ without a browser.
 The `Modal` is worth knowing about: it is where Escape, the keyboard inset and
 the back button are handled, so a new dialog gets all three by using it.
 
+## Opening on the right tab
+
+The record of where you were is keyed by user and household, and neither is
+known until auth has answered and the household has been fetched. That is
+several hundred milliseconds after the app has drawn — so a cold start used to
+paint the menu, fill it, and then jump to wherever you actually were.
+
+The tab alone is therefore left under a key that needs no identity,
+`recipes:view:last-tab`, written whenever the view state is. Reading it is one
+synchronous lookup in the initialiser of the tab state, so the first painted
+frame is already the right one; the real record corrects it a moment later in
+the rare case they disagree — a different person on a shared device, say.
+
+Only the tab is treated this way. A scroll position painted before the list
+exists would be clamped to the top and would have to be restored again anyway,
+which is what `restoreScroll` is for.
+
 ## Two people at once
 
 The app never blocks on the other person, so both are always working from a
