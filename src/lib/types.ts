@@ -105,3 +105,5 @@ export type RecipeDraft = {
   dishType?: string
   cuisine?: string
 }
+
+export type Tab = 'current' | 'library' | 'shop' | 'deleted'

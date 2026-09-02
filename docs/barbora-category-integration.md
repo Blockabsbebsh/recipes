@@ -171,6 +171,9 @@ An optional tree search may be added later, but it must navigate to a result ins
 
 ## PWA state restoration
 
+The rules live in two modules, and `App.tsx` holds only the wiring between them and the page. `src/lib/viewState.js` is the record itself — what is kept, how it is read back from a storage shared with every other page on the origin, and when a position has gone stale. `src/lib/scrollMemory.js` decides what a movement of the page *was*: the household dragging it, the momentum of a flick they have let go of, or the phone moving the web view on its own. Nothing in the browser distinguishes those three, saving the wrong one loses the place they were reading, and every rule for telling them apart was learnt from a log off a real phone. Both are exercised with plain numbers rather than a browser, so the reasoning can be read and tested without one.
+
+
 The app persists a small versioned, non-sensitive object in `localStorage`, keyed by user and household:
 
 - active top-level tab;
