@@ -34,6 +34,7 @@ The catalogue comes from the real `data/barbora-categories.json`, so the categor
 - **`planning`** — a week run through: into the basket and out, the shop finished, a meal cooked and un-cooked, a recipe deleted and restored.
 - **`back`** — the phone's back button closes dialogs innermost-first, steps back out of a page inside a dialog, comes home from another tab, and leaves the app when there is nothing left of ours.
 - **`join`** — the only way a second person gets in: a wrong invite code is refused and said so, a right one typed with a space in it works.
+- **`coldstart`** — the app opens on the tab you were last using, and passes through no other on the way.
 - **`concurrent`** — two people, one household, two browsers. What each app does while holding a picture of the household that has stopped being true.
 - **`scrolltrace`** — the on-device scroll trace records the app switch, survives the reload it exists to explain, stays inside its cap, and prints in Settings.
 
@@ -79,6 +80,13 @@ entry, so the count never drops and an assertion on it can never fire. The
 observable symptom of a stale entry is a back press that does nothing — so the
 check is that back eventually *leaves the app*, which has to be the last thing
 a scenario does.
+
+**To catch a flash, watch every frame, not the settled one.** A cold start
+showing the wrong tab and correcting itself half a second later looks identical
+to a correct one by the time a scenario usually looks. `coldstart` installs a
+`requestAnimationFrame` watcher through `addInitScript` and records every active
+tab the page ever draws, then reads the first. Ignore the badge while doing it:
+`Krepšelis` becoming `6Krepšelis` when the data lands is not a tab change.
 
 **Scenarios share one database, in order.** There is one stub for the whole
 run, so `planning` empties the basket before `concurrent` sees it. A scenario
@@ -171,6 +179,7 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `back` | taking a dialog's history entry with it when it is closed by hand | `with nothing open, back stayed in the app instead of leaving it` |
 | `back` | counting a page inside a dialog as somewhere to come back from | `back from a settings page closed the whole dialog` |
 | `join` | turning the `null` a wrong code answers with into a message | `a wrong invite code was accepted in silence` |
+| `coldstart` | reading the remembered tab before the first paint | `a cold start first drew "Meniu" when the basket was where they left off` |
 | `concurrent` | the basket refusing to draw a binned recipe | `a recipe deleted moments earlier was added to the basket anyway as "Makaronai su pesto"` |
 | `concurrent` | deleting a recipe clearing it out of the basket | `1 basket row(s) point at a recipe in the bin, where nobody can reach them` |
 | `concurrent` | the shopping list skipping a binned recipe's ingredients | `the shopping list is buying ingredients for "Makaronai su pesto", which the other person had already binned` |
