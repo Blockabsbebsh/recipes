@@ -24,7 +24,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 
 ## Run locally
 
-Requirements: Node 24 or later.
+Requirements: Node 24 or later — the test script uses `--test-isolation=none`, which older versions do not accept.
 
 ```bash
 npm ci

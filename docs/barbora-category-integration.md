@@ -163,6 +163,29 @@ An optional tree search may be added later, but it must navigate to a result ins
 - The Android `intent://` experiment for package `lt.barbora` was removed because the app did not handle the intent. Plain HTTPS links let Android's own App Links or Digital Asset Links do the right thing when Barbora registers them.
 - The temporary **Nuorodų testas** screen was removed after device behavior was established. An ordinary category link falls back to a browser when Barbora is not installed or the association is unavailable.
 
+## Names that are contracts
+
+Three sets of strings in this repository are agreements with something outside
+the code, and none of them may be tidied, renamed, or retyped:
+
+- **The section keys** — `Produce`, `Bakery`, `Dairy & alternatives`, `Frozen`,
+  `Pantry`, `Spices`, `Other`. They are the values stored in `ingredients.section`,
+  the keys of `SECTION_ROOTS` here, and the keys of `SECTION_LABELS` in
+  `src/lib/sections.ts`. Renaming one orphans every existing row and breaks the
+  aisle fallback.
+- **The Barbora paths** in `SECTION_ROOTS` and in `data/barbora-categories.json`.
+  Barbora's app opens a link only when the path matches its own routes exactly;
+  a path that looks tidier is a link that opens a browser instead of the shop.
+- **The tag prefixes** `Tipas: ` and `Virtuvė: `, which are how a dish type is
+  told from a cuisine in a single tag table.
+
+The Lithuanian labels beside those keys are display text and can be changed
+freely. The distinction is easy to lose: during a refactor that moved
+`SECTION_LABELS` between files, retyping the block by hand rather than moving it
+turned `Pieno produktai ir alternatyvos` into something shorter. It was a label
+rather than a key, so nothing broke — but the same slip one column to the left
+would have been silent and expensive. Move these blocks; do not retype them.
+
 ## Outstanding work
 
 1. **Device regression testing** on both phones for the links themselves, especially the iOS Universal Link preference for the current dairy path. The app's own behaviour on both phones — scroll, resume, back — has been checked against real logs.
