@@ -56,7 +56,7 @@ npm i --no-save playwright@1.62.1
 
 The app also keeps its own record of what happened to the scroll position — the last 150 events, readable on the phone under **Nustatymai → Slinkties žurnalas**, because the moment restoration fails in has no console attached. Reading one is described in the harness README; it is what found every scroll fault that mattered.
 
-[`docs/app-behaviour.md`](docs/app-behaviour.md) explains where the code lives and what each phone behaviour does and why.
+[`docs/app-behaviour.md`](docs/app-behaviour.md) explains where the code lives and what each phone behaviour does and why. [`docs/possible-features.md`](docs/possible-features.md) lists what was considered and deliberately not built, with the reasoning kept so it does not have to be worked out again.
 
 ## First use
 
