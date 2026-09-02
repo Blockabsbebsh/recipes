@@ -3,12 +3,13 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { ingredientLookupKey, ingredientNameWithoutQuantity, normalizeTitle } from './lib/parser'
 import { classificationTags, classifyRecipe, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
-import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, mapIngredient, shoppingUrl } from './lib/barboraMapping'
-import type { CategoryIndex } from './lib/barboraMapping'
+import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, shoppingUrl } from './lib/barboraMapping'
 import { environment, navigationKind, trace, visualTop } from './lib/scrollTrace'
 import { showsSetupSplash } from './lib/readiness'
 import { useHouseholdData } from './hooks/useHouseholdData'
-import type { BarboraCategory, Household, HouseholdTag, IngredientSection, QueueEntry, Recipe, RecipeDraft, RecipeDestination, RosterEntry, Tab, VocabularyIngredient } from './lib/types'
+import { useVocabulary } from './hooks/useVocabulary'
+import { useRecipeCategories } from './hooks/useRecipeCategories'
+import type { BarboraCategory, Household, IngredientSection, QueueEntry, Recipe, RecipeDraft, RecipeDestination, RosterEntry, Tab, VocabularyIngredient } from './lib/types'
 import { HOLD_MS, MOMENTUM_MS, RESTORE_PATIENCE_MS, STILL_MS, createGesture, hasDrifted, keepable, reaches } from './lib/scrollMemory'
 import { EMPTY_SCROLL, SCROLL_MEMORY_MS, positionsFrom, readViewState, viewStateKey, writeViewState } from './lib/viewState'
 import type { PersistedViewState } from './lib/viewState'
@@ -17,6 +18,7 @@ import { RecipeEditor } from './components/RecipeEditor'
 import { ImportDialog } from './components/ImportDialog'
 import { MealPicker } from './components/MealPicker'
 import { SettingsDialog } from './components/SettingsDialog'
+
 
 
 
@@ -59,46 +61,6 @@ function BarboraLink({ href, children }: { href: string | null; children: ReactN
     rel="noopener noreferrer"
     onClick={() => trace('leave-by-link', { to: href.replace(BARBORA_ORIGIN, '') })}
   >{children}</a>
-}
-
-/**
- * The mapping columns for an ingredient. A category the household picked by
- * hand is recorded as such and is never recomputed; everything else is the
- * mapper's proposal, which may be nothing at all.
- */
-function mappingFields(
-  name: string,
-  section: IngredientSection,
-  index: CategoryIndex,
-  manualPath?: string | null,
-) {
-  const stamp = new Date().toISOString()
-  // No catalogue loaded means no opinion, not "no category": clearing the
-  // columns here would quietly discard a mapping because a fetch was slow.
-  if (index.byPath.size === 0 && !manualPath) return {}
-  if (manualPath) {
-    return {
-      barbora_category_path: manualPath,
-      barbora_mapping_reason: 'manual',
-      barbora_mapping_source: 'manual',
-      barbora_mapping_updated_at: stamp,
-    }
-  }
-  const proposal = mapIngredient(name, section, index)
-  if (!proposal) {
-    return {
-      barbora_category_path: null,
-      barbora_mapping_reason: null,
-      barbora_mapping_source: null,
-      barbora_mapping_updated_at: null,
-    }
-  }
-  return {
-    barbora_category_path: proposal.path,
-    barbora_mapping_reason: proposal.reason,
-    barbora_mapping_source: 'automatic',
-    barbora_mapping_updated_at: stamp,
-  }
 }
 
 function App() {
@@ -797,148 +759,6 @@ function App() {
     setMessage(`Importuota receptų: ${drafts.length}`)
   }
 
-  async function createIngredient(name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) {
-    if (!household) return false
-    const cleaned = ingredientNameWithoutQuantity(name)
-    if (!cleaned) return false
-    const { error: createError } = await supabase.from('ingredients').insert({
-      household_id: household.id,
-      name: cleaned,
-      section,
-      barbora_direct_url: directUrl || null,
-      ...mappingFields(cleaned, section, categoryIndex, manualPath),
-    })
-    if (createError) {
-      setError(createError.code === '23505' ? 'Toks ingredientas jau yra.' : createError.message)
-      return false
-    }
-    await loadData()
-    setMessage('Ingredientas pridėtas')
-    return true
-  }
-
-  /**
-   * `manualPath` is the household's own choice. Passing nothing re-runs the
-   * mapper, which is how "restore the automatic choice" is expressed.
-   */
-  async function updateIngredient(
-    ingredient: VocabularyIngredient,
-    name: string,
-    section: IngredientSection,
-    manualPath?: string | null,
-    directUrl?: string | null,
-  ) {
-    const cleaned = ingredientNameWithoutQuantity(name)
-    if (!cleaned) return false
-    const { error: updateError } = await supabase
-      .from('ingredients')
-      .update({ name: cleaned, section, barbora_direct_url: directUrl || null, ...mappingFields(cleaned, section, categoryIndex, manualPath) })
-      .eq('id', ingredient.id)
-    if (updateError) {
-      setError(updateError.code === '23505' ? 'Toks ingredientas jau yra.' : updateError.message)
-      return false
-    }
-    await loadData()
-    setMessage('Ingredientas atnaujintas')
-    return true
-  }
-
-  async function deleteIngredient(ingredient: VocabularyIngredient) {
-    const uses = recipes.reduce(
-      (count, recipe) => count + (recipe.recipe_ingredients.some((item) => item.ingredient_id === ingredient.id) ? 1 : 0),
-      0,
-    )
-    const warning = uses
-      ? `„${ingredient.name}“ naudojamas ${uses} receptuose. Pašalinti jį ir iš šių receptų?`
-      : `Pašalinti ingredientą „${ingredient.name}“?`
-    if (!window.confirm(warning)) return
-    if (uses) {
-      const { error: linkError } = await supabase.from('recipe_ingredients').delete().eq('ingredient_id', ingredient.id)
-      if (linkError) {
-        setError(linkError.message)
-        return
-      }
-    }
-    const { error: deleteError } = await supabase.from('ingredients').delete().eq('id', ingredient.id)
-    if (deleteError) setError(deleteError.message)
-    else {
-      await loadData()
-      setMessage('Ingredientas pašalintas')
-    }
-  }
-
-  async function createRecipeCategory(name: string) {
-    if (!household) return false
-    const cleaned = name.replace(DISH_TAG_PREFIX, '').trim()
-    if (!cleaned) return false
-    const { error: createError } = await supabase.from('tags').insert({ household_id: household.id, name: `${DISH_TAG_PREFIX}${cleaned}` })
-    if (createError) {
-      setError(createError.code === '23505' ? 'Tokia kategorija jau yra.' : createError.message)
-      return false
-    }
-    await loadData()
-    setMessage('Kategorija pridėta')
-    return true
-  }
-
-  async function updateRecipeCategory(category: HouseholdTag, name: string) {
-    const cleaned = name.replace(DISH_TAG_PREFIX, '').trim()
-    if (!cleaned) return false
-    const { error: updateError } = await supabase
-      .from('tags')
-      .update({ name: `${DISH_TAG_PREFIX}${cleaned}` })
-      .eq('id', category.id)
-    if (updateError) {
-      setError(updateError.code === '23505' ? 'Tokia kategorija jau yra.' : updateError.message)
-      return false
-    }
-    await loadData()
-    setMessage('Kategorija atnaujinta')
-    return true
-  }
-
-  async function deleteRecipeCategory(category: HouseholdTag) {
-    if (!household) return
-    const affected = recipes.filter((recipe) => recipe.recipe_tags.some((link) => link.tag.id === category.id))
-    const label = category.name.slice(DISH_TAG_PREFIX.length)
-    const warning = affected.length
-      ? `Kategorijoje „${label}“ yra ${affected.length} receptai. Perkelti juos į „Kita“ ir pašalinti kategoriją?`
-      : `Pašalinti kategoriją „${label}“?`
-    if (!window.confirm(warning)) return
-
-    if (affected.length) {
-      const fallbackName = `${DISH_TAG_PREFIX}${label === 'Kita' ? 'Be kategorijos' : 'Kita'}`
-      let fallback = tags.find((tag) => tag.name.toLocaleLowerCase('lt') === fallbackName.toLocaleLowerCase('lt'))
-      if (!fallback) {
-        const { data, error: fallbackError } = await supabase
-          .from('tags')
-          .insert({ household_id: household.id, name: fallbackName })
-          .select('id, household_id, name')
-          .single()
-        if (fallbackError) {
-          setError(fallbackError.message)
-          return
-        }
-        fallback = data as HouseholdTag
-      }
-      const { error: linkError } = await supabase.from('recipe_tags').upsert(
-        affected.map((recipe) => ({ household_id: household.id, recipe_id: recipe.id, tag_id: fallback.id })),
-        { onConflict: 'recipe_id,tag_id', ignoreDuplicates: true },
-      )
-      if (linkError) {
-        setError(linkError.message)
-        return
-      }
-    }
-
-    const { error: deleteError } = await supabase.from('tags').delete().eq('id', category.id)
-    if (deleteError) setError(deleteError.message)
-    else {
-      await loadData()
-      setMessage('Kategorija pašalinta')
-    }
-  }
-
   async function planRecipe(recipe: Recipe, destination: 'queue' | 'roster') {
     if (!household || !session) return
     setError(null)
@@ -1025,6 +845,13 @@ function App() {
   }
 
   const categoryIndex = useMemo(() => buildCategoryIndex(barboraCategories), [barboraCategories])
+
+  const { createIngredient, updateIngredient, deleteIngredient } = useVocabulary({
+    household, recipes, categoryIndex, reload: loadData, onError: setError, onMessage: setMessage,
+  })
+  const { createRecipeCategory, updateRecipeCategory, deleteRecipeCategory } = useRecipeCategories({
+    household, recipes, tags, reload: loadData, onError: setError, onMessage: setMessage,
+  })
 
   const vocabularyByName = useMemo(
     () => new Map(vocabulary.map((entry) => [ingredientLookupKey(entry.name), entry])),
