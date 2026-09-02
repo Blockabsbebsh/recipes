@@ -183,6 +183,10 @@ Hex has no `O`, `I` or `L`, so nothing in a code can be misread when it is read
 off one phone and typed into another; `join_household` strips anything that is
 not a letter or a digit, so spacing and punctuation do not matter either.
 
+Attempts are limited: five per account every fifteen minutes, twenty per address every hour, counted in `private.join_attempts`. Joining is a once-ever act and twice if the code was mistyped, so the limit is generous for a person and ruinous for a script.
+
+That limit forced a change in how failure is reported. The function used to raise on a bad code, and an exception rolls back its own transaction — taking the attempt row with it, so the counter would have sat at zero however many times it was asked. A bad code now returns null, which commits, and the client turns null into the message. Only being throttled raises, and by then the attempts it counted were committed by earlier calls.
+
 Rotation runs from `pg_cron` — daily at 03:15 UTC, replacing any code older
 than seven days — rather than from the app. A code that only expires when
 somebody opens the app has not expired. `private.rotate_stale_invite_codes()`

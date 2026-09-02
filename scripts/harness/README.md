@@ -33,6 +33,7 @@ The catalogue comes from the real `data/barbora-categories.json`, so the categor
 - **`modals`** — three modals deep, Escape closes the topmost one at a time.
 - **`planning`** — a week run through: into the basket and out, the shop finished, a meal cooked and un-cooked, a recipe deleted and restored.
 - **`back`** — the phone's back button closes dialogs innermost-first, steps back out of a page inside a dialog, comes home from another tab, and leaves the app when there is nothing left of ours.
+- **`join`** — the only way a second person gets in: a wrong invite code is refused and said so, a right one typed with a space in it works.
 - **`scrolltrace`** — the on-device scroll trace records the app switch, survives the reload it exists to explain, stays inside its cap, and prints in Settings.
 
 A finding beginning with `note:` is advisory: reported, but it does not fail the run. Use it for judgement calls rather than regressions.
@@ -112,6 +113,14 @@ already at 1500px fires no scroll event and no gesture: the case runs, asserts
 its target, and proves nothing. One mid-gesture case sat green like that until
 a trace dump showed no capture lines in it at all.
 
+**A wrong answer is a case too.** `join_household` answers `null` for a code it
+does not know rather than raising, because the attempt has to survive the call
+for the rate limit to count it — so the *client* is the only thing that turns
+that into a message, and the stub has to answer `null` too. A stub that always
+succeeds tests a path the app does not have. `HARNESS_STUB` holds the stub's
+URL so a scenario can arrange the backend directly, which is how `join` signs a
+member out of their household before starting.
+
 **Kill the process group, not the process.** `npx vite preview` is a wrapper
 around the process that actually holds the port, so killing the child leaves
 the grandchild listening and the next run fails on a port already in use — or
@@ -142,6 +151,7 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `planning` | going to the menu when a shop is finished | `finishing the shop left the app on "Krepšelis"` |
 | `back` | taking a dialog's history entry with it when it is closed by hand | `with nothing open, back stayed in the app instead of leaving it` |
 | `back` | counting a page inside a dialog as somewhere to come back from | `back from a settings page closed the whole dialog` |
+| `join` | turning the `null` a wrong code answers with into a message | `a wrong invite code was accepted in silence` |
 | `back` | ignoring the pop our own going-back causes | `Escape did not leave 2 modal(s) open` (in `modals`, which shares the mechanism) |
 | `appswitch` | waiting longer than a second for the page to grow back | `a page that came back short for three seconds landed at 0px instead of 1500px` |
 | `appswitch` | waiting for the height instead of scrolling at a page that cannot reach | `the app kept scrolling at a page too short to hold the position instead of waiting for it to grow` |

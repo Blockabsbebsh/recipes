@@ -52,6 +52,9 @@ const waitFor = async (url, tries = 40) => {
 const { createBackend } = await import('./server.mjs')
 const backend = await createBackend()
 console.log(`stub Supabase on ${backend.url}`)
+// Scenarios that need to arrange the backend directly — signing a member out
+// of their household, say — reach it through here.
+process.env.HARNESS_STUB = backend.url
 
 console.log('building the app against the stub...')
 const build = run('npx', ['vite', 'build'], { VITE_SUPABASE_URL: backend.url, VITE_SUPABASE_PUBLISHABLE_KEY: 'harness-key' })
