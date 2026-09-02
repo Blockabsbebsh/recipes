@@ -192,10 +192,22 @@ export async function appswitch(page, base) {
   await page.waitForTimeout(200)
   await setVisibility(page, 'visible')
   await page.waitForTimeout(400)
-  await page.evaluate(() => window.scrollTo(0, 0))
-  await page.waitForTimeout(2600)
+  // And it has to be put back before anyone sees it move: correcting on a
+  // timer is a jump you can watch happen, which is what the household saw.
+  const settled = await page.evaluate((want) => new Promise((resolve) => {
+    const started = performance.now()
+    window.scrollTo(0, 0)
+    const tick = () => {
+      if (Math.abs(window.scrollY - want) <= 8) resolve(Math.round(performance.now() - started))
+      else if (performance.now() - started > 2500) resolve(-1)
+      else requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }), target)
+  await page.waitForTimeout(400)
   now = await scrollY(page)
   if (Math.abs(now - target) > 40) findings.push(`the web view moving after the app came back left the library at ${now}px instead of ${target}px`)
+  else if (settled < 0 || settled > 150) findings.push(`the page sat at the top for ${settled < 0 ? 'over 2500' : settled}ms before jumping back`)
 
   // Which must not turn into the app fighting the household: scrolling
   // somewhere else on the way back in has to stick.
@@ -250,6 +262,23 @@ export async function appswitch(page, base) {
   now = await scrollY(page)
   if (Math.abs(now - target) > 60) findings.push(`reopening on a slow connection landed at ${now}px instead of ${target}px`)
   await page.context().unroute('**/rest/v1/**')
+
+  // A position is worth coming back to for an hour, not overnight: the tab
+  // survives the night, the scroll does not.
+  await userScroll(page, target)
+  await page.waitForTimeout(300)
+  // Let tomorrow arrive, rather than backdating what was saved: the app
+  // rewrites the timestamp as it goes away, exactly as it would tonight.
+  await page.addInitScript(() => {
+    const realNow = Date.now
+    Date.now = () => realNow() + 26 * 60 * 60 * 1000
+  })
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForTimeout(3500)
+  now = await scrollY(page)
+  if (now > 40) findings.push(`opening the app the next day landed at ${now}px instead of the top`)
+  const tabLabel = await page.evaluate(() => document.querySelector('.bottom-nav button.active')?.textContent ?? '')
+  if (!/Receptai/.test(tabLabel)) findings.push(`opening the app the next day forgot the tab, landing on "${tabLabel}"`)
   return findings
 }
 

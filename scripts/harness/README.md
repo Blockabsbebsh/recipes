@@ -62,6 +62,8 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `scrolltrace` | keeping the trace in memory instead of localStorage | `the trace never recorded a "boot" event` (nothing survived the reload) |
 | `appswitch` | holding the position after the restore reports success | `the web view moving after the app came back left the library at 0px instead of 1500px` |
 | `appswitch` | asking whether the household touched the screen before correcting | `scrolling to 300px on the way back in was undone, landing at 1500px` |
+| `appswitch` | correcting on the scroll event rather than a timer | `the page sat at the top for 499ms before jumping back` |
+| `appswitch` | letting a scroll position go stale | `opening the app the next day landed at 1500px instead of the top` |
 
 Do the same for any scenario you add.
 
@@ -92,7 +94,10 @@ not, and where they disagree `vp` is what the household is looking at.
 `why=hidden` or `why=modal`. `scroll-ignored` says the page moved with no touch
 behind it — that is the system, and seeing a run of them next to a lost position
 is the strongest signal there is. `restore-again` says the position was put back
-after the phone moved it post-resume; `after=` is how long after the restore.
+after the phone moved it post-resume; `from=scroll` means the phone's own
+scroll event triggered the correction in the same frame, and `from=t300` that a
+backstop timer caught a move that arrived without one. `load … kept=false` says
+the saved position was older than an hour and the tab started at the top.
 
 Reading the log requires opening Settings, which parks the body at the top and
 therefore writes a `capture-skipped … why=modal` of its own. The last two lines
