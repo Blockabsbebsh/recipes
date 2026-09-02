@@ -44,6 +44,18 @@ A finding beginning with `note:` is advisory: reported, but it does not fail the
 
 **Confirm a finding with a second, independent measurement before believing it.** If the DOM says an element moved, check whether something in the harness moved it.
 
+## Trusting it
+
+Each scenario has been run against the broken code it is meant to catch, because a check that has never failed proves nothing:
+
+| Scenario | Reverted | Reported |
+| --- | --- | --- |
+| `keyboard` | the backdrop sized to the visual viewport | `backdrop covers 328px of a 664px screen — 336px of live page shows below it` |
+| `appswitch` | the guard on recording scrolls | `switching away and back left the library at 0px instead of 1500px`, and the modal case |
+| `modals` | Escape closing the topmost modal | `Escape did not leave 2 modal(s) open` |
+
+Do the same for any scenario you add.
+
 ## Adding a scenario
 
 Export an `async function name(page, base)` from `probe.mjs` that returns an array of strings, and add it to `SCENARIOS`. Return `[]` when nothing is wrong. Prefer measuring a specific claim ("the backdrop covers 328px of a 664px screen") over a screenshot; screenshots are for the human reading the report afterwards, via `--shots`.
