@@ -88,6 +88,35 @@ async function gesture(page, y) {
 }
 
 /**
+ * A flick: the finger leaves and the page keeps going, in decelerating steps,
+ * for about a second. Where it stops is where the household meant to be.
+ */
+export async function fling(page, from) {
+  const rest = await page.evaluate(async (start) => {
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    window.dispatchEvent(new Event('touchstart', { bubbles: true }))
+    window.dispatchEvent(new Event('touchmove', { bubbles: true }))
+    window.scrollTo(0, start - 120)
+    await frame()
+    window.scrollTo(0, start)
+    await frame()
+    window.dispatchEvent(new Event('touchend', { bubbles: true }))
+    // Momentum carries on at the speed of the flick and decays to a stop. It
+    // never teleports at the end — a synthetic one that does is a jump, which
+    // the app is right to refuse, and the case would be testing the harness.
+    let at = start
+    for (let stepSize = 120; stepSize > 1; stepSize *= 0.85) {
+      at += stepSize
+      window.scrollTo(0, at)
+      await frame()
+    }
+    return Math.round(window.scrollY)
+  }, from)
+  await page.waitForTimeout(700)
+  return rest
+}
+
+/**
  * Scroll and leave immediately, with the gesture still settling.
  *
  * Android holds the pending timer while the app is backgrounded and runs it on
@@ -411,6 +440,50 @@ export async function appswitch(page, base) {
   }
   now = await scrollY(page)
   if (Math.abs(now - target) > 40) findings.push(`the page going short after the restore landed left it at ${now}px instead of ${target}px`)
+
+  // A flick coasts on after the finger has gone, and it is where it stops
+  // that has to come back — not wherever it happened to be a moment after the
+  // lift. The phone recorded 572px on a page that coasted to 907px and stayed.
+  await userScroll(page, 400)
+  await page.waitForTimeout(300)
+  const rest = await fling(page, 500)
+  await page.waitForTimeout(600)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(300)
+  const afterFling = await page.evaluate(() => {
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
+  })
+  if (afterFling === null) findings.push('a flick saved no view state at all')
+  else if (Math.abs(afterFling - rest) > 40) findings.push(`a flick that came to rest at ${rest}px saved ${afterFling}px`)
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(1200)
+
+  // But the page going to the top as the app is put away is not momentum, and
+  // arrives in the same window: a jump far bigger than the flick that started
+  // it, with no finger behind either.
+  await userScroll(page, target)
+  await page.waitForTimeout(300)
+  await page.evaluate(async () => {
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    window.dispatchEvent(new Event('touchstart', { bubbles: true }))
+    window.dispatchEvent(new Event('touchmove', { bubbles: true }))
+    window.scrollTo(0, window.scrollY - 60)
+    await frame()
+    window.dispatchEvent(new Event('touchend', { bubbles: true }))
+    await frame()
+    window.scrollTo(0, 0)
+  })
+  await page.waitForTimeout(900)
+  await setVisibility(page, 'hidden')
+  await page.waitForTimeout(300)
+  const afterJump = await page.evaluate(() => {
+    const entry = Object.entries(localStorage).find(([key]) => key.startsWith('recipes:view'))
+    return entry ? JSON.parse(entry[1]).scrollByTab?.library : null
+  })
+  if (afterJump !== null && afterJump < target - 100) findings.push(`the page jumping to the top just after a flick saved ${afterJump}px instead of about ${target}px`)
+  await setVisibility(page, 'visible')
+  await page.waitForTimeout(1200)
 
   // A tap is not a scroll. Touching the screen on the way back in — which is
   // how you dismiss anything — must not record wherever the system has left
