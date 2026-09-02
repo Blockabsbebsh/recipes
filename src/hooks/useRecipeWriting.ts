@@ -222,11 +222,16 @@ async function softDelete(recipe: Recipe) {
     .from('recipes')
     .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
     .eq('id', recipe.id)
-  if (deleteError) onError(deleteError.message)
-  else {
-    onMessage('Receptas perkeltas į ištrintus')
-    await reload()
+  if (deleteError) {
+    onError(deleteError.message)
+    return
   }
+  // Take it out of the basket as well. Leaving it there shows a recipe that
+  // cannot be cooked, and `complete_shopping` would drop it without saying so.
+  const { error: queueError } = await supabase.from('shopping_queue').delete().eq('recipe_id', recipe.id)
+  if (queueError) onError(queueError.message)
+  onMessage('Receptas perkeltas į ištrintus')
+  await reload()
 }
 
 async function restoreRecipe(recipe: Recipe) {

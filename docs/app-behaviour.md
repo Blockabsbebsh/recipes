@@ -27,6 +27,29 @@ without a browser.
 The `Modal` is worth knowing about: it is where Escape, the keyboard inset and
 the back button are handled, so a new dialog gets all three by using it.
 
+## Two people at once
+
+The app never blocks on the other person, so both are always working from a
+picture of the household that may have stopped being true. Realtime narrows the
+window; it does not close it.
+
+Where that matters is the basket. The menu has always refused to draw a recipe
+in the bin — `if (!recipe || recipe.deleted_at) return null` — and the basket
+did not, so a recipe deleted by one person stayed in the other's basket, its
+ingredients stayed on the shopping list, and `complete_shopping` refused to turn
+it into a meal without saying so. You would buy for a dinner that could never be
+cooked. Reachable alone, too: delete something already in your own basket.
+
+Both halves are needed. Deleting a recipe now clears it out of the basket, so
+the state does not linger; and the basket refuses to draw a binned recipe
+whatever the state says, which is the only thing that helps when the row was
+added by an app that had not heard about the deletion yet.
+
+The database is still the only party that knows the truth — a stale app can
+insert a basket row for a recipe already deleted, and nothing stops it. That row
+is invisible and harmless, and refusing it belongs in a constraint rather than a
+client; noted in [`possible-features.md`](possible-features.md).
+
 ## The roster is permanent history
 
 Nothing deletes a `roster_entries` row. "Recently cooked" showing the last five

@@ -15,7 +15,7 @@ The runner starts the stub, builds the app pointed at it, serves that build, run
 
 | File | |
 | --- | --- |
-| `server.mjs` | A stub Supabase: enough GoTrue and PostgREST to sign in, load, and mutate. In memory, thrown away on exit. |
+| `server.mjs` | A stub Supabase: enough GoTrue and PostgREST to sign in, load, and mutate. In memory, thrown away on exit. Serves two members of one household, told apart by the address they sign in with, so `concurrent` can drive both. |
 | `fixtures.mjs` | Generates 65 recipes, the household's real 217-ingredient vocabulary, a roster and a basket. Lithuanian names of realistic length, because layout breaks on long words. |
 | `vocab.json` | The ingredient seed. |
 | `probe.mjs` | The scenarios and the helpers they share. |
@@ -34,6 +34,7 @@ The catalogue comes from the real `data/barbora-categories.json`, so the categor
 - **`planning`** — a week run through: into the basket and out, the shop finished, a meal cooked and un-cooked, a recipe deleted and restored.
 - **`back`** — the phone's back button closes dialogs innermost-first, steps back out of a page inside a dialog, comes home from another tab, and leaves the app when there is nothing left of ours.
 - **`join`** — the only way a second person gets in: a wrong invite code is refused and said so, a right one typed with a space in it works.
+- **`concurrent`** — two people, one household, two browsers. What each app does while holding a picture of the household that has stopped being true.
 - **`scrolltrace`** — the on-device scroll trace records the app switch, survives the reload it exists to explain, stays inside its cap, and prints in Settings.
 
 A finding beginning with `note:` is advisory: reported, but it does not fail the run. Use it for judgement calls rather than regressions.
@@ -78,6 +79,24 @@ entry, so the count never drops and an assertion on it can never fire. The
 observable symptom of a stale entry is a back press that does nothing — so the
 check is that back eventually *leaves the app*, which has to be the last thing
 a scenario does.
+
+**Scenarios share one database, in order.** There is one stub for the whole
+run, so `planning` empties the basket before `concurrent` sees it. A scenario
+must create whatever it needs rather than trusting the fixture — `concurrent`
+passed alone and failed in the suite for exactly this reason, which is the
+`appswitch` lesson again in a different costume: green in isolation is not
+green.
+
+**Expanding a tile and clicking inside it are two passes.** A library tile's
+buttons do not exist until React has re-rendered it open, so doing both in one
+`page.evaluate` finds nothing however correct the code looks. Wait between.
+
+**A guard can be masked by the fix beside it.** The shopping list's refusal to
+draw a binned recipe could not be shown to matter while deleting also cleared
+the basket — there was nothing left for it to filter. It had to be checked in
+the one case where the row genuinely exists: a stale app queueing a recipe the
+other person has just deleted. Two correct fixes can hide each other, and the
+mutation that proves one must be run where the other cannot help.
 
 **A finding is worth nothing if a later step throws.** Findings are returned at
 the end, so an exception anywhere after one discards it and reports a crashed
@@ -152,6 +171,9 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `back` | taking a dialog's history entry with it when it is closed by hand | `with nothing open, back stayed in the app instead of leaving it` |
 | `back` | counting a page inside a dialog as somewhere to come back from | `back from a settings page closed the whole dialog` |
 | `join` | turning the `null` a wrong code answers with into a message | `a wrong invite code was accepted in silence` |
+| `concurrent` | the basket refusing to draw a binned recipe | `a recipe deleted moments earlier was added to the basket anyway as "Makaronai su pesto"` |
+| `concurrent` | deleting a recipe clearing it out of the basket | `1 basket row(s) point at a recipe in the bin, where nobody can reach them` |
+| `concurrent` | the shopping list skipping a binned recipe's ingredients | `the shopping list is buying ingredients for "Makaronai su pesto", which the other person had already binned` |
 | `back` | ignoring the pop our own going-back causes | `Escape did not leave 2 modal(s) open` (in `modals`, which shares the mechanism) |
 | `appswitch` | waiting longer than a second for the page to grow back | `a page that came back short for three seconds landed at 0px instead of 1500px` |
 | `appswitch` | waiting for the height instead of scrolling at a page that cannot reach | `the app kept scrolling at a page too short to hold the position instead of waiting for it to grow` |

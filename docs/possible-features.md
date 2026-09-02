@@ -39,6 +39,19 @@ and never read anywhere.
 tier, so this is not about space. Do it when the counter is wanted for its own
 sake.
 
+## Refuse a basket row for a deleted recipe in the database
+
+The app now clears the basket when a recipe is binned, and refuses to draw a
+binned recipe whatever the basket says. Neither is the last word: an app that
+has not heard about the deletion can still insert the row, because only the
+database knows the recipe is gone. The row is invisible and `complete_shopping`
+drops it, so nothing is broken — it is dead data.
+
+A trigger on `shopping_queue` rejecting an insert whose recipe has `deleted_at`
+set would close it properly. Not done here because it is a schema change and the
+app-side fix removes every visible symptom; worth folding into the next
+migration that goes near this table.
+
 ## Back stepping up one level in the category picker
 
 Descending Barbora's tree is state inside one dialog, so the phone's back button
