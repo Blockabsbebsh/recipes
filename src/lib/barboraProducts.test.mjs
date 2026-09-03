@@ -141,27 +141,33 @@ test('a product with no inventory is still listed, priced nothing', () => {
   assert.equal(milk.url, 'https://barbora.lt/produktai/uat-pienas-farm-milk-3-2-proc-rieb-1-l')
 })
 
-test('stock is read for our store, and silence about it is not "out of stock"', () => {
+test('the index flags are still read per store, but only as data', () => {
   const [milk] = mergeProducts([milkResult], [milkInventory])
-  assert.equal(milk.inStock, true)
+  assert.equal(milk.indexedInStock, true)
   const unknown = normaliseProduct(milkResult, milkInventory, 'X999')
-  assert.equal(unknown.inStock, null)
-  assert.equal(unknown.inAssortment, null)
+  assert.equal(unknown.indexedInStock, null)
+  assert.equal(unknown.indexedInAssortment, null)
   const elsewhere = normaliseProduct(milkResult, milkInventory, 'X325')
-  assert.equal(elsewhere.inStock, false)
+  assert.equal(elsewhere.indexedInStock, false)
 })
 
 test('relevance order survives; only rows you cannot act on are demoted', () => {
-  const priced = { price: 1, inStock: true }
-  const outOfStock = { price: 1, inStock: false }
-  const unpriced = { price: null, inStock: true }
-  const ranked = rankProducts([unpriced, outOfStock, priced])
-  assert.deepEqual(ranked, [priced, outOfStock, unpriced])
+  const priced = { price: 1, availability: 'available' }
+  const unavailable = { price: 1, availability: 'unavailable' }
+  const unpriced = { price: null, availability: 'available' }
+  const ranked = rankProducts([unpriced, unavailable, priced])
+  assert.deepEqual(ranked, [priced, unavailable, unpriced])
+})
+
+test('an unknown availability is not demoted; we have nothing against it', () => {
+  const known = { price: 1, availability: 'available', id: 'a' }
+  const unsure = { price: 1, availability: 'unknown', id: 'b' }
+  assert.deepEqual(rankProducts([unsure, known]).map((p) => p.id), ['b', 'a'])
 })
 
 test('two equally actionable products keep the order Constructor gave them', () => {
-  const first = { price: 1, inStock: true, id: 'a' }
-  const second = { price: 0.5, inStock: true, id: 'b' }
+  const first = { price: 1, availability: 'available', id: 'a' }
+  const second = { price: 0.5, availability: 'available', id: 'b' }
   // Cheaper does not mean better: the closest match to what was typed does.
   assert.deepEqual(rankProducts([first, second]).map((p) => p.id), ['a', 'b'])
 })
@@ -194,4 +200,70 @@ test('the per-unit rate is what makes two package sizes comparable', () => {
   assert.deepEqual(cream.perUnit, { price: 4.48, unit: 'kg' })
   assert.equal(formatPerUnit(cream.perUnit), '4,48 € / kg')
   assert.equal(formatPerUnit(null), null)
+})
+
+// The regression this section exists for. On 2026-09-03 a search for
+// `avietiniai pomidorai` returned two products Constructor marked out of stock
+// that the shop was selling at 1,49 € and 4,69 €, and one it marked in stock
+// that the shop would not sell. All three were verified by opening the page.
+const tomato = (id, indexedInStock) => ({
+  value: 'Avietiniai pomidorai',
+  data: { id, url: 'avietiniai-pomidorai', inStock_X500: indexedInStock, inAssortment_X500: true },
+})
+
+test('availability comes from the live record, not the search index', () => {
+  const [sold] = mergeProducts(
+    [tomato('1', false)],
+    [{ id: '1', title: 'Avietiniai pomidorai, 57-67 mm, 1 kg', price: 1.49, status: 'active' }],
+  )
+  assert.equal(sold.availability, 'available')
+  assert.equal(sold.indexedInStock, false)
+})
+
+test('a suspended product is unavailable even when the index calls it in stock', () => {
+  const [suspended] = mergeProducts(
+    [tomato('3', true)],
+    [{ id: '3', title: 'Uoginiai pomidorai su šakelėmis, 200 g', price: 2.99, status: 'suspended' }],
+  )
+  assert.equal(suspended.availability, 'unavailable')
+})
+
+test('a status we do not recognise claims nothing at all', () => {
+  // The day Barbora adds a third value, going quiet is the correct answer.
+  const [odd] = mergeProducts([tomato('9', true)], [{ id: '9', price: 1, status: 'preorder' }])
+  assert.equal(odd.availability, 'unknown')
+})
+
+test('no inventory record means unknown availability, not unavailable', () => {
+  const [milk] = mergeProducts([milkResult], [])
+  assert.equal(milk.availability, 'unknown')
+})
+
+test('a price a shop could not charge is treated as unknown', () => {
+  // A null check only catches a field that vanished. This catches one that
+  // changed units or meaning, which is the failure that looks like success.
+  for (const price of [0, -1, 100000, '1.49', null, undefined]) {
+    const [product] = mergeProducts([milkResult], [{ ...milkInventory, price }])
+    assert.equal(product.price, null, `price ${price}`)
+  }
+})
+
+test('an implausible was-price does not become a strikethrough', () => {
+  const [product] = mergeProducts([milkResult], [{ ...milkInventory, retail_price: 99999 }])
+  assert.equal(product.wasPrice, null)
+})
+
+test('a discount outside what a shop could offer is dropped', () => {
+  for (const percentage of [0, 100, 4000, -5]) {
+    const [product] = mergeProducts(
+      [creamResult],
+      [{ ...creamInventory, promotion: { ...creamInventory.promotion, percentage } }],
+    )
+    assert.equal(product.discountPercent, null, `percentage ${percentage}`)
+  }
+})
+
+test('an implausible per-unit rate is dropped', () => {
+  const [product] = mergeProducts([creamResult], [{ ...creamInventory, comparative_unit_price: 0 }])
+  assert.equal(product.perUnit, null)
 })
