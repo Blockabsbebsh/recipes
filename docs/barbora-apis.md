@@ -151,7 +151,19 @@ This household's is **X500**, and that is established rather than inferred: `win
 
 **An invoice may show a different code in a different namespace.** A delivery invoiced from Ozo g. 25 carried `X555`, which is not one of the eight and is not this account's `customerShopCode`. Reading it as a fulfilment or issuing site rather than a price zone is the interpretation that fits, though nothing here proves it.
 
-**There is no way to map a place to a shop code.** `GET user/cities` returns 14 served areas as `{ id, title, RegionId }` — Vilnius and Trakai share `RegionId: 1`, Klaipėda/Kretinga/Palanga share `3` — so regions are coarser than cities, and 11 distinct regions against 8 shop codes means regions are not shops either. Three granularities, none derivable from the others. `b_data.regionShortId` is not the missing link: it reads `LT_MAIN_WEB`, a site identifier rather than a region. And there is no store or delivery-location endpoint anywhere in the client, because their server always decides.
+**The shop code follows the delivery address.** Adding a Kaunas address to this account changed `customerShopCode` from `X500` to `X481` — so the code is a property of where the order goes, not of the account. Two are known by observation: **X500 serves Vilnius, X481 serves Kaunas**. The other six are unidentified.
+
+**What actually differs between stores.** With the same three products read from a Vilnius session and then a Kaunas one:
+
+| | X500 Vilnius | X481 Kaunas |
+| --- | --- | --- |
+| Farm Milk, 1 l | 0.94, no promotion, active | 0.94, no promotion, active |
+| Rokiškio grietinė, 400 g | 1.79 was 2.69, −33 % | 1.79 was 2.69, −33 % |
+| Brets traškučiai, 125 g | 2.39, **suspended** | 2.39, **active** |
+
+Prices and the discount were identical; availability was not. Three products across two stores is evidence, not proof — and it does **not** generalise to promotions, which the facets disprove directly: one `pienas` search returned per-store loyalty-discount counts of 83, 89, 88, 87, 84, 81, 75 and 73. So: base prices probably national, promotions usually but demonstrably not always, stock genuinely local.
+
+**There is no *published* mapping from a place to a shop code.** `GET user/cities` returns 14 served areas as `{ id, title, RegionId }` — Vilnius and Trakai share `RegionId: 1`, Klaipėda/Kretinga/Palanga share `3` — so regions are coarser than cities, and 11 distinct regions against 8 shop codes means regions are not shops either. Three granularities, none derivable from the others. `b_data.regionShortId` is not the missing link: it reads `LT_MAIN_WEB`, a site identifier rather than a region. And there is no store or delivery-location endpoint anywhere in the client, because their server always decides.
 
 **Which means one store serves every user of an app like this one.** A request carrying no session gets Barbora's default — X500 — whoever made it and wherever they live. An app that calls through one server is therefore pinned to one store's prices for everyone. `us=<code>` does scope Constructor's stock and assortment per store, so availability *can* be made correct per city; prices cannot, unless `GetInventories` turns out to take a store parameter, which is untested. Mixing correct availability with one store's prices is worse than being uniformly one store's, unless the screen says which.
 
@@ -170,8 +182,13 @@ This household's is **X500**, and that is established rather than inferred: `win
 | Stock and promotions vary by store code | **Proven** — differing per-code counts and flags in one search |
 | Base prices are the same nationally | **Untested.** One account sees one store; there is no way to compare from here |
 | The `X555` on an invoice is a different namespace | **Inferred** — this account's shop code is X500, so X555 is something else |
-| A place can be mapped to a shop code | **Disproven from public data** — cities, regions and shops are three granularities with no published mapping |
-| `GetInventories` accepts a store parameter | **Untested.** Answering it needs a second account whose session resolves elsewhere |
+| The shop code follows the delivery address | **Proven** — changing the address moved this account from X500 to X481 |
+| X500 serves Vilnius, X481 serves Kaunas | **Proven** by observation. The other six codes are unidentified |
+| A place can be mapped to a shop code from published data | **Disproven** — cities, regions and shops are three granularities with no published mapping. Only changing an address reveals one |
+| Base prices are the same nationally | **Evidenced, not proven** — three products identical across X500 and X481 |
+| Promotions are the same across stores | **Disproven** — per-store loyalty-discount counts differ, even though the three sampled products matched |
+| Availability differs between stores | **Proven** — one product suspended at X500 and active at X481 |
+| `GetInventories` accepts a store parameter | **Still untested**, and no longer needed to compare stores: changing the delivery address moves the whole session, which is how the table above was gathered |
 | `GetInventories` preserves input order | **Observed once.** Do not rely on it |
 | `status: "suspended"` means you cannot buy it | **Proven** — two suspended products, both unavailable on their pages |
 | `active` and `suspended` are the only `status` values | **Assumed.** Only those two have been seen. Treat anything else as unknown rather than as available |
