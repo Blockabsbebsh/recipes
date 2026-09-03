@@ -28,6 +28,17 @@ import { BARBORA_ORIGIN } from './barboraMapping.js'
  */
 export const BARBORA_STORE = 'X500'
 
+/**
+ * What to call that store on screen. A code is not a place, and "parduotuvei
+ * X500" tells a person nothing about whose prices they are reading.
+ *
+ * Barbora publishes no name for a shop code — there is no store endpoint, and
+ * no code appears anywhere in their client — so this is our label, not theirs:
+ * X500 is what serves this household's Vilnius address. Change it with
+ * BARBORA_STORE, never separately.
+ */
+export const BARBORA_STORE_LABEL = 'Barbora Vilnius'
+
 /** `data.url` from Constructor is the product page slug, not a path. */
 export function productUrl(slug) {
   return `${BARBORA_ORIGIN}/produktai/${slug}`

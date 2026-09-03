@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
 import { supabase } from '../lib/supabase'
 import { BARBORA_ORIGIN } from '../lib/barboraMapping'
-import { dealLabel, formatPerUnit, formatPrice, mergeProducts } from '../lib/barboraProducts'
+import { BARBORA_STORE_LABEL, dealLabel, formatPerUnit, formatPrice, mergeProducts } from '../lib/barboraProducts'
 import type { BarboraProduct, BarboraProductsResponse } from '../lib/barboraProducts'
 import { trace } from '../lib/scrollTrace'
 
@@ -92,7 +92,7 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
             {products.map((product) => <ProductRow key={product.id ?? product.url} product={product} />)}
           </ul>
           <p className="category-hint">
-            Kainos ir atsargos – „Barbora" parduotuvei X500. Kainą patvirtina tik pati parduotuvė.
+            Kainos ir atsargos – „{BARBORA_STORE_LABEL}". Kainą patvirtina tik pati parduotuvė.
           </p>
         </>
       )}

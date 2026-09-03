@@ -151,6 +151,10 @@ This household's is **X500**, and that is established rather than inferred: `win
 
 **An invoice may show a different code in a different namespace.** A delivery invoiced from Ozo g. 25 carried `X555`, which is not one of the eight and is not this account's `customerShopCode`. Reading it as a fulfilment or issuing site rather than a price zone is the interpretation that fits, though nothing here proves it.
 
+**There is no way to map a place to a shop code.** `GET user/cities` returns 14 served areas as `{ id, title, RegionId }` — Vilnius and Trakai share `RegionId: 1`, Klaipėda/Kretinga/Palanga share `3` — so regions are coarser than cities, and 11 distinct regions against 8 shop codes means regions are not shops either. Three granularities, none derivable from the others. `b_data.regionShortId` is not the missing link: it reads `LT_MAIN_WEB`, a site identifier rather than a region. And there is no store or delivery-location endpoint anywhere in the client, because their server always decides.
+
+**Which means one store serves every user of an app like this one.** A request carrying no session gets Barbora's default — X500 — whoever made it and wherever they live. An app that calls through one server is therefore pinned to one store's prices for everyone. `us=<code>` does scope Constructor's stock and assortment per store, so availability *can* be made correct per city; prices cannot, unless `GetInventories` turns out to take a store parameter, which is untested. Mixing correct availability with one store's prices is worse than being uniformly one store's, unless the screen says which.
+
 **robots.txt.** The copy in `scripts/barbora/fixtures/robots.txt` records `Disallow: /paieska`, `/krepselis`, `/produktai/*?` and `Allow: /` — so product pages without a query string are allowed and search is not. That fixture is trimmed and the crawler reads the live file at run time; re-read it before relying on the detail. It says nothing about `/api/`, and robots.txt governs crawlers rather than an app's own backend in any case.
 
 ## Proven, versus assumed
@@ -166,6 +170,8 @@ This household's is **X500**, and that is established rather than inferred: `win
 | Stock and promotions vary by store code | **Proven** — differing per-code counts and flags in one search |
 | Base prices are the same nationally | **Untested.** One account sees one store; there is no way to compare from here |
 | The `X555` on an invoice is a different namespace | **Inferred** — this account's shop code is X500, so X555 is something else |
+| A place can be mapped to a shop code | **Disproven from public data** — cities, regions and shops are three granularities with no published mapping |
+| `GetInventories` accepts a store parameter | **Untested.** Answering it needs a second account whose session resolves elsewhere |
 | `GetInventories` preserves input order | **Observed once.** Do not rely on it |
 | `status: "suspended"` means you cannot buy it | **Proven** — two suspended products, both unavailable on their pages |
 | `active` and `suspended` are the only `status` values | **Assumed.** Only those two have been seen. Treat anything else as unknown rather than as available |
@@ -180,6 +186,7 @@ This household's is **X500**, and that is established rather than inferred: `win
 - Filtering the Network tab to `cnstrc`. **This is what hid the eshop API for six rounds of investigation.** Look at the site's own requests first.
 - Expecting an XHR on search submit or on category page 2. There isn't one.
 - Fetching `barbora.lt` HTML from a datacentre. Already established as blocked; nothing has changed.
+- Looking for a shop-code list, in the bundle or in an endpoint. There is neither. `b_data.regionShortId` is `LT_MAIN_WEB`, not a region id, and `ShopInShop/GetShopInShopSmallBanners` is about brands sold inside the shop, not locations.
 
 ## Re-verifying
 

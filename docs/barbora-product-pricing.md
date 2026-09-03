@@ -96,7 +96,7 @@ X500 is this household's shop, confirmed rather than assumed: a signed-in sessio
 - Each product row is image, title, brand, price, was-price, a `-33 %` badge, the per-unit rate, and `Neturima` when the live record says the product is suspended.
 - When matches come back but prices do not, the sheet says so. "No price for this product" and "we could not fetch prices" look identical otherwise, and only one of them is worth retrying.
 - Every link is a plain HTTPS link to `/produktai/{slug}` with `target="_blank"`, traced through `scrollTrace` like the category links. Product links open the Barbora app reliably on both phones, which `/paieska` links never did.
-- A closing note says the prices are for store X500 and that only the shop confirms them.
+- A closing note names the shop — **Barbora Vilnius**, from `BARBORA_STORE_LABEL` — and says only the shop confirms a price. A bare `X500` told a person nothing about whose prices they were reading; Barbora publishes no name for a shop code, so the label is ours rather than theirs.
 - **Our own ceiling and the shop refusing us look different**, because the answers differ — wait a moment, versus come back later. Being throttled says so in a bordered notice and names us as the cause; a failed upstream call says the shop could not be reached. Neither may be blamed for the other.
 
 Reopening on a different ingredient discards the first one's answer, and a sheet closed before its answer arrives does not write into a component that has gone.
