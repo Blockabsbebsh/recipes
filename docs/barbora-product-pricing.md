@@ -2,7 +2,7 @@
 
 How tapping an ingredient on the shopping list shows what Barbora sells, at what price, with a link that opens the shop's app.
 
-Built on 2026-09-03, against the state of the shop that day. [`barbora-category-integration.md`](barbora-category-integration.md) covers the older, separate feature — which *aisle* an ingredient links to — and is still accurate; this is the layer above it.
+Built on 2026-09-03, against the state of the shop that day. [`barbora-apis.md`](barbora-apis.md) is the reference for the APIs themselves — every endpoint, every field, the dead ends, and which findings are proven rather than assumed. [`barbora-category-integration.md`](barbora-category-integration.md) covers the older, separate feature — which *aisle* an ingredient links to — and is still accurate; this is the layer above it.
 
 ## Outcome
 

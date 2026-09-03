@@ -59,7 +59,7 @@ Useful flags: `--dump-html <dir>` saves each fetched page, `--headed` shows the 
 
 **As of 2026-09-01 the crawler cannot reach Barbora.** A first live run degraded across the session — the homepage rendered but exposed no category links, the first aisle came back empty, the second returned 403 — and a second run was refused at the homepage. The signature is IP reputation, not markup: the catalogue crawled the same morning came back whole. Neither a real Chrome nor a persistent profile changed the outcome, and going further would mean fingerprint evasion, which is out of scope and unwinnable besides. A scheduled run from a datacentre address is, if anything, less likely to be let in.
 
-This blocks nothing. The catalogue is published, its links do not expire, and Barbora's aisles change rarely. When a refresh is wanted: try again after the address has cooled off, or build an offline mode that parses pages saved by hand from an ordinary browsing session, which no bot protection can object to.
+This blocks nothing. The catalogue is published, its links do not expire, and Barbora's aisles change rarely. **There may now be a way round it entirely**: both Constructor and Barbora's eshop API return `category_path_url` in the exact slug scheme this catalogue uses, from JSON, with no Cloudflare in the path — see [`barbora-apis.md`](barbora-apis.md). When a refresh is wanted: try again after the address has cooled off, or build an offline mode that parses pages saved by hand from an ordinary browsing session, which no bot protection can object to.
 
 ### The workflow
 

@@ -60,7 +60,7 @@ The app also keeps its own record of what happened to the scroll position — th
 
 The database has a harness of its own. Every policy, grant and trigger in `supabase/migrations/` used to be written, reviewed by reading, and applied to production without ever being run against a test; `npm run dbtest` applies them all to a throwaway PostgreSQL and checks what they actually do — who can read whose kitchen, what a signed-in account may write, where the ceilings are, and whether the throttle on joining survives twenty simultaneous requests. Its first run found two faults that were live at the time: creating a household had been broken for a day, and every column grant in the project was decoration. [`scripts/dbtest/README.md`](scripts/dbtest/README.md) has both stories and the mutations that keep the checks honest.
 
-[`docs/app-behaviour.md`](docs/app-behaviour.md) explains where the code lives and what each phone behaviour does and why. [`docs/possible-features.md`](docs/possible-features.md) lists what was considered and deliberately not built, with the reasoning kept so it does not have to be worked out again.
+[`docs/app-behaviour.md`](docs/app-behaviour.md) explains where the code lives and what each phone behaviour does and why. [`docs/possible-features.md`](docs/possible-features.md) lists what was considered and deliberately not built, with the reasoning kept so it does not have to be worked out again. [`docs/barbora-apis.md`](docs/barbora-apis.md) records what Barbora's own APIs will and will not tell you, which claims are proven rather than assumed, and the dead ends — including the search filter that hid the whole eshop API for six rounds of looking.
 
 ## First use
 
@@ -111,6 +111,8 @@ The crawler has never completed a production run: Barbora's bot protection refus
 Tapping an ingredient on the shopping list shows what Barbora actually sells for it: two or three matches with prices, discounts, price per kilo, stock at our shop, and a link that opens the product in the Barbora app. Documented in [`docs/barbora-product-pricing.md`](docs/barbora-product-pricing.md).
 
 Two of Barbora's own unauthenticated JSON APIs, joined by product id. Constructor.io answers what an ingredient matches and carries no prices at all; `barbora.lt/api/eshop/v1/product/GetInventories` takes those same ids and answers with prices, was-prices and promotions. No HTML is parsed and no bot protection is involved: the API the shop's mobile app depends on answers a datacentre in 37 ms with a user-agent that names this repository, unlike the website pages the category crawler was refused by.
+
+[`docs/barbora-apis.md`](docs/barbora-apis.md) is the reference for both surfaces: every endpoint, what each field means, and what was tried and failed.
 
 A browser cannot call the second one — `barbora.lt` sends no CORS headers, and CORS is a browser policy rather than a server one — so the `barbora-products` Edge Function fetches both and forwards them. It is deliberately a dumb proxy: every rule about was-prices, discounts, stock and ordering lives in `src/lib/barboraProducts.js`, where 17 unit tests can reach it. The deployed function and `supabase/functions/barbora-products/index.ts` must be kept identical by hand.
 
