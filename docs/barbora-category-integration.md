@@ -184,6 +184,10 @@ It is revoked now, along with `TRIGGER` (attaching a trigger to a shared table
 is the right to run code when someone else writes to it) and `REFERENCES`, and
 the default privileges for future tables are revoked too.
 
+The same trick does **not** work for functions, and it is worth knowing why before someone tries it again. PostgreSQL will not let a default privilege take `EXECUTE` away from `PUBLIC`: `alter default privileges ... revoke execute on functions from public` records nothing at all, and a function created afterwards still arrives with PUBLIC's built-in grant. Checked on 16.13 six ways — with and without a prior grant in the row, with `revoke all`, and with the revoke issued before and after a grant. Only an event trigger closes it, and one that errored would break every `CREATE FUNCTION` on the platform, Supabase's own included.
+
+So functions are kept private by rule rather than by default: **every migration that creates one in `public` revokes from `public, anon, authenticated, service_role`** — all four, because Supabase's bootstrap grants the three roles `EXECUTE` explicitly and revoking from `PUBLIC` alone leaves a function open to every signed-out client. `scripts/dbtest/tests/20-privileges.sql` fails if any function in the schema is executable by everyone, or by `anon`.
+
 Two narrower limits sit beside it. `invite_code` and `invite_code_set_at` are
 not writable by a client at all: they are generated and rotated by the database,
 and a client that could pin its own code could opt out of rotation by holding
@@ -322,7 +326,9 @@ would have been silent and expensive. Move these blocks; do not retype them.
 
 1. **Device regression testing** on both phones for the links themselves, especially the iOS Universal Link preference for the current dairy path. The app's own behaviour on both phones — scroll, resume, back — has been checked against real logs.
 2. **The crawler is parked and has never completed a production run.** Barbora's bot protection refuses it, and there is no longer a secret key for it to publish with. Nothing in the app depends on it running; the catalogue it would refresh was gathered by hand. An offline mode parsing hand-saved pages is the likeliest way forward if it is ever revived.
-3. **One pending migration-history entry**: the two recipe-import files have been renamed to the exact versions recorded remotely (`20260831181733` and `20260831181818`), after verifying their SQL hashes match the database. The classification backfill's effects are already present, but version `20260831220714` was never recorded. Reconcile it once with `supabase migration repair 20260831220714 --status applied --linked`, then verify with `supabase migration list --linked`. Do not use `db pull`, because this is data/migration history rather than missing schema. If repairing is unavailable, the migration is idempotent and may instead be replayed with `supabase db push --include-all`.
+3. **One migration is written but not applied.** `20260903064551_secure_function_defaults_and_row_caps.sql` is in the repository and absent from the remote migration history, so the advisory locks it adds to the row-cap triggers are not live: in production, concurrent inserts can still all read the same remaining capacity, which is the hole those locks close. `npm run dbtest` covers it — the two concurrency scenarios pass only because the harness applies every migration — so applying it is the remaining step.
+
+   (The earlier entry here, about `20260831220714` never being recorded, is done. It is in the remote history; `migration repair` worked.)
 
 ## Tests
 
