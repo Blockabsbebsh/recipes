@@ -1,7 +1,24 @@
--- Make database functions private by default. Public RPCs must opt in with an
--- explicit grant in the migration that creates them.
-alter default privileges for role postgres in schema public
-  revoke execute on functions from public, anon, authenticated, service_role;
+-- This migration used to open with an attempt to make functions private by
+-- default:
+--
+--   alter default privileges for role postgres in schema public
+--     revoke execute on functions from public, anon, authenticated, service_role;
+--
+-- It does not work, and it never did. PostgreSQL will not let a default
+-- privilege take EXECUTE away from PUBLIC: the statement records nothing, and
+-- a function created afterwards still arrives with PUBLIC's built-in grant in
+-- its ACL. Checked on 16.13 six ways — with and without a prior grant in the
+-- row, with `revoke all`, and with the revoke issued before and after a grant.
+-- The statement is removed rather than left in place, because a line that
+-- looks like protection and is not is worse than no line.
+--
+-- The rule stands; it is just enforced differently. Every migration that
+-- creates a function in `public` revokes from PUBLIC itself, and
+-- scripts/dbtest/tests/20-privileges.sql fails if any function in the schema
+-- is executable by everyone. An event trigger is the only thing that could
+-- make it automatic, and one that errored would break every CREATE FUNCTION
+-- on the platform, Supabase's own included — too much of a footgun for what
+-- it buys here.
 
 -- Serialize each table's count-and-insert check per household. Without the
 -- lock, concurrent transactions can all observe the same remaining capacity.

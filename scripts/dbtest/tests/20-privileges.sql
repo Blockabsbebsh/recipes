@@ -101,20 +101,62 @@ select t.eq(has_table_privilege('authenticated', 'public.something_new', 'SELECT
 select t.eq((select relrowsecurity from pg_class where oid = 'public.something_new'::regclass), true,
             'and row security is on from the moment it exists');
 
--- A future function is private until its migration deliberately exposes it.
+-- PostgreSQL will not let a default privilege take EXECUTE away from PUBLIC.
+-- `alter default privileges ... revoke execute on functions from public`
+-- records nothing at all, and a function created afterwards still arrives with
+-- `=X/` — PUBLIC's built-in grant — in its ACL. Confirmed on 16.13 six ways:
+-- with and without a prior grant in the row, with `revoke all` instead of
+-- `revoke execute`, and with the revoke issued both before and after a grant.
+-- Only an event trigger can actually close it, and one that errors would break
+-- every CREATE FUNCTION on the platform, including Supabase's own.
+--
+-- So "private by default" is not something this database offers, and the
+-- migration no longer pretends to buy it. What is enforceable is "nothing is
+-- left open", checked here over every function that really exists — a stronger
+-- test than the old one, because it fails on a function somebody forgot rather
+-- than on a hypothetical future one.
+select t.eq(
+  (select count(*)::int
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and (p.proacl is null
+           or exists (select 1 from aclexplode(p.proacl) a
+                       where a.grantee = 0 and a.privilege_type = 'EXECUTE'))),
+  0,
+  'no function in public is executable by everyone');
+
+-- Nothing in this app is meant to be callable before you sign in: even
+-- `join_household`, the one function a non-member calls, needs an account.
+select t.eq(
+  (select count(*)::int
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and has_function_privilege('anon', p.oid, 'EXECUTE')),
+  0,
+  'no function in public is executable by signed-out clients');
+
+-- And the mechanism a migration has to use instead, end to end.
 create function public.default_privilege_probe_postgres()
 returns text language sql as $$ select 'postgres'::text $$;
+-- PUBLIC is only one of the four. Supabase's own bootstrap grants EXECUTE to
+-- anon, authenticated and service_role explicitly through default privileges,
+-- so a migration that revokes from PUBLIC alone leaves the function wide open
+-- to every signed-out client. All four, every time.
+revoke all on function public.default_privilege_probe_postgres()
+  from public, anon, authenticated, service_role;
 
 select t.eq(has_function_privilege('anon', 'public.default_privilege_probe_postgres()', 'EXECUTE'), false,
-            'a future postgres function is not executable by signed-out clients');
+            'a function its migration locked down is not executable by signed-out clients');
 select t.eq(has_function_privilege('authenticated', 'public.default_privilege_probe_postgres()', 'EXECUTE'), false,
-            'a future postgres function is not executable by signed-in clients');
+            'nor by signed-in clients');
 select t.eq(has_function_privilege('service_role', 'public.default_privilege_probe_postgres()', 'EXECUTE'), false,
-            'a future postgres function is not implicitly executable by the service role');
+            'nor implicitly by the service role');
 
 grant execute on function public.default_privilege_probe_postgres() to authenticated;
 select t.eq(has_function_privilege('authenticated', 'public.default_privilege_probe_postgres()', 'EXECUTE'), true,
-            'a future function becomes callable after an explicit grant');
+            'until an explicit grant says so');
 select t.eq(has_function_privilege('anon', 'public.default_privilege_probe_postgres()', 'EXECUTE'), false,
-            'an explicit authenticated grant does not expose the function to signed-out clients');
+            'and that grant does not reach signed-out clients');
 rollback;
