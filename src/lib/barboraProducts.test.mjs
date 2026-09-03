@@ -267,3 +267,88 @@ test('an implausible per-unit rate is dropped', () => {
   const [product] = mergeProducts([creamResult], [{ ...creamInventory, comparative_unit_price: 0 }])
   assert.equal(product.perUnit, null)
 })
+
+// Barbora runs discounts that only apply once several are in the basket, and
+// prices those products at the undiscounted rate until they are. This is their
+// own placeholder payload, verbatim: note that `price` and `promotion.oldPrice`
+// are the same 3.19, so a bare "-30 %" would describe money off that is not off.
+const catLitter = {
+  value: 'Sušokantis kačių kraikas LOVETT, 5 l',
+  data: { id: '000000000001253801', url: 'susokantis-kaciu-kraikas-lovett-5-l', inStock_X500: true },
+}
+
+const catLitterInventory = {
+  id: '000000000001253801',
+  title: 'Sušokantis kačių kraikas LOVETT, 5 l',
+  price: 3.19,
+  comparative_unit: 'l',
+  comparative_unit_price: 0.64,
+  promotion: {
+    oldPrice: 3.19,
+    percentage: 30,
+    minQuantity: 2,
+    orMore: true,
+    type: 'CATEGORY_PERCENTAGE',
+    loyaltyCardRequired: true,
+    mixAndMatch: true,
+  },
+  status: 'active',
+  Url: 'susokantis-kaciu-kraikas-lovett-5-l',
+}
+
+test('a discount that needs two says so on the badge', () => {
+  const [product] = mergeProducts([catLitter], [catLitterInventory])
+  assert.equal(product.discountPercent, 30)
+  assert.equal(product.minQuantity, 2)
+  assert.equal(product.orMore, true)
+  assert.equal(dealLabel(product), '-30 % (2+)')
+})
+
+test('a discount for exactly so many is not written as "or more"', () => {
+  const [product] = mergeProducts(
+    [catLitter],
+    [{ ...catLitterInventory, promotion: { ...catLitterInventory.promotion, orMore: false } }],
+  )
+  assert.equal(dealLabel(product), '-30 % (2 vnt.)')
+})
+
+test('an ordinary discount keeps a bare percentage', () => {
+  const [cream] = mergeProducts([creamResult], [creamInventory])
+  assert.equal(cream.minQuantity, null)
+  assert.equal(dealLabel(cream), '-33 %')
+})
+
+test('a minimum quantity of one is not a condition', () => {
+  const [cream] = mergeProducts(
+    [creamResult],
+    [{ ...creamInventory, promotion: { ...creamInventory.promotion, minQuantity: 1 } }],
+  )
+  assert.equal(cream.minQuantity, null)
+  assert.equal(dealLabel(cream), '-33 %')
+})
+
+test('mix-and-match is carried even though the badge does not spell it out', () => {
+  const [product] = mergeProducts([catLitter], [catLitterInventory])
+  assert.equal(product.mixAndMatch, true)
+})
+
+test('an offer shape we do not model claims no discount at all', () => {
+  // "Three for the price of two" is not a percentage, and describing it as one
+  // would be describing a different offer.
+  for (const key of ['buy_x_quantity_for_y_price_promo', 'buy_x_or_more_promo', 'maxi_pack_price_promo']) {
+    const [product] = mergeProducts(
+      [creamResult],
+      [{ ...creamInventory, extra: { [key]: { anything: true } } }],
+    )
+    assert.equal(product.discountPercent, null, key)
+    assert.equal(dealLabel(product), null, key)
+  }
+})
+
+test('an empty extra block is not an unmodelled offer', () => {
+  const [cream] = mergeProducts(
+    [creamResult],
+    [{ ...creamInventory, extra: { buy_x_or_more_promo: null, maxi_pack_price_promo: null } }],
+  )
+  assert.equal(cream.discountPercent, 33)
+})

@@ -326,11 +326,11 @@ would have been silent and expensive. Move these blocks; do not retype them.
 
 ## Tests
 
-`npm test` runs 154 tests across twelve suites, none of which need a browser:
+`npm test` runs 161 tests across twelve suites, none of which need a browser:
 
 | Suite | |
 | --- | --- |
-| `barboraProducts.test.mjs` | 26 — the price merge; see [`barbora-product-pricing.md`](barbora-product-pricing.md) |
+| `barboraProducts.test.mjs` | 33 — the price merge; see [`barbora-product-pricing.md`](barbora-product-pricing.md) |
 | `parser.test.mjs` | 23 — the importer |
 | `barboraMapping.test.mjs` | 23 — the mapper, the aliases, the link shapes |
 | `crawler.test.mjs` | 17 — tree construction, validation, refusal to publish a bad crawl |

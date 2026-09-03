@@ -12,6 +12,10 @@ export type BarboraProduct = {
   wasPrice: number | null
   perUnit: { price: number; unit: string } | null
   discountPercent: number | null
+  /** How many must be bought for the discount; null when one is enough. */
+  minQuantity: number | null
+  orMore: boolean
+  mixAndMatch: boolean
   loyaltyRequired: boolean
   promotionType: string | null
   /** From the live inventory record. `unknown` renders as nothing at all. */

@@ -75,6 +75,8 @@ The same instinct as the category mapper: decline rather than guess.
 - **A product with no inventory record is still listed, priced nothing.** It is a real product with a working link; dropping it would quietly shorten the alternatives, and inventing a price would be worse than both.
 - **`retail_price` is only a was-price when it is genuinely higher.** Barbora sends it equal to `price` on plenty of undiscounted rows, and "was 0,94 €, now 0,94 €" reads as a bug.
 - **The discount percentage is Barbora's own `promotion.percentage`**, because that is the number their pages show. Arithmetic on the two prices is only a fallback, and a computed zero is not a discount.
+- **A discount conditional on quantity says so on the badge**: `-30 % (2+)`, not `-30 %`. Barbora prices these at the *undiscounted* rate until the condition is met — the cat litter in their own placeholder payload reads `price: 3.19` beside `promotion.oldPrice: 3.19` with `minQuantity: 2` — so a bare percentage claims money off that is not off.
+- **An offer shape we do not model claims nothing.** `extra` can carry `buy_x_quantity_for_y_price_promo`, `buy_x_or_more_promo` or `maxi_pack_price_promo`. Three-for-two is not a percentage, and rendering it as one describes a different offer, so the badge disappears instead. The product page is one tap away and is always right.
 - **A loyalty price is labelled as one.** `loyaltyCardRequired` means the number shown is not what you pay without the card.
 - **Availability comes from the live record, never from the search index.** `status` is `active` or `suspended`; anything else, or no record at all, means we say nothing. Constructor's `inStock_X500` is kept as data under the name `indexedInStock` and is never rendered — see below for why.
 - **A price has to be plausible, not merely present.** A null check catches a field that vanished; it does not catch one that changed units or meaning, and that failure looks exactly like success. Prices must be above zero and under a ceiling, a was-price must be strictly higher than the price, a discount must fall between 1 % and 99 %. Anything else is treated as unknown, which turns *silently wrong* into *silently absent* — the only one of those two you can live with.
@@ -105,7 +107,7 @@ Reopening on a different ingredient discards the first one's answer, and a sheet
 
 `src/lib/rateLimit.test.mjs` — 10 tests covering the window: admission, refusal, that a refused request is not recorded, that room appears exactly when the oldest hit leaves, that the wait is never reported as zero, that a limit of zero fails closed, and that junk in the stored hits is ignored.
 
-`src/lib/barboraProducts.test.mjs` — 26 tests, in `npm test`. The fixtures are trimmed copies of real responses captured on 2026-09-03, kept verbatim because the shapes are Barbora's, not ours.
+`src/lib/barboraProducts.test.mjs` — 33 tests, in `npm test`. The fixtures are trimmed copies of real responses captured on 2026-09-03, kept verbatim because the shapes are Barbora's, not ours.
 
 They cover the id join, a deliberately reordered inventory answer, the was-price rule in both directions, the stated and the computed discount, the loyalty flag, a product with no inventory, the ranking rules including that cheaper does not win, duplicate and id-less results, missing payloads, and both number formats.
 

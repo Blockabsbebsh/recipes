@@ -116,6 +116,15 @@ comparative_unit_price      …_brutto and …_netto also present
 promotion { oldPrice, percentage, type, loyaltyCardRequired, minQuantity,
             orMore, mixAndMatch, id, promoVisibility }
             type seen: LOYALTY_PRICE, DISCOUNT_PRICE, CATEGORY_PERCENTAGE
+            minQuantity > 1 means the discount needs several, and `price` is
+            then the UNDISCOUNTED rate — their own cat litter reads price 3.19
+            beside oldPrice 3.19 with minQuantity 2. A bare percentage beside
+            it would claim money off that is not off. orMore distinguishes
+            "two or more" from "exactly two"; mixAndMatch means the count may
+            be reached with other products in the same offer.
+extra     { buy_x_quantity_for_y_price_promo, buy_x_or_more_promo,
+            maxi_pack_price_promo, is_sellout, is_with_card, is_new, is_top, … }
+            the first three are offer shapes no percentage can describe
 units [ { price, retail_price, unit, min, max, step, defaultValue } ]
             `max` is a per-order purchase cap, NOT availability: it reads
             10 on suspended products too
