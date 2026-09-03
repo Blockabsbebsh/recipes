@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node --test --test-isolation=none src/lib/parser.test.mjs src/lib/categories.test.mjs src/lib/barboraMapping.test.mjs src/lib/scrollTrace.test.mjs src/lib/readiness.test.mjs src/lib/scrollMemory.test.mjs src/lib/viewState.test.mjs src/lib/ingredientMapping.test.mjs src/lib/backNav.test.mjs scripts/barbora/crawler.test.mjs",
+    "test": "node --test --test-isolation=none src/lib/parser.test.mjs src/lib/categories.test.mjs src/lib/barboraMapping.test.mjs src/lib/scrollTrace.test.mjs src/lib/readiness.test.mjs src/lib/scrollMemory.test.mjs src/lib/viewState.test.mjs src/lib/ingredientMapping.test.mjs src/lib/backNav.test.mjs src/lib/barboraProducts.test.mjs scripts/barbora/crawler.test.mjs",
     "harness": "node scripts/harness/run.mjs",
     "dbtest": "node scripts/dbtest/run.mjs",
     "crawl:barbora": "node scripts/barbora/crawl.js --out data/barbora-categories.json --previous data/barbora-categories.json --report data/barbora-crawl-report.json"

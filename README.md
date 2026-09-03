@@ -11,6 +11,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Recently cooked section for the last five days and per-recipe last-cooked dates
 - Temporary meal batch and a deduplicated ingredient list showing which recipes use each item
 - Barbora category links for individual ingredients, chosen automatically or by hand through a tree picker, with the shop aisle as a fallback
+- Real Barbora products behind every shopping-list item: tap an ingredient for two or three matches with prices, discounts, price per kilo, stock at our shop, and a link that opens the Barbora app
 - One-tap shopping completion that atomically moves planned meals to Current
 - Soft deletion and recovery
 - Live refresh when the other person edits data
@@ -38,12 +39,12 @@ New sign-ups are disabled in the Supabase dashboard, which is why a public publi
 ## Testing
 
 ```bash
-npm test          # 104 unit tests, none of which need a browser
+npm test          # 135 unit tests, none of which need a browser
 npm run harness   # the real app on an emulated phone, against a fake Supabase
 npm run dbtest    # every migration applied to a throwaway Postgres, then checked
 ```
 
-The unit tests cover the parser, the classifier, the Barbora mapper and crawler, and the rules the phone taught us: what counts as the household's own scrolling, when a remembered position has gone stale, what the back button should undo, and whether the loading screen belongs on screen.
+The unit tests cover the parser, the classifier, the Barbora mapper, crawler and price merge, and the rules the phone taught us: what counts as the household's own scrolling, when a remembered position has gone stale, what the back button should undo, and whether the loading screen belongs on screen.
 
 The harness exists because this app's bugs are rarely logic bugs. They are about what a thumb can reach with the keyboard up, and where you land after switching apps — which no unit test sees. It builds the app against an in-memory stub, drives it in a phone-emulated browser, and runs seven scenarios: layout on every tab, the keyboard against a nested modal, the modal stack, view restoration across app switches and eviction, the on-device scroll log, a week of shopping and cooking, and the back button. It never touches the real Supabase project, so a scenario may delete every recipe without consequence.
 
@@ -104,6 +105,14 @@ npm run crawl:barbora
 ```
 
 The crawler has never completed a production run: Barbora's bot protection refuses it, and no Supabase secret key is configured for it to publish with. It is kept because the catalogue it produced by hand is the thing the app depends on, and the validation around it is worth having if the crawl is ever revived. Nothing in the app depends on a successful run: a blocked run, or one failing any validation check, writes nothing and leaves the published catalogue in place. The **Crawl Barbora categories** workflow runs the same crawl on demand; with no key configured it reports "not published" instead of writing.
+
+### Product prices
+
+Tapping an ingredient on the shopping list shows what Barbora actually sells for it: two or three matches with prices, discounts, price per kilo, stock at our shop, and a link that opens the product in the Barbora app. Documented in [`docs/barbora-product-pricing.md`](docs/barbora-product-pricing.md).
+
+Two of Barbora's own unauthenticated JSON APIs, joined by product id. Constructor.io answers what an ingredient matches and carries no prices at all; `barbora.lt/api/eshop/v1/product/GetInventories` takes those same ids and answers with prices, was-prices and promotions. No HTML is parsed and no bot protection is involved: the API the shop's mobile app depends on answers a datacentre in 37 ms with a user-agent that names this repository, unlike the website pages the category crawler was refused by.
+
+A browser cannot call the second one — `barbora.lt` sends no CORS headers, and CORS is a browser policy rather than a server one — so the `barbora-products` Edge Function fetches both and forwards them. It is deliberately a dumb proxy: every rule about was-prices, discounts, stock and ordering lives in `src/lib/barboraProducts.js`, where 17 unit tests can reach it. The deployed function and `supabase/functions/barbora-products/index.ts` must be kept identical by hand.
 
 ## Current MVP limits
 

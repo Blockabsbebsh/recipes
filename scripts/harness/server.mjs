@@ -102,6 +102,70 @@ const readBody = (req) => new Promise((resolve) => {
   req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : null) } catch { resolve(null) } })
 })
 
+/**
+ * The Barbora lookup, answered from a fixture rather than from Barbora.
+ *
+ * The real Edge Function calls Constructor.io and `barbora.lt`. A harness that
+ * reached either would make its scenarios depend on a shop's stock, its
+ * prices, and the network — the same reason this stub exists for Supabase.
+ * The shapes are copies of real responses, so the merge in
+ * `src/lib/barboraProducts.js` is exercised for real.
+ */
+function barboraProducts(query) {
+  const results = [
+    {
+      value: `${query} \u2014 pirmas variantas`,
+      data: {
+        id: '000000000000892000',
+        url: 'uat-pienas-farm-milk-3-2-proc-rieb-1-l',
+        brand: 'Farm milk',
+        image_url: 'https://cdn.barbora.lt/products/3cfc2270.png',
+        inStock_X500: true,
+        isOnSale_X500: false,
+        inAssortment_X500: true,
+      },
+    },
+    {
+      value: `${query} \u2014 antras variantas`,
+      data: {
+        id: '000000000000534864',
+        url: 'rokiskio-namine-grietine-30-proc-rieb-400-g',
+        brand: 'ROKI\u0160KIO NAMINIS',
+        image_url: 'https://cdn.barbora.lt/products/f9d51510.png',
+        inStock_X500: true,
+        isOnSale_X500: true,
+        inAssortment_X500: true,
+      },
+    },
+  ]
+  const inventories = [
+    {
+      id: '000000000000892000',
+      title: `${query} \u2014 pirmas variantas`,
+      shopcode: 'X500',
+      price: 0.94,
+      comparative_unit: 'l',
+      comparative_unit_price: 0.94,
+      promotion: null,
+      status: 'active',
+      Url: 'uat-pienas-farm-milk-3-2-proc-rieb-1-l',
+    },
+    {
+      id: '000000000000534864',
+      title: `${query} \u2014 antras variantas`,
+      shopcode: 'X500',
+      price: 1.79,
+      retail_price: 2.69,
+      comparative_unit: 'kg',
+      comparative_unit_price: 4.48,
+      promotion: { oldPrice: 2.69, percentage: 33, type: 'DISCOUNT_PRICE', loyaltyCardRequired: false },
+      status: 'active',
+      Url: 'rokiskio-namine-grietine-30-proc-rieb-400-g',
+    },
+  ]
+  return { query, store: 'X500', fetchedAt: new Date().toISOString(), results, inventories }
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost')
   if (req.method === 'OPTIONS') return send(res, 204)
@@ -188,6 +252,12 @@ const server = createServer(async (req, res) => {
       db[table] = db[table].filter((row) => !targets.has(row))
       return send(res, 200, [...targets])
     }
+  }
+
+  if (url.pathname === '/functions/v1/barbora-products') {
+    const query = String((await readBody(req))?.query ?? '').trim()
+    if (!query) return send(res, 400, { error: 'query is required' })
+    return send(res, 200, barboraProducts(query))
   }
 
   send(res, 404, { message: `no stub for ${req.method} ${url.pathname}` })

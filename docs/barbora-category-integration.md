@@ -145,8 +145,8 @@ An optional tree search may be added later, but it must navigate to a result ins
 ## Shopping links
 
 - An ingredient with an active mapping links to that category; otherwise to its section's aisle; otherwise it stays plain text rather than inventing a URL.
-- The ingredient name itself is the clickable text. Section headings link to their aisle.
-- Every link is a plain HTTPS link with `target="_blank"`. There are no exact-product or `/paieska` links.
+- The ingredient name itself is the clickable text. Section headings link to their aisle. On the shopping list the name now opens the product sheet instead, which draws this category link as its first row before it fetches anything — see [`barbora-product-pricing.md`](barbora-product-pricing.md).
+- Every link is a plain HTTPS link with `target="_blank"`. There are still no `/paieska` links. Exact-product links do exist now, but they come from the product sheet rather than from this mapping, which continues to point only at categories.
 
 **Every link goes through `shoppingUrl`**, and it preserves the crawler path exactly. Barbora's association files are not a catalogue and are no longer used to rewrite URLs:
 
@@ -326,19 +326,20 @@ would have been silent and expensive. Move these blocks; do not retype them.
 
 ## Tests
 
-`npm test` runs 96 tests across ten suites, none of which need a browser:
+`npm test` runs 135 tests across eleven suites, none of which need a browser:
 
 | Suite | |
 | --- | --- |
+| `parser.test.mjs` | 23 — the importer |
 | `barboraMapping.test.mjs` | 23 — the mapper, the aliases, the link shapes |
+| `barboraProducts.test.mjs` | 17 — the price merge; see [`barbora-product-pricing.md`](barbora-product-pricing.md) |
 | `crawler.test.mjs` | 17 — tree construction, validation, refusal to publish a bad crawl |
+| `viewState.test.mjs` | 13 — what is remembered, and when it goes stale |
 | `scrollMemory.test.mjs` | 10 — a drag, a flick, a tap, the page thrown to the top |
 | `scrollTrace.test.mjs` | 10 — the on-device log |
-| `viewState.test.mjs` | 9 — what is remembered, and when it goes stale |
-| `parser.test.mjs` | 9 — the importer |
+| `readiness.test.mjs` | 8 — whether the loading screen belongs on screen |
 | `backNav.test.mjs` | 6 — what the back button undoes |
 | `ingredientMapping.test.mjs` | 5 — the Barbora columns for an ingredient |
-| `readiness.test.mjs` | 4 — whether the loading screen belongs on screen |
 | `categories.test.mjs` | 3 — dish type and cuisine |
 
 Of the Barbora work specifically:
