@@ -21,6 +21,7 @@ import { RecipeEditor } from './components/RecipeEditor'
 import { ImportDialog } from './components/ImportDialog'
 import { MealPicker } from './components/MealPicker'
 import { SettingsDialog } from './components/SettingsDialog'
+import { BarboraProductsModal } from './components/BarboraProductsModal'
 
 // The aisle each section falls back to, read from the same crawled catalogue
 // the mapper walks. Association-file aliases are deliberately not used here:
@@ -88,6 +89,7 @@ function App() {
   const [importOpen, setImportOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [inspecting, setInspecting] = useState<{ item: string; href: string | null } | null>(null)
   const tabRef = useRef<Tab>(tab)
   const expandedRecipeRef = useRef<string | null>(null)
   const scrollByTab = useRef<Record<Tab, number>>({ ...EMPTY_SCROLL })
@@ -741,6 +743,7 @@ function App() {
             onAdd={() => setPickerOpen(true)}
             onRemove={(entry) => void removeFromQueue(entry)}
             onComplete={() => void completeShopping()}
+            onInspect={(item) => setInspecting({ item: item.item, href: item.href })}
           />
         )}
         {tab === 'deleted' && <DeletedView recipes={deletedRecipes} onRestore={(recipe) => void restoreRecipe(recipe)} />}
@@ -765,6 +768,13 @@ function App() {
           onSave={(draft) => void saveRecipe(draft, editor.recipe, editor.destination)}
           categoryIndex={categoryIndex}
           onCreateIngredient={createIngredient}
+        />
+      )}
+      {inspecting && (
+        <BarboraProductsModal
+          item={inspecting.item}
+          aisleHref={inspecting.href}
+          onClose={() => setInspecting(null)}
         />
       )}
       {importOpen && <ImportDialog vocabulary={vocabulary} recipes={activeRecipes} loading={loading} onClose={() => setImportOpen(false)} onSave={(drafts) => void saveImported(drafts)} />}
@@ -1067,7 +1077,7 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
   )
 }
 
-function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRemove, onComplete }: {
+function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRemove, onComplete, onInspect }: {
   queue: QueueEntry[]
   recipeById: Map<string, Recipe>
   sections: { section: IngredientSection; items: { item: string; href: string | null; recipes: Set<string> }[] }[]
@@ -1076,6 +1086,7 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
   onAdd: () => void
   onRemove: (entry: QueueEntry) => void
   onComplete: () => void
+  onInspect: (item: { item: string; href: string | null }) => void
 }) {
   return (
     <div className="page-stack shop-page">
@@ -1100,7 +1111,15 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
                   <span>{group.items.length}</span>
                 </h3>
                 <ul className="ingredient-shopping-list">
-                  {group.items.map((item) => <li key={item.item}><BarboraLink href={item.href}><strong>{item.item}</strong></BarboraLink><div className="ingredient-recipe-tags">{[...item.recipes].map((title) => <span key={title}>{title}</span>)}</div></li>)}
+                  {group.items.map((item) => (
+                    <li key={item.item}>
+                      <button type="button" className="shop-item" onClick={() => onInspect(item)}>
+                        <strong>{item.item}</strong>
+                        <span aria-hidden="true">›</span>
+                      </button>
+                      <div className="ingredient-recipe-tags">{[...item.recipes].map((title) => <span key={title}>{title}</span>)}</div>
+                    </li>
+                  ))}
                 </ul>
               </div>
             )) : <p className="muted">Šiuose receptuose produktų dar nėra.</p>}
