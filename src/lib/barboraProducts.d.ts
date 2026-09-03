@@ -36,6 +36,7 @@ export type BarboraProductsResponse = {
 }
 
 export const BARBORA_STORE: string
+export const BARBORA_STORE_LABEL: string
 export function productUrl(slug: string): string
 export function formatPrice(amount: number | null | undefined): string | null
 export function formatPerUnit(perUnit: { price: number; unit: string } | null): string | null

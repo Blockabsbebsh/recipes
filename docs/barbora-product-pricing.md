@@ -59,9 +59,14 @@ What it does hold:
 - A ten-minute in-memory cache, keyed by query and limit, capped at 200 entries. Long enough that walking a list is one round trip per ingredient; short enough that a promotion starting today is not missed by much. A degraded answer is never cached.
 - A limit of six results, hard-capped at ten, and queries over 80 characters refused.
 - An honest `User-Agent` naming the app and this repository.
+- **A ceiling of 30 upstream calls a minute per signed-in account**, answered with `429` and a `Retry-After`. Not a policy for people — two of us tapping a shopping list could not reach it if we tried. It is a guard against a bug: a render loop or a bad effect dependency calling this a few hundred times a minute would look exactly like abuse from Barbora's side, and we would find out by being blocked. Counted *past* the cache, so repeating something already held is absorbed rather than refused, and a refused request is not recorded — being over the limit must not extend the wait.
 - Graceful degradation: if the search succeeds and `GetInventories` fails, the matches are returned anyway with no prices. Products with working links and no price are better than an empty sheet, and the client renders them as unpriced rather than inventing a number.
 
-**The deployed function and `supabase/functions/barbora-products/index.ts` must be kept identical.** There is no CI step that checks this; changing the file means redeploying it.
+The window itself is `src/lib/rateLimit.js`, symlinked into the function directory rather than copied, because a limiter that silently admits everything or silently refuses everything is worse than none and neither failure is visible from outside. One file, one set of tests, no second copy to drift.
+
+Two honest limitations. The count is **per instance**: Supabase may run several, so the real ceiling is a multiple of 30, and the cap is approximate by design — it is a backstop, not an accounting system. And the caller is identified by reading the JWT's `sub` without verifying it, which is safe only because `verify_jwt` means the platform verified it first; it decides which bucket to count against, never what anyone may do.
+
+**The deployed function and the files in `supabase/functions/barbora-products/` must be kept identical.** There is no CI step that checks this; changing either file means redeploying both.
 
 ## The rules in `barboraProducts.js`
 
@@ -80,7 +85,7 @@ The same instinct as the category mapper: decline rather than guess.
 
 `BARBORA_STORE = 'X500'` in `src/lib/barboraProducts.js`, and `STORE` in the Edge Function. **The two must match.**
 
-X500 appears to be Barbora's default and is this household's shop: an anonymous server-side call returns `shopcode: "X500"`, and its prices match what the browser shows while signed in. Barbora scopes stock, promotions and loyalty discounts per store — the same code is the `us=X500` parameter on Constructor requests and the `_X500` suffix on its per-store fields — so if either of us ever switches shops, these two constants are the change, and the Edge Function needs redeploying.
+X500 is this household's shop, confirmed rather than assumed: a signed-in session reports `customerShopCode: "X500"`, and an anonymous server-side call returns the same `shopcode` and the same prices. Nothing in Barbora's own client picks a store — there is no store code anywhere in their bundle or cookies — so the server resolves it, which is why hardcoding a constant here is the only option available and happens to be the right one. Barbora scopes stock, promotions and loyalty discounts per store — the same code is the `us=X500` parameter on Constructor requests and the `_X500` suffix on its per-store fields — so if either of us ever switches shops, these two constants are the change, and the Edge Function needs redeploying.
 
 ## What the sheet shows
 
@@ -91,11 +96,14 @@ X500 appears to be Barbora's default and is this household's shop: an anonymous 
 - Each product row is image, title, brand, price, was-price, a `-33 %` badge, the per-unit rate, and `Neturima` when the live record says the product is suspended.
 - When matches come back but prices do not, the sheet says so. "No price for this product" and "we could not fetch prices" look identical otherwise, and only one of them is worth retrying.
 - Every link is a plain HTTPS link to `/produktai/{slug}` with `target="_blank"`, traced through `scrollTrace` like the category links. Product links open the Barbora app reliably on both phones, which `/paieska` links never did.
-- A closing note says the prices are for store X500 and that only the shop confirms them.
+- A closing note names the shop — **Barbora Vilnius**, from `BARBORA_STORE_LABEL` — and says only the shop confirms a price. A bare `X500` told a person nothing about whose prices they were reading; Barbora publishes no name for a shop code, so the label is ours rather than theirs.
+- **Our own ceiling and the shop refusing us look different**, because the answers differ — wait a moment, versus come back later. Being throttled says so in a bordered notice and names us as the cause; a failed upstream call says the shop could not be reached. Neither may be blamed for the other.
 
 Reopening on a different ingredient discards the first one's answer, and a sheet closed before its answer arrives does not write into a component that has gone.
 
 ## Tests
+
+`src/lib/rateLimit.test.mjs` — 10 tests covering the window: admission, refusal, that a refused request is not recorded, that room appears exactly when the oldest hit leaves, that the wait is never reported as zero, that a limit of zero fails closed, and that junk in the stored hits is ignored.
 
 `src/lib/barboraProducts.test.mjs` — 26 tests, in `npm test`. The fixtures are trimmed copies of real responses captured on 2026-09-03, kept verbatim because the shapes are Barbora's, not ours.
 

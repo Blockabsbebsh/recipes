@@ -20,6 +20,9 @@
 // See docs/barbora-product-pricing.md.
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
+// The one piece of logic in this file that is not plumbing, kept in src/lib so
+// it has unit tests, and shipped alongside this file. Both copies must match.
+import { admit } from './rateLimit.js'
 
 /** Barbora's public Constructor.io client key, as served on every page. */
 const CONSTRUCTOR_KEY = 'key_ptvOPViaQiWJxzdL'
@@ -40,6 +43,13 @@ const MAX_LIMIT = 10
 const CACHE_TTL_MS = 10 * 60 * 1000
 const CACHE_MAX_ENTRIES = 200
 
+/** A ceiling under a runaway client, not a policy for people. Two people
+ *  tapping a shopping list cannot reach this; a render loop reaches it in
+ *  seconds, and would look like abuse from Barbora's side. */
+const RATE_LIMIT = 30
+const RATE_WINDOW_MS = 60 * 1000
+const RATE_MAX_CALLERS = 100
+
 type Payload = {
   query: string
   store: string
@@ -51,6 +61,29 @@ type Payload = {
 }
 
 const cache = new Map<string, { at: number; payload: Payload }>()
+const hitsByCaller = new Map<string, number[]>()
+
+/**
+ * Who is asking, for rate-limiting purposes only.
+ *
+ * `verify_jwt` is on, so the platform has already verified this token before
+ * the request reaches us — reading it here without verifying decides which
+ * bucket to count against, never what anyone is allowed to do. A token we
+ * cannot read shares one bucket, which is the conservative direction.
+ */
+function callerOf(req: Request): string {
+  const token = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
+  const [, payload] = token.split('.')
+  if (!payload) return 'anonymous'
+  try {
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+    const claims = JSON.parse(atob(padded))
+    return typeof claims?.sub === 'string' && claims.sub ? claims.sub : 'anonymous'
+  } catch {
+    return 'anonymous'
+  }
+}
 
 function cached(key: string): Payload | null {
   const hit = cache.get(key)
@@ -145,6 +178,23 @@ Deno.serve(async (req: Request) => {
   const key = `${query.toLowerCase()}|${limit}`
   const hit = cached(key)
   if (hit) return json(hit, 200, { 'x-cache': 'hit' })
+
+  // Counted only past the cache: a repeat of something we already hold costs
+  // Barbora nothing, so a loop over one ingredient is absorbed, not refused.
+  const caller = callerOf(req)
+  const verdict = admit(hitsByCaller.get(caller) ?? [], Date.now(), RATE_LIMIT, RATE_WINDOW_MS)
+  if (hitsByCaller.size >= RATE_MAX_CALLERS && !hitsByCaller.has(caller)) {
+    const oldest = hitsByCaller.keys().next()
+    if (!oldest.done) hitsByCaller.delete(oldest.value)
+  }
+  hitsByCaller.set(caller, verdict.hits)
+  if (!verdict.allowed) {
+    return json(
+      { error: 'rate_limited', retryAfterSeconds: verdict.retryAfterSeconds },
+      429,
+      { 'retry-after': String(verdict.retryAfterSeconds) },
+    )
+  }
 
   let results: unknown[]
   try {
