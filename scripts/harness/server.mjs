@@ -137,6 +137,20 @@ function barboraProducts(query) {
         inAssortment_X500: true,
       },
     },
+    {
+      // Marked in stock by the index and suspended by the shop, which is the
+      // disagreement that used to render a buyable product as unavailable.
+      value: `${query} \u2014 tre\u010dias variantas`,
+      data: {
+        id: '000000000001409411',
+        url: 'nauja-bulviu-traskuciai-brets-su-pestu-ir-mocarela-125-g',
+        brand: 'BRETS',
+        image_url: 'https://cdn.barbora.lt/products/f9b4dd2e.png',
+        inStock_X500: true,
+        isOnSale_X500: false,
+        inAssortment_X500: true,
+      },
+    },
   ]
   const inventories = [
     {
@@ -161,6 +175,17 @@ function barboraProducts(query) {
       promotion: { oldPrice: 2.69, percentage: 33, type: 'DISCOUNT_PRICE', loyaltyCardRequired: false },
       status: 'active',
       Url: 'rokiskio-namine-grietine-30-proc-rieb-400-g',
+    },
+    {
+      id: '000000000001409411',
+      title: `${query} \u2014 tre\u010dias variantas`,
+      shopcode: 'X500',
+      price: 2.39,
+      comparative_unit: 'kg',
+      comparative_unit_price: 19.12,
+      promotion: null,
+      status: 'suspended',
+      Url: 'nauja-bulviu-traskuciai-brets-su-pestu-ir-mocarela-125-g',
     },
   ]
   return { query, store: 'X500', fetchedAt: new Date().toISOString(), results, inventories }

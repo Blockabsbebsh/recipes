@@ -60,13 +60,55 @@ function number(value) {
 
 /**
  * A boolean Barbora publishes per store, or null when it says nothing about
- * this one. Null is not false: an unknown stock state must not be shown as
- * "out of stock", the same way an unmapped ingredient gets no link rather than
- * a guessed one.
+ * this one. Null is not false: an unknown state must not be shown as a fact,
+ * the same way an unmapped ingredient gets no link rather than a guessed one.
+ *
+ * None of these are reliable as availability — see `availability` below.
  */
 function storeFlag(data, field, store) {
   const value = data?.[`${field}_${store}`]
   return typeof value === 'boolean' ? value : null
+}
+
+/** No grocery item costs this much; a number above it is a changed field. */
+const MAX_PRICE = 1000
+
+/**
+ * A price we are willing to put on screen.
+ *
+ * A null check alone only catches a field that disappeared. It does not catch
+ * one that changed meaning or units — and a confidently displayed wrong price
+ * is worse than no price, because nothing about it looks wrong. Anything
+ * outside what a shop could plausibly charge is treated as unknown.
+ */
+function plausiblePrice(value) {
+  const amount = number(value)
+  return amount !== null && amount > 0 && amount < MAX_PRICE ? amount : null
+}
+
+/** `status` values seen in the wild. Anything else is deliberately unknown. */
+const STATUS_AVAILABLE = 'active'
+const STATUS_UNAVAILABLE = new Set(['suspended'])
+
+/**
+ * Whether this can be bought right now, read from the live inventory record
+ * rather than from Constructor's index.
+ *
+ * Constructor publishes `inStock_X500`, and it is wrong in both directions: a
+ * search for `avietiniai pomidorai` on 2026-09-03 returned two products marked
+ * out of stock that were on sale at 1,49 € and 4,69 €, and one marked in stock
+ * that the shop would not sell. It is a periodically rebuilt index; `status`
+ * comes from the same backend the product page reads.
+ *
+ * A status we do not recognise returns `unknown` and puts nothing on screen.
+ * The day Barbora adds a third value we go quiet rather than confidently
+ * wrong, which is the whole lesson of the flag this replaced.
+ */
+function availability(inventory) {
+  const status = inventory?.status
+  if (typeof status !== 'string') return 'unknown'
+  if (status === STATUS_AVAILABLE) return 'available'
+  return STATUS_UNAVAILABLE.has(status) ? 'unavailable' : 'unknown'
 }
 
 /**
@@ -74,15 +116,20 @@ function storeFlag(data, field, store) {
  *
  * Barbora states this itself in `promotion.percentage` and that is the number
  * their own pages show, so it wins. Falling back to arithmetic on the two
- * prices covers a discount recorded without a promotion block; a computed 0 is
- * not a discount and is dropped.
+ * prices covers a discount recorded without a promotion block.
+ *
+ * Either way the answer has to be a discount a shop could actually offer: 0 %
+ * is not a discount, and 100 % or 4000 % is a field that has changed meaning.
  */
 function discountPercent(inventory, price, wasPrice) {
   const stated = number(inventory?.promotion?.percentage)
-  if (stated !== null) return Math.round(stated)
+  if (stated !== null) return sensiblePercent(Math.round(stated))
   if (price === null || wasPrice === null || wasPrice <= price) return null
-  const computed = Math.round(((wasPrice - price) / wasPrice) * 100)
-  return computed > 0 ? computed : null
+  return sensiblePercent(Math.round(((wasPrice - price) / wasPrice) * 100))
+}
+
+function sensiblePercent(value) {
+  return value >= 1 && value <= 99 ? value : null
 }
 
 /**
@@ -95,13 +142,13 @@ function discountPercent(inventory, price, wasPrice) {
  */
 export function normaliseProduct(result, inventory, store = BARBORA_STORE) {
   const data = result?.data ?? {}
-  const price = number(inventory?.price)
-  const retail = number(inventory?.retail_price)
+  const price = plausiblePrice(inventory?.price)
+  const retail = plausiblePrice(inventory?.retail_price)
   // `retail_price` is only a was-price when it is actually higher. Barbora
   // sends it equal to `price` on plenty of undiscounted products, and "was
   // 0,94 €, now 0,94 €" reads as a bug.
   const wasPrice = price !== null && retail !== null && retail > price ? retail : null
-  const comparativePrice = number(inventory?.comparative_unit_price)
+  const comparativePrice = plausiblePrice(inventory?.comparative_unit_price)
   const comparativeUnit = inventory?.comparative_unit
 
   return {
@@ -123,8 +170,12 @@ export function normaliseProduct(result, inventory, store = BARBORA_STORE) {
     // has to say which it is.
     loyaltyRequired: inventory?.promotion?.loyaltyCardRequired === true,
     promotionType: inventory?.promotion?.type ?? null,
-    inStock: storeFlag(data, 'inStock', store),
-    inAssortment: storeFlag(data, 'inAssortment', store),
+    availability: availability(inventory),
+    // Kept because they are what Barbora published, and named so that nothing
+    // mistakes them for the answer to "can I buy this". They cannot be: see
+    // `availability`. Nothing renders them.
+    indexedInStock: storeFlag(data, 'inStock', store),
+    indexedInAssortment: storeFlag(data, 'inAssortment', store),
     onSale: storeFlag(data, 'isOnSale', store) === true || Boolean(inventory?.promotion),
   }
 }
@@ -132,13 +183,14 @@ export function normaliseProduct(result, inventory, store = BARBORA_STORE) {
 /**
  * Constructor's ordering is relevance, which is the thing we actually want:
  * the closest match to what someone typed on a shopping list. So this only
- * demotes rows that cannot be acted on — no price, then known out of stock —
- * and leaves the rest exactly as they arrived.
+ * demotes rows that cannot be acted on — no price, then known unavailable —
+ * and leaves the rest exactly as they arrived. An unknown availability is not
+ * demoted: it is a product we have nothing bad to say about.
  */
 export function rankProducts(products) {
   const tier = (product) => {
     if (product.price === null) return 2
-    if (product.inStock === false) return 1
+    if (product.availability === 'unavailable') return 1
     return 0
   }
   return products

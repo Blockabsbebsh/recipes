@@ -23,11 +23,13 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
 }) {
   const [products, setProducts] = useState<BarboraProduct[] | null>(null)
   const [failed, setFailed] = useState(false)
+  const [degraded, setDegraded] = useState(false)
 
   useEffect(() => {
     let live = true
     setProducts(null)
     setFailed(false)
+    setDegraded(false)
     void (async () => {
       const { data, error } = await supabase.functions.invoke<BarboraProductsResponse>(
         'barbora-products',
@@ -38,6 +40,9 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
         setFailed(true)
         return
       }
+      // Matches without prices are a different thing from products that
+      // have no price, and the sheet has to say which happened.
+      setDegraded(Boolean(data.degraded))
       setProducts(mergeProducts(data.results, data.inventories))
     })()
     // A dialog closed before the answer arrives must not write into a gone
@@ -61,6 +66,10 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
       {failed && <p className="muted product-status">Nepavyko gauti kainų. Bandykite dar kartą vėliau.</p>}
       {products !== null && products.length === 0 && (
         <p className="muted product-status">Atitikmenų parduotuvėje nerasta.</p>
+      )}
+
+      {degraded && products !== null && products.length > 0 && (
+        <p className="muted product-status">Kainų šįkart gauti nepavyko. Jos matomos parduotuvėje.</p>
       )}
 
       {products !== null && products.length > 0 && (
@@ -96,8 +105,10 @@ function ProductRow({ product }: { product: BarboraProduct }) {
         </span>
         <span className="product-meta">
           {perUnit && <span>{perUnit}</span>}
-          {/* Null is "Barbora said nothing", which is not the same as absent. */}
-          {product.inStock === false && <span className="product-out">Neturima</span>}
+          {/* Only the live record may say this. Constructor's index gets it
+              wrong in both directions, and an unrecognised status says
+              nothing at all rather than guessing. */}
+          {product.availability === 'unavailable' && <span className="product-out">Neturima</span>}
           {product.loyaltyRequired && <span>su „Ačiū" kortele</span>}
         </span>
       </span>

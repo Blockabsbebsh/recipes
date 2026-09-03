@@ -14,11 +14,15 @@ export type BarboraProduct = {
   discountPercent: number | null
   loyaltyRequired: boolean
   promotionType: string | null
-  /** Null rather than false when Barbora says nothing about this store. */
-  inStock: boolean | null
-  inAssortment: boolean | null
+  /** From the live inventory record. `unknown` renders as nothing at all. */
+  availability: BarboraAvailability
+  /** What Constructor's index published. Unreliable; nothing renders these. */
+  indexedInStock: boolean | null
+  indexedInAssortment: boolean | null
   onSale: boolean
 }
+
+export type BarboraAvailability = 'available' | 'unavailable' | 'unknown'
 
 /** What the `barbora-products` Edge Function returns. */
 export type BarboraProductsResponse = {
@@ -27,6 +31,8 @@ export type BarboraProductsResponse = {
   fetchedAt: string
   results: unknown[]
   inventories: unknown[]
+  /** Set when matches were found but prices could not be fetched. */
+  degraded?: string
 }
 
 export const BARBORA_STORE: string

@@ -45,10 +45,12 @@ Permissive CORS, no auth, no session needed. `c`, `i`, `s` (client/user/session)
 
 ```
 id  url  brand  image_url  description  group_ids
-inStock_X325 … inStock_X864          per store, boolean
+inStock_X325 … inStock_X864          per store, boolean — UNRELIABLE, see below
 isOnSale_X325 … isOnSale_X864        per store, boolean
 inAssortment_X325 … inAssortment_X864
 ```
+
+**Do not use `inStock_*` for availability.** On 2026-09-03 a search for `avietiniai pomidorai` returned two products flagged out of stock that the shop was selling at 1,49 € and 4,69 €, and one flagged in stock that the shop refused to sell — all three confirmed by opening the product pages. It is a periodically rebuilt index; the live `status` field on an inventory record is the one that matches what a shopper sees. `inAssortment_*` is no better: it stays `true` for suspended products, so it means "this shop carries this line", not "you can buy it".
 
 `id` is an 18-digit zero-padded material number — the same id the eshop API takes. `url` is the product page slug: `https://barbora.lt/produktai/{url}`.
 
@@ -102,7 +104,10 @@ Body is a bare JSON array of product ids. Returns an array of inventory records.
 An anonymous call returns `shopcode: "X500"` and prices matching what a signed-in browser sees. The fields that matter:
 
 ```
-id  title  shopcode  status  Url  brand_name  brand_id
+id  title  shopcode  Url  brand_name  brand_id
+status                      "active" or "suspended". Suspended means the shop
+                            will not sell it today. This is the availability
+                            signal; anything else, treat as unknown
 price                       what you pay now
 retail_price                the was-price — often equal to price, so only a
                             was-price when genuinely higher
@@ -112,6 +117,8 @@ promotion { oldPrice, percentage, type, loyaltyCardRequired, minQuantity,
             orMore, mixAndMatch, id, promoVisibility }
             type seen: LOYALTY_PRICE, DISCOUNT_PRICE, CATEGORY_PERCENTAGE
 units [ { price, retail_price, unit, min, max, step, defaultValue } ]
+            `max` is a per-order purchase cap, NOT availability: it reads
+            10 on suspended products too
 attributes.additional { sugar_free, e_free, lactose_free, gluten_free, eco,
             frozen, is_for_vegetarians, yellow_price, … }
 image  big_image  images_original
@@ -148,6 +155,9 @@ Eight featured products with full pricing. Ignores every parameter — it is the
 | `GetInventories` answers a datacentre IP | **Proven** — 200 from Frankfurt, twice, two user-agents |
 | `X500` is the anonymous default store | **Assumed** — it is also ours, so the two cannot be told apart from here |
 | `GetInventories` preserves input order | **Observed once.** Do not rely on it |
+| `status: "suspended"` means you cannot buy it | **Proven** — two suspended products, both unavailable on their pages |
+| `active` and `suspended` are the only `status` values | **Assumed.** Only those two have been seen. Treat anything else as unknown rather than as available |
+| Constructor's `inStock_*` reflects real availability | **Disproven** — wrong in both directions in one six-row sample |
 | `c/{id}/{slug}` category URLs open the Barbora app | **Untested** |
 | Barbora's terms permit this | **Not established.** Assume automated access is disallowed in the fine print, as it is everywhere |
 

@@ -71,8 +71,9 @@ The same instinct as the category mapper: decline rather than guess.
 - **`retail_price` is only a was-price when it is genuinely higher.** Barbora sends it equal to `price` on plenty of undiscounted rows, and "was 0,94 €, now 0,94 €" reads as a bug.
 - **The discount percentage is Barbora's own `promotion.percentage`**, because that is the number their pages show. Arithmetic on the two prices is only a fallback, and a computed zero is not a discount.
 - **A loyalty price is labelled as one.** `loyaltyCardRequired` means the number shown is not what you pay without the card.
-- **Stock is read for our store, and silence is not "out of stock".** `inStock_X500` missing gives `null`, which renders as nothing at all rather than as a warning.
-- **Relevance order survives.** Constructor ranks by closeness to what was typed, which is what a shopping list wants. Ranking only demotes rows you cannot act on — unpriced last, known out-of-stock above them — and leaves the rest in the order they arrived. Cheaper is not better: a cheap wrong product is worse than an accurate expensive one.
+- **Availability comes from the live record, never from the search index.** `status` is `active` or `suspended`; anything else, or no record at all, means we say nothing. Constructor's `inStock_X500` is kept as data under the name `indexedInStock` and is never rendered — see below for why.
+- **A price has to be plausible, not merely present.** A null check catches a field that vanished; it does not catch one that changed units or meaning, and that failure looks exactly like success. Prices must be above zero and under a ceiling, a was-price must be strictly higher than the price, a discount must fall between 1 % and 99 %. Anything else is treated as unknown, which turns *silently wrong* into *silently absent* — the only one of those two you can live with.
+- **Relevance order survives.** Constructor ranks by closeness to what was typed, which is what a shopping list wants. Ranking only demotes rows you cannot act on — unpriced last, known unavailable above them; an unknown availability is not demoted at all, because it is a product we have nothing against — and leaves the rest in the order they arrived. Cheaper is not better: a cheap wrong product is worse than an accurate expensive one.
 - Prices are written the Lithuanian way, `0,94 €`, and per-unit rates as `4,48 € / kg`.
 
 ## The store code
@@ -87,7 +88,8 @@ X500 appears to be Barbora's default and is this household's shop: an anonymous 
 
 - The ingredient name is now a button rather than a link. Tapping it opens the sheet.
 - **The aisle link is drawn first, from data the app already holds, before anything is fetched.** A tap is therefore never a dead end: a failed lookup, an empty result, or no network still leaves you one tap from where the ingredient lives in the shop — which is exactly what the list did before this existed. It costs one extra tap compared to the old behaviour, and buys never showing a spinner that ends in nothing.
-- Each product row is image, title, brand, price, was-price, a `-33 %` badge, the per-unit rate, and `Neturima` when the shop says it is out of stock at X500.
+- Each product row is image, title, brand, price, was-price, a `-33 %` badge, the per-unit rate, and `Neturima` when the live record says the product is suspended.
+- When matches come back but prices do not, the sheet says so. "No price for this product" and "we could not fetch prices" look identical otherwise, and only one of them is worth retrying.
 - Every link is a plain HTTPS link to `/produktai/{slug}` with `target="_blank"`, traced through `scrollTrace` like the category links. Product links open the Barbora app reliably on both phones, which `/paieska` links never did.
 - A closing note says the prices are for store X500 and that only the shop confirms them.
 
@@ -95,9 +97,11 @@ Reopening on a different ingredient discards the first one's answer, and a sheet
 
 ## Tests
 
-`src/lib/barboraProducts.test.mjs` — 17 tests, in `npm test`. The fixtures are trimmed copies of real responses captured on 2026-09-03, kept verbatim because the shapes are Barbora's, not ours.
+`src/lib/barboraProducts.test.mjs` — 26 tests, in `npm test`. The fixtures are trimmed copies of real responses captured on 2026-09-03, kept verbatim because the shapes are Barbora's, not ours.
 
-They cover the id join, a deliberately reordered inventory answer, the was-price rule in both directions, the stated and the computed discount, the loyalty flag, a product with no inventory, stock read for a store that is not ours, the ranking rules including that cheaper does not win, duplicate and id-less results, missing payloads, and both number formats.
+They cover the id join, a deliberately reordered inventory answer, the was-price rule in both directions, the stated and the computed discount, the loyalty flag, a product with no inventory, the ranking rules including that cheaper does not win, duplicate and id-less results, missing payloads, and both number formats.
+
+They also cover the availability bug directly, using the three real products it was found on: one Constructor marked out of stock that the shop was selling at 1,49 €, one it marked in stock that the shop would not sell, and a status value we have never seen, which must claim nothing. Alongside those, the sanity rules: a price of zero or a hundred thousand, a was-price of 99999, discounts of 0 %, 100 % and 4000 %.
 
 `npm run harness` reaches the sheet through a stub route in `scripts/harness/server.mjs` that answers from a fixture. The harness must never reach Barbora — a scenario that depended on a real shop's stock and prices would fail for reasons that have nothing to do with this app — so the stub serves the same shapes the Edge Function forwards, which means the merge is exercised for real while the network is not.
 
