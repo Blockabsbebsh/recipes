@@ -60,9 +60,21 @@ export function formatPerUnit(perUnit) {
   return price ? `${price} / ${perUnit.unit}` : null
 }
 
-/** `-33 %`, or nothing when the product is not discounted. */
+/**
+ * `-33 %` for a discount you get by putting one in the basket, `-30 % (2+)`
+ * when it needs two or more, `-30 % (2 vnt.)` when it needs exactly that many.
+ *
+ * The condition belongs on the badge rather than in a footnote: a percentage
+ * with nothing beside it reads as money off right now, and for a multi-buy
+ * that is simply untrue.
+ */
 export function dealLabel(product) {
-  return typeof product.discountPercent === 'number' ? `-${product.discountPercent} %` : null
+  if (typeof product.discountPercent !== 'number') return null
+  const percent = `-${product.discountPercent} %`
+  if (!product.minQuantity) return percent
+  return product.orMore
+    ? `${percent} (${product.minQuantity}+)`
+    : `${percent} (${product.minQuantity} vnt.)`
 }
 
 function number(value) {
@@ -123,6 +135,42 @@ function availability(inventory) {
 }
 
 /**
+ * Promotion shapes Barbora describes in `extra` that this app does not model:
+ * "three for the price of two", "buy two or more", a multipack price. A plain
+ * percentage would describe a different offer from the one being run, so when
+ * one of these is present nothing is claimed at all — the product page is one
+ * tap away and it is always right.
+ */
+const UNMODELLED_PROMOS = [
+  'buy_x_quantity_for_y_price_promo',
+  'buy_x_or_more_promo',
+  'maxi_pack_price_promo',
+]
+
+function hasUnmodelledPromo(inventory) {
+  return UNMODELLED_PROMOS.some((key) => {
+    const value = inventory?.extra?.[key]
+    return value !== null && value !== undefined
+  })
+}
+
+/**
+ * How many you have to buy before the discount applies, or null when it
+ * applies to a single item.
+ *
+ * This is the difference between "1,49 €, 30 % off" and "30 % off if you take
+ * two", and Barbora prices the second kind at the *undiscounted* rate — the
+ * cat litter in their own placeholder payload reads `price: 3.19` with
+ * `promotion.oldPrice: 3.19` and `minQuantity: 2`. Showing a bare "-30 %"
+ * beside an unchanged price is a claim about a discount that has not been
+ * applied.
+ */
+function quantityThreshold(inventory) {
+  const asked = number(inventory?.promotion?.minQuantity)
+  return asked !== null && asked > 1 ? Math.round(asked) : null
+}
+
+/**
  * How much cheaper than usual, as a whole percent.
  *
  * Barbora states this itself in `promotion.percentage` and that is the number
@@ -133,6 +181,7 @@ function availability(inventory) {
  * is not a discount, and 100 % or 4000 % is a field that has changed meaning.
  */
 function discountPercent(inventory, price, wasPrice) {
+  if (hasUnmodelledPromo(inventory)) return null
   const stated = number(inventory?.promotion?.percentage)
   if (stated !== null) return sensiblePercent(Math.round(stated))
   if (price === null || wasPrice === null || wasPrice <= price) return null
@@ -177,6 +226,13 @@ export function normaliseProduct(result, inventory, store = BARBORA_STORE) {
       ? { price: comparativePrice, unit: comparativeUnit }
       : null,
     discountPercent: discountPercent(inventory, price, wasPrice),
+    // Null unless the discount is conditional on buying several.
+    minQuantity: quantityThreshold(inventory),
+    orMore: inventory?.promotion?.orMore === true,
+    // The quantity may be reached with other products from the same offer. Not
+    // rendered — "(2+)" is already the part that changes a decision — but kept
+    // because a badge that ignored it would be describing a narrower offer.
+    mixAndMatch: inventory?.promotion?.mixAndMatch === true,
     // A loyalty price is not the price you pay without the card, so the badge
     // has to say which it is.
     loyaltyRequired: inventory?.promotion?.loyaltyCardRequired === true,
