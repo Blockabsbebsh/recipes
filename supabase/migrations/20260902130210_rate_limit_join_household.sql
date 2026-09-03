@@ -1,4 +1,4 @@
--- Rate-limit joining, because the code is the only thing guarding a household.
+-- Rate-limit joining because the code is the only thing guarding a household.
 --
 -- `join_household` is callable by any signed-in account and answers "is this a
 -- real code?" as often as it is asked. Twelve hex characters make guessing

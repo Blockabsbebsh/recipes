@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase'
-import { ingredientLookupKey, ingredientNameWithoutQuantity, normalizeTitle } from '../lib/parser'
+import { ingredientLookupKey, ingredientNameWithoutQuantity } from '../lib/parser'
 import { classificationTags, classifyRecipe, CUISINE_TAG_PREFIX, DISH_TAG_PREFIX } from '../lib/categories'
-import type { Household, HouseholdTag, Recipe, RecipeDestination, RecipeDraft, VocabularyIngredient } from '../lib/types'
+import type { Household, Recipe, RecipeDestination, RecipeDraft } from '../lib/types'
 
 /**
  * Writing recipes down: saving one, importing a list of them, and moving them
@@ -13,12 +13,9 @@ import type { Household, HouseholdTag, Recipe, RecipeDestination, RecipeDraft, V
  * is added to the vocabulary as it goes, so it is offered on every later
  * recipe.
  */
-export function useRecipeWriting({ household, userId, vocabulary, recipes, tags, recipeCategories, reload, onError, onMessage, setBusy, dismissEditor, dismissImporter }: {
+export function useRecipeWriting({ household, userId, recipeCategories, reload, onError, onMessage, setBusy, dismissEditor, dismissImporter }: {
   household: Household | null
   userId: string | null
-  vocabulary: VocabularyIngredient[]
-  recipes: Recipe[]
-  tags: HouseholdTag[]
   recipeCategories: string[]
   reload: () => Promise<void>
   onError: (message: string | null) => void

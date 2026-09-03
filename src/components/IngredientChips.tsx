@@ -3,7 +3,7 @@ import { ingredientLookupKey, ingredientNameWithoutQuantity, titleSimilarity } f
 import { SECTION_LABELS } from '../lib/sections'
 import type { IngredientSection, VocabularyIngredient } from '../lib/types'
 import { IngredientFormModal } from './IngredientFormModal'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 /**
  * Shared ingredient editor. Typing filters the household vocabulary, first on
@@ -23,8 +23,6 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
   const [highlight, setHighlight] = useState(0)
   const [adding, setAdding] = useState(false)
   const [pendingNew, setPendingNew] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
-
   const taken = useMemo(() => new Set(value.map(ingredientLookupKey)), [value])
 
   const suggestions = useMemo(() => {
@@ -113,7 +111,6 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
         {adding ? (
           <div className="chip-input">
             <input
-              ref={inputRef}
               autoFocus
               value={entry}
               onChange={(event) => { setEntry(event.target.value); setHighlight(0) }}

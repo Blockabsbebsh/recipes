@@ -1,4 +1,4 @@
--- TRUNCATE is not subject to row security. That is the whole of this file.
+-- TRUNCATE is not subject to row security.
 --
 -- Every household table granted TRUNCATE to `authenticated`, and Postgres does
 -- not check row policies for it: a signed-in account could have emptied

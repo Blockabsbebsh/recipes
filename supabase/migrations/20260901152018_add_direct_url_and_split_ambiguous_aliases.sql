@@ -1,4 +1,4 @@
--- A direct product URL that bypasses the category-based link. Used when
+-- A direct product URL bypasses the category-based link. Used when
 -- Barbora's deep-link association files are stale for a particular section
 -- and a specific product URL is known to work.
 alter table public.ingredients

@@ -1222,7 +1222,6 @@ export async function modals(page, base) {
     await page.waitForTimeout(400)
     if (await count() !== expected) findings.push(`Escape did not leave ${expected} modal(s) open`)
   }
-  // The list underneath must not have been dragged around by the modals above.
   return findings
 }
 

@@ -1,4 +1,4 @@
--- Creating a household stopped working when the code started being generated.
+-- Creating a household stopped working when invite-code generation changed.
 --
 -- The rotation migration replaced the invite code's inline default with
 -- `private.new_invite_code()`, then revoked execute on it from `authenticated`

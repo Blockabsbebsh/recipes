@@ -22,11 +22,6 @@ import { ImportDialog } from './components/ImportDialog'
 import { MealPicker } from './components/MealPicker'
 import { SettingsDialog } from './components/SettingsDialog'
 
-
-
-
-
-
 // The aisle each section falls back to, read from the same crawled catalogue
 // the mapper walks. Association-file aliases are deliberately not used here:
 // some open Barbora but point its app at a retired, 404ing route.
@@ -625,7 +620,7 @@ function App() {
     household, recipes, tags, reload: loadData, onError: setError, onMessage: setMessage,
   })
   const { saveRecipe, saveImported, softDelete, restoreRecipe } = useRecipeWriting({
-    household, userId, vocabulary, recipes, tags, recipeCategories,
+    household, userId, recipeCategories,
     reload: loadData, onError: setError, onMessage: setMessage, setBusy: setLoading,
     dismissEditor: () => setEditor(null), dismissImporter: () => setImportOpen(false),
   })

@@ -1,4 +1,4 @@
--- Ceilings on how much one household can hold.
+-- Limits on how much one household can hold.
 --
 -- Nothing bounded how many rows a member could insert. Through the app that is
 -- unreachable — you would be tapping "add recipe" for a week — but a session
