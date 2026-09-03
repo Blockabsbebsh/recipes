@@ -22,13 +22,16 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
   onClose: () => void
 }) {
   const [products, setProducts] = useState<BarboraProduct[] | null>(null)
-  const [failed, setFailed] = useState(false)
+  // Our own ceiling and the shop refusing us are different problems with
+  // different answers — wait a moment, versus come back later — so the sheet
+  // must never blame one for the other.
+  const [problem, setProblem] = useState<'none' | 'throttled' | 'refused'>('none')
   const [degraded, setDegraded] = useState(false)
 
   useEffect(() => {
     let live = true
     setProducts(null)
-    setFailed(false)
+    setProblem('none')
     setDegraded(false)
     void (async () => {
       const { data, error } = await supabase.functions.invoke<BarboraProductsResponse>(
@@ -37,7 +40,8 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
       )
       if (!live) return
       if (error || !data) {
-        setFailed(true)
+        const status = (error as { context?: { status?: number } } | null)?.context?.status
+        setProblem(status === 429 ? 'throttled' : 'refused')
         return
       }
       // Matches without prices are a different thing from products that
@@ -62,8 +66,18 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
         </p>
       )}
 
-      {products === null && !failed && <p className="muted product-status">Ieškoma parduotuvėje…</p>}
-      {failed && <p className="muted product-status">Nepavyko gauti kainų. Bandykite dar kartą vėliau.</p>}
+      {products === null && problem === 'none' && (
+        <p className="muted product-status">Ieškoma parduotuvėje…</p>
+      )}
+      {problem === 'throttled' && (
+        <p className="product-status product-throttled">
+          Per dažnai užklausiama. Palaukite minutę ir bandykite dar kartą.
+          <small>Užklausas ribojame patys, kad neapkrautume parduotuvės.</small>
+        </p>
+      )}
+      {problem === 'refused' && (
+        <p className="muted product-status">Nepavyko susisiekti su parduotuve. Bandykite vėliau.</p>
+      )}
       {products !== null && products.length === 0 && (
         <p className="muted product-status">Atitikmenų parduotuvėje nerasta.</p>
       )}

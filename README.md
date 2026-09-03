@@ -39,7 +39,7 @@ New sign-ups are disabled in the Supabase dashboard, which is why a public publi
 ## Testing
 
 ```bash
-npm test          # 135 unit tests, none of which need a browser
+npm test          # 154 unit tests, none of which need a browser
 npm run harness   # the real app on an emulated phone, against a fake Supabase
 npm run dbtest    # every migration applied to a throwaway Postgres, then checked
 ```

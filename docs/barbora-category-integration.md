@@ -326,17 +326,18 @@ would have been silent and expensive. Move these blocks; do not retype them.
 
 ## Tests
 
-`npm test` runs 135 tests across eleven suites, none of which need a browser:
+`npm test` runs 154 tests across twelve suites, none of which need a browser:
 
 | Suite | |
 | --- | --- |
+| `barboraProducts.test.mjs` | 26 — the price merge; see [`barbora-product-pricing.md`](barbora-product-pricing.md) |
 | `parser.test.mjs` | 23 — the importer |
 | `barboraMapping.test.mjs` | 23 — the mapper, the aliases, the link shapes |
-| `barboraProducts.test.mjs` | 17 — the price merge; see [`barbora-product-pricing.md`](barbora-product-pricing.md) |
 | `crawler.test.mjs` | 17 — tree construction, validation, refusal to publish a bad crawl |
 | `viewState.test.mjs` | 13 — what is remembered, and when it goes stale |
 | `scrollMemory.test.mjs` | 10 — a drag, a flick, a tap, the page thrown to the top |
 | `scrollTrace.test.mjs` | 10 — the on-device log |
+| `rateLimit.test.mjs` | 10 — the ceiling under a runaway client |
 | `readiness.test.mjs` | 8 — whether the loading screen belongs on screen |
 | `backNav.test.mjs` | 6 — what the back button undoes |
 | `ingredientMapping.test.mjs` | 5 — the Barbora columns for an ingredient |

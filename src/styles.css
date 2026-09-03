@@ -323,3 +323,5 @@ textarea { resize: vertical; line-height: 1.5; }
 .product-deal { padding: 1px 6px; border-radius: 99px; background: var(--orange); color: #fff; font-size: .7rem; font-weight: 700; }
 .product-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--muted); font-size: .74rem; }
 .product-out { color: var(--red); font-weight: 600; }
+.product-throttled { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid rgba(217, 121, 60, .35); border-radius: 14px; background: #fdf3ea; color: var(--ink); font-size: .88rem; }
+.product-throttled small { color: var(--muted); font-size: .76rem; }
