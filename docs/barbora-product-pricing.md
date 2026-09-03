@@ -85,7 +85,7 @@ The same instinct as the category mapper: decline rather than guess.
 
 `BARBORA_STORE = 'X500'` in `src/lib/barboraProducts.js`, and `STORE` in the Edge Function. **The two must match.**
 
-X500 appears to be Barbora's default and is this household's shop: an anonymous server-side call returns `shopcode: "X500"`, and its prices match what the browser shows while signed in. Barbora scopes stock, promotions and loyalty discounts per store — the same code is the `us=X500` parameter on Constructor requests and the `_X500` suffix on its per-store fields — so if either of us ever switches shops, these two constants are the change, and the Edge Function needs redeploying.
+X500 is this household's shop, confirmed rather than assumed: a signed-in session reports `customerShopCode: "X500"`, and an anonymous server-side call returns the same `shopcode` and the same prices. Nothing in Barbora's own client picks a store — there is no store code anywhere in their bundle or cookies — so the server resolves it, which is why hardcoding a constant here is the only option available and happens to be the right one. Barbora scopes stock, promotions and loyalty discounts per store — the same code is the `us=X500` parameter on Constructor requests and the `_X500` suffix on its per-store fields — so if either of us ever switches shops, these two constants are the change, and the Edge Function needs redeploying.
 
 ## What the sheet shows
 
