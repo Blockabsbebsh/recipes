@@ -1,4 +1,4 @@
--- Column grants do nothing while a table-level grant is still standing.
+-- Column grants do nothing while a table-level grant remains.
 --
 -- Supabase's bootstrap hands the client roles everything on `public`:
 -- `alter default privileges in schema public grant all on tables to anon,

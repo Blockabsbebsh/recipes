@@ -100,4 +100,21 @@ select t.eq(has_table_privilege('authenticated', 'public.something_new', 'SELECT
             'nor anything else until a migration says so');
 select t.eq((select relrowsecurity from pg_class where oid = 'public.something_new'::regclass), true,
             'and row security is on from the moment it exists');
+
+-- A future function is private until its migration deliberately exposes it.
+create function public.default_privilege_probe_postgres()
+returns text language sql as $$ select 'postgres'::text $$;
+
+select t.eq(has_function_privilege('anon', 'public.default_privilege_probe_postgres()', 'EXECUTE'), false,
+            'a future postgres function is not executable by signed-out clients');
+select t.eq(has_function_privilege('authenticated', 'public.default_privilege_probe_postgres()', 'EXECUTE'), false,
+            'a future postgres function is not executable by signed-in clients');
+select t.eq(has_function_privilege('service_role', 'public.default_privilege_probe_postgres()', 'EXECUTE'), false,
+            'a future postgres function is not implicitly executable by the service role');
+
+grant execute on function public.default_privilege_probe_postgres() to authenticated;
+select t.eq(has_function_privilege('authenticated', 'public.default_privilege_probe_postgres()', 'EXECUTE'), true,
+            'a future function becomes callable after an explicit grant');
+select t.eq(has_function_privilege('anon', 'public.default_privilege_probe_postgres()', 'EXECUTE'), false,
+            'an explicit authenticated grant does not expose the function to signed-out clients');
 rollback;

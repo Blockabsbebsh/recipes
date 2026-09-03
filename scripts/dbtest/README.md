@@ -1,13 +1,13 @@
 # Database harness
 
-Applies every migration to a throwaway PostgreSQL and checks what the database does on its own: who can read whose kitchen, what a signed-in account is allowed to write, where the ceilings are, how invite codes rotate, and whether the throttle on joining survives twenty simultaneous requests.
+Applies every migration to a throwaway PostgreSQL and checks what the database does on its own: who can read whose kitchen, what a signed-in account is allowed to write, where the ceilings are, how invite codes rotate, and whether the throttles and ceilings survive simultaneous requests.
 
 ```bash
 npm run dbtest            # every file, plus the concurrency run
 npm run dbtest -- caps invites
 ```
 
-It needs PostgreSQL 16 and `psql` on PATH — on Debian and Ubuntu, `postgresql` and `postgresql-client`. The cluster is created under `/var/tmp`, used, and deleted; **nothing touches the Supabase project**.
+It needs PostgreSQL 16 and `psql` on PATH — on Debian and Ubuntu, `postgresql` and `postgresql-client`. The cluster is created in the system temporary directory, used, and deleted; **nothing touches the Supabase project**.
 
 This is the half of the app the phone harness cannot see. Every policy, grant and trigger in `supabase/migrations/` was written, reviewed by reading, and applied to production without ever being executed against a test. The first run found two faults that had been live for a day.
 
@@ -17,7 +17,7 @@ This is the half of the app the phone harness cannot see. Every policy, grant an
 | --- | --- |
 | `shim.sql` | the parts of a Supabase database the migrations expect to already exist: the client roles, `auth.uid()`, the `extensions` schema, the realtime publication, a `cron` stand-in — and Supabase's blanket default grants, which are not decoration (see below) |
 | `helpers.sql` | the vocabulary the tests are written in: `t.acting_as`, `t.ok`, `t.eq`, `t.refused`, `t.refused_saying`, `t.allowed`, and a seed of two households |
-| `run.mjs` | starts the cluster, applies the shim and every migration in order, runs each test file, and runs the concurrency case |
+| `run.mjs` | starts the cluster, applies the shim and every migration in order, runs each test file, and runs the concurrency cases |
 | `tests/*.sql` | one file per subject, each wrapped in a transaction it rolls back |
 
 There is no PostgREST here, so the tests stand where PostgREST stands: `set local role authenticated` with the caller's id in `request.jwt.claim.sub`, which is exactly the shape a request arrives in.
@@ -25,11 +25,11 @@ There is no PostgREST here, so the tests stand where PostgREST stands: `set loca
 ## Subjects
 
 - **`isolation`** — one household is invisible to another, to an account in no household, and to the signed-out key. Every check runs as a real signed-in account, because that is what an attacker has.
-- **`privileges`** — TRUNCATE, the columns a client may not write, the ceiling on households per account, the length limits, and the full table-level privilege matrix spelled out.
+- **`privileges`** — TRUNCATE, the columns a client may not write, the ceiling on households per account, the length limits, default function access, and the full table-level privilege matrix spelled out.
 - **`caps`** — the row ceilings, two of them by filling a household to the line and stepping over it, the rest by reading the number off the trigger that carries it.
 - **`invites`** — twelve hex characters, rotation replacing a week-old code and only that one, the daily job, and every shape a code can be typed in.
 - **`ratelimit`** — five guesses in fifteen minutes, per account, forgotten after a day.
-- **`concurrency`** — twenty guesses arriving at once. Not a SQL file: twenty `psql` processes that sleep until the same instant inside the database and then all call `join_household`.
+- **`concurrency`** — simultaneous join attempts, household-member inserts, and recipe-ingredient inserts. These are separate `psql` processes that sleep until the same instant inside the database.
 
 ## What it found
 

@@ -8,7 +8,7 @@
 //
 // It needs a local PostgreSQL 16 and `psql` on PATH; on Debian and Ubuntu that
 // is `postgresql` and `postgresql-client`. Nothing here touches the real
-// project: the cluster is created under /var/tmp, used, and deleted.
+// project: the cluster is created in the system temporary directory and deleted.
 //
 // The one thing it cannot do is run PostgREST, so it stands where PostgREST
 // stands: `set local role authenticated` with the caller's id in
@@ -28,7 +28,7 @@ const args = process.argv.slice(2)
 const files = readdirSync(join(HERE, 'tests')).filter((f) => f.endsWith('.sql')).sort()
 const wanted = files.filter((f) => !args.length || args.includes(f.replace(/^\d+-|\.sql$/g, '')))
 
-const root = mkdtempSync(join('/var/tmp', 'dbtest-'))
+const root = mkdtempSync(join(tmpdir(), 'dbtest-'))
 const sock = join(root, 'sock')
 const sh = (command, options = {}) =>
   spawnSync('bash', ['-lc', command], { encoding: 'utf8', ...options })
@@ -63,26 +63,46 @@ const stop = () => {
  * client sleeps until the same instant inside the database first, and only
  * then opens the transaction that takes the lock.
  */
-async function concurrency() {
-  const DANA = '00000000-0000-4000-8000-00000000a004'
-  const ATTEMPTS = 20
-  const problems = []
-
-  let step = psql(`select t.seed(); delete from private.join_attempts;`)
-  if (step.status !== 0) return [`the fixture would not commit: ${step.stderr.trim()}`]
-
+const runTogether = async (statements) => {
   const startAt = new Date(Date.now() + 2500).toISOString()
-  const runs = Array.from({ length: ATTEMPTS }, () => new Promise((resolve) => {
+  const runs = statements.map((statement) => new Promise((resolve) => {
     const child = spawn('psql', [
       '-X', '-q', '-t', '-A', '-v', 'ON_ERROR_STOP=1', '-h', sock, '-p', String(PORT), '-U', 'postgres', '-d', 'app',
       '-c', `select pg_sleep_until('${startAt}'::timestamptz)`,
-      '-c', `begin; select set_config('request.jwt.claim.sub', '${DANA}', true); set local role authenticated; select public.join_household('FFFFFFFFFFFF'); commit;`,
+      '-c', statement,
     ], { encoding: 'utf8' })
     let err = ''
     child.stderr.on('data', (d) => { err += d })
     child.on('close', (code) => resolve({ code, err }))
   }))
-  const results = await Promise.all(runs)
+  return Promise.all(runs)
+}
+
+const cleanFixtures = () => psql(`
+  delete from public.recipe_tags;
+  delete from public.recipe_ingredients;
+  delete from public.roster_entries;
+  delete from public.shopping_queue;
+  delete from public.ingredients;
+  delete from public.tags;
+  delete from public.recipes;
+  delete from public.household_members;
+  delete from public.households;
+  delete from auth.users;
+`)
+
+async function joinConcurrency() {
+  const DANA = '00000000-0000-4000-8000-00000000a004'
+  const ATTEMPTS = 20
+  const problems = []
+
+  const step = psql(`select t.seed(); delete from private.join_attempts;`)
+  if (step.status !== 0) return [`the fixture would not commit: ${step.stderr.trim()}`]
+
+  const results = await runTogether(Array.from(
+    { length: ATTEMPTS },
+    () => `begin; select set_config('request.jwt.claim.sub', '${DANA}', true); set local role authenticated; select public.join_household('FFFFFFFFFFFF'); commit;`,
+  ))
 
   const answered = results.filter((r) => r.code === 0).length
   const throttled = results.filter((r) => /Per daug bandym/.test(r.err)).length
@@ -94,7 +114,80 @@ async function concurrency() {
   if (throttled !== ATTEMPTS - 5) problems.push(`${throttled} of ${ATTEMPTS} were turned away, not ${ATTEMPTS - 5}`)
   if (recorded !== 5) problems.push(`${recorded} attempts were recorded, not 5`)
 
-  psql('delete from private.join_attempts; delete from public.household_members; delete from public.recipes; delete from public.households; delete from auth.users;')
+  psql('delete from private.join_attempts;')
+  cleanFixtures()
+  return problems
+}
+
+async function householdCapConcurrency() {
+  const KITCHEN = '00000000-0000-4000-8000-00000000b001'
+  const ATTEMPTS = 8
+  const problems = []
+
+  const step = psql(`
+    select t.seed();
+    insert into auth.users (id, email)
+      select ('00000000-0000-4000-9000-' || lpad(g::text, 12, '0'))::uuid, 'cap-' || g || '@example.com'
+      from generate_series(1, 55) g;
+    insert into public.household_members (household_id, user_id)
+      select '${KITCHEN}', ('00000000-0000-4000-9000-' || lpad(g::text, 12, '0'))::uuid
+      from generate_series(1, 47) g;
+  `)
+  if (step.status !== 0) {
+    cleanFixtures()
+    return [`the household-cap fixture would not commit: ${step.stderr.trim()}`]
+  }
+
+  const results = await runTogether(Array.from({ length: ATTEMPTS }, (_, i) => {
+    const user = `00000000-0000-4000-9000-${String(i + 48).padStart(12, '0')}`
+    return `begin; insert into public.household_members (household_id, user_id) values ('${KITCHEN}', '${user}'); commit;`
+  }))
+  const inserted = results.filter((r) => r.code === 0).length
+  const capped = results.filter((r) => /pasiekė ribą/.test(r.err)).length
+  const other = results.filter((r) => r.code !== 0 && !/pasiekė ribą/.test(r.err))
+  const total = Number(psql(`select count(*) from public.household_members where household_id = '${KITCHEN}'`).stdout.match(/\d+/)?.[0] ?? -1)
+
+  if (other.length) problems.push(`${other.length} of ${ATTEMPTS} failed for some other reason: ${other[0].err.trim().split('\n')[0]}`)
+  if (inserted !== 1) problems.push(`${inserted} of ${ATTEMPTS} simultaneous members were inserted, not 1`)
+  if (capped !== ATTEMPTS - 1) problems.push(`${capped} of ${ATTEMPTS} were capped, not ${ATTEMPTS - 1}`)
+  if (total !== 50) problems.push(`the household finished with ${total} members, not 50`)
+
+  cleanFixtures()
+  return problems
+}
+
+async function recipeIngredientCapConcurrency() {
+  const RECIPE = '00000000-0000-4000-8000-00000000c001'
+  const KITCHEN = '00000000-0000-4000-8000-00000000b001'
+  const ATTEMPTS = 8
+  const problems = []
+
+  const step = psql(`
+    select t.seed();
+    insert into public.recipe_ingredients (household_id, recipe_id, item, position)
+      select '${KITCHEN}', '${RECIPE}', 'concurrency ingredient ' || g, g
+      from generate_series(1, 499) g;
+  `)
+  if (step.status !== 0) {
+    cleanFixtures()
+    return [`the recipe-ingredient fixture would not commit: ${step.stderr.trim()}`]
+  }
+
+  const results = await runTogether(Array.from(
+    { length: ATTEMPTS },
+    (_, i) => `begin; insert into public.recipe_ingredients (household_id, recipe_id, item, position) values ('${KITCHEN}', '${RECIPE}', 'simultaneous ingredient ${i + 1}', ${500 + i}); commit;`,
+  ))
+  const inserted = results.filter((r) => r.code === 0).length
+  const capped = results.filter((r) => /500 ingredientų/.test(r.err)).length
+  const other = results.filter((r) => r.code !== 0 && !/500 ingredientų/.test(r.err))
+  const total = Number(psql(`select count(*) from public.recipe_ingredients where recipe_id = '${RECIPE}'`).stdout.match(/\d+/)?.[0] ?? -1)
+
+  if (other.length) problems.push(`${other.length} of ${ATTEMPTS} failed for some other reason: ${other[0].err.trim().split('\n')[0]}`)
+  if (inserted !== 1) problems.push(`${inserted} of ${ATTEMPTS} simultaneous ingredients were inserted, not 1`)
+  if (capped !== ATTEMPTS - 1) problems.push(`${capped} of ${ATTEMPTS} were capped, not ${ATTEMPTS - 1}`)
+  if (total !== 500) problems.push(`the recipe finished with ${total} ingredients, not 500`)
+
+  cleanFixtures()
   return problems
 }
 
@@ -143,11 +236,18 @@ try {
     }
   }
   if (!args.length || args.includes('concurrency')) {
-    const said = await concurrency()
-    if (said.length) {
-      failures += 1
-      console.log(`✗ concurrency\n    ${said.join('\n    ')}`)
-    } else console.log('✓ concurrency')
+    const checks = [
+      ['concurrent join attempts', joinConcurrency],
+      ['concurrent household cap', householdCapConcurrency],
+      ['concurrent recipe-ingredient cap', recipeIngredientCapConcurrency],
+    ]
+    for (const [name, check] of checks) {
+      const said = await check()
+      if (said.length) {
+        failures += 1
+        console.log(`✗ ${name}\n    ${said.join('\n    ')}`)
+      } else console.log(`✓ ${name}`)
+    }
   }
 
   console.log(`\n${failures === 0 ? 'no failures' : `${failures} file(s) failed`}`)

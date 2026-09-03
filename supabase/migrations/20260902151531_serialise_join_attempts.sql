@@ -1,4 +1,4 @@
--- Count-then-insert is not a rate limit under concurrency.
+-- Count-then-insert is not a rate limit when requests run concurrently.
 --
 -- Every simultaneous request read the same count before any of them had
 -- written a row, so twenty parallel calls all saw zero attempts and all

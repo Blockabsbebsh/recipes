@@ -1,4 +1,4 @@
--- Invite codes expire, and are wide enough that a week is not enough time.
+-- Invite codes expire and are wide enough that a week is not enough time.
 --
 -- A code was a permanent credential: it never changed, and anyone holding one
 -- could join the household and read and write everything in it, years after
