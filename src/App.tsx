@@ -2,7 +2,7 @@ import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { ingredientLookupKey, normalizeTitle } from './lib/parser'
-import { cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
+import { CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
 import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, shoppingUrl } from './lib/barboraMapping'
 import { environment, navigationKind, trace, visualTop } from './lib/scrollTrace'
 import { showsSetupSplash, showsUnreachable } from './lib/readiness'
@@ -554,6 +554,18 @@ function App() {
     const custom = configured.filter((name) => !DISH_TYPES.includes(name)).sort((a, b) => a.localeCompare(b, 'lt'))
     return [...preferred, ...custom]
   }, [tags])
+  /**
+   * The cuisines on offer: the built-in list, plus anything the household has
+   * added or a recipe already carries. Adding a country was a source edit
+   * until now.
+   */
+  const recipeCuisines = useMemo(() => {
+    const configured = tags
+      .filter((tag) => tag.name.startsWith(CUISINE_TAG_PREFIX))
+      .map((tag) => tag.name.slice(CUISINE_TAG_PREFIX.length))
+    const custom = configured.filter((name) => !CUISINES.includes(name)).sort((a, b) => a.localeCompare(b, 'lt'))
+    return [...CUISINES, ...custom]
+  }, [tags])
   const recentCooked = useMemo(() => {
     const cutoff = Date.now() - 5 * 86_400_000
     return roster.filter(
@@ -618,7 +630,10 @@ function App() {
   const { createIngredient, updateIngredient, deleteIngredient } = useVocabulary({
     household, recipes, categoryIndex, reload: loadData, onError: setError, onMessage: setMessage,
   })
-  const { createRecipeCategory, updateRecipeCategory, deleteRecipeCategory } = useRecipeCategories({
+  const {
+    createRecipeCategory, updateRecipeCategory, deleteRecipeCategory,
+    createCuisine, updateCuisine, deleteCuisine,
+  } = useRecipeCategories({
     household, recipes, tags, reload: loadData, onError: setError, onMessage: setMessage,
   })
   const { saveRecipe, saveImported, softDelete, restoreRecipe } = useRecipeWriting({
@@ -760,6 +775,7 @@ function App() {
         <RecipeEditor
           vocabulary={vocabulary}
           categories={recipeCategories}
+          cuisines={recipeCuisines}
           recipes={activeRecipes}
           recipe={editor.recipe}
           destination={editor.destination}
@@ -768,6 +784,8 @@ function App() {
           onSave={(draft) => void saveRecipe(draft, editor.recipe, editor.destination)}
           categoryIndex={categoryIndex}
           onCreateIngredient={createIngredient}
+          onCreateCategory={createRecipeCategory}
+          onCreateCuisine={createCuisine}
         />
       )}
       {inspecting && (
@@ -777,7 +795,19 @@ function App() {
           onClose={() => setInspecting(null)}
         />
       )}
-      {importOpen && <ImportDialog vocabulary={vocabulary} recipes={activeRecipes} loading={loading} onClose={() => setImportOpen(false)} onSave={(drafts) => void saveImported(drafts)} />}
+      {importOpen && (
+        <ImportDialog
+          vocabulary={vocabulary}
+          recipes={activeRecipes}
+          categories={recipeCategories}
+          cuisines={recipeCuisines}
+          loading={loading}
+          onClose={() => setImportOpen(false)}
+          onSave={(drafts) => void saveImported(drafts)}
+          onCreateCategory={createRecipeCategory}
+          onCreateCuisine={createCuisine}
+        />
+      )}
       {pickerOpen && (
         <MealPicker
           recipes={activeRecipes}
@@ -797,6 +827,7 @@ function App() {
           vocabulary={vocabulary}
           recipes={recipes}
           categories={tags.filter((tag) => tag.name.startsWith(DISH_TAG_PREFIX))}
+          cuisines={tags.filter((tag) => tag.name.startsWith(CUISINE_TAG_PREFIX))}
           categoryIndex={categoryIndex}
           onCreateIngredient={createIngredient}
           onUpdateIngredient={updateIngredient}
@@ -804,6 +835,9 @@ function App() {
           onCreateCategory={createRecipeCategory}
           onUpdateCategory={updateRecipeCategory}
           onDeleteCategory={deleteRecipeCategory}
+          onCreateCuisine={createCuisine}
+          onUpdateCuisine={updateCuisine}
+          onDeleteCuisine={deleteCuisine}
           onClose={() => setSettingsOpen(false)}
         />
       )}

@@ -1,5 +1,6 @@
 import type { CategoryIndex } from '../lib/barboraMapping'
-import { CUISINES, classifyRecipe, cuisineFor, dishTypeFor } from '../lib/categories'
+import { classifyRecipe, cuisineFor, dishTypeFor } from '../lib/categories'
+import { CategorySelect } from './CategorySelect'
 import { blankDraft } from '../lib/drafts'
 import { normalizeTitle, titleSimilarity } from '../lib/parser'
 import type { IngredientSection, Recipe, RecipeDestination, RecipeDraft, VocabularyIngredient } from '../lib/types'
@@ -7,17 +8,20 @@ import { IngredientChips } from './IngredientChips'
 import { Modal } from './Modal'
 import { useMemo, useState } from 'react'
 
-export function RecipeEditor({ recipe, destination, vocabulary, categories, recipes: allRecipes, loading, onClose, onSave, categoryIndex, onCreateIngredient }: {
+export function RecipeEditor({ recipe, destination, vocabulary, categories, cuisines, recipes: allRecipes, loading, onClose, onSave, categoryIndex, onCreateIngredient, onCreateCategory, onCreateCuisine }: {
   recipe?: Recipe
   destination: RecipeDestination
   vocabulary: VocabularyIngredient[]
   categories: string[]
+  cuisines: string[]
   recipes: Recipe[]
   loading: boolean
   onClose: () => void
   onSave: (draft: RecipeDraft) => void
   categoryIndex?: CategoryIndex
   onCreateIngredient?: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
+  onCreateCategory?: (name: string) => Promise<boolean>
+  onCreateCuisine?: (name: string) => Promise<boolean>
 }) {
   const fallbackCategory = categories.includes('Kita') ? 'Kita' : categories[0] || 'Kita'
   const selectableCategories = categories.length ? categories : [fallbackCategory]
@@ -65,8 +69,20 @@ export function RecipeEditor({ recipe, destination, vocabulary, categories, reci
           <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => updateContent({ title: draft.title, ingredients })} categoryIndex={categoryIndex} onCreateIngredient={onCreateIngredient} />
         </div>
         <div className="category-grid">
-          <label>Patiekalo tipas<select value={draft.dishType} onChange={(event) => { setCategoriesTouched(true); setDraft({ ...draft, dishType: event.target.value }) }}>{selectableCategories.map((value) => <option key={value}>{value}</option>)}</select></label>
-          <label>Virtuvė<select value={draft.cuisine} onChange={(event) => { setCategoriesTouched(true); setDraft({ ...draft, cuisine: event.target.value }) }}>{CUISINES.map((value) => <option key={value}>{value}</option>)}</select></label>
+          <CategorySelect
+            label="Patiekalo tipas"
+            value={draft.dishType || fallbackCategory}
+            options={selectableCategories}
+            onChange={(dishType) => { setCategoriesTouched(true); setDraft({ ...draft, dishType }) }}
+            onCreate={onCreateCategory}
+          />
+          <CategorySelect
+            label="Virtuvė"
+            value={draft.cuisine || cuisines[0] || ''}
+            options={cuisines}
+            onChange={(cuisine) => { setCategoriesTouched(true); setDraft({ ...draft, cuisine }) }}
+            onCreate={onCreateCuisine}
+          />
         </div>
         {!categoriesTouched && <p className="category-hint">Kategorijos parenkamos automatiškai pagal pavadinimą ir produktus.</p>}
         <label>Trumpi gaminimo žingsniai <span className="optional">nebūtina</span><textarea rows={4} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder="Kas svarbu gaminant…" /></label>

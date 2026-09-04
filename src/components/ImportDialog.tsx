@@ -1,83 +1,126 @@
-import { ingredientLookupKey, ingredientNameWithoutQuantity, looksLikePlaceholder, normalizeTitle, parseRecipeList, titleSimilarity } from '../lib/parser'
+import { classifyRecipe } from '../lib/categories'
+import { findVocabularyMatch, ingredientLookupKey, ingredientNameWithoutQuantity, looksLikePlaceholder, normalizeTitle, parseRecipeList, titleSimilarity } from '../lib/parser'
 import type { Recipe, RecipeDraft, VocabularyIngredient } from '../lib/types'
+import { CategorySelect } from './CategorySelect'
 import { IngredientChips } from './IngredientChips'
 import { Modal } from './Modal'
 import { useState } from 'react'
 
-export function ImportDialog({ vocabulary, recipes: allRecipes, loading, onClose, onSave }: { vocabulary: VocabularyIngredient[]; recipes: Recipe[]; loading: boolean; onClose: () => void; onSave: (drafts: RecipeDraft[]) => void }) {
+/** A parsed recipe plus what the importer wants to say about it. */
+type Preview = {
+  draft: RecipeDraft
+  /** An existing recipe with much the same name, decided once, when parsing. */
+  similar: string | null
+  /** Near-matches the importer swapped in, as `written → chosen`. */
+  swaps: string[]
+}
+
+export function ImportDialog({ vocabulary, recipes: allRecipes, categories, cuisines, loading, onClose, onSave, onCreateCategory, onCreateCuisine }: {
+  vocabulary: VocabularyIngredient[]
+  recipes: Recipe[]
+  categories: string[]
+  cuisines: string[]
+  loading: boolean
+  onClose: () => void
+  onSave: (drafts: RecipeDraft[]) => void
+  onCreateCategory?: (name: string) => Promise<boolean>
+  onCreateCuisine?: (name: string) => Promise<boolean>
+}) {
   const [raw, setRaw] = useState('')
-  const [drafts, setDrafts] = useState<RecipeDraft[] | null>(null)
-  // What the importer changed on the way in, so the preview can say so. Keyed
-  // by the name it settled on, because that is what the chips now show.
-  const [guessed, setGuessed] = useState<Map<string, string>>(new Map())
-  if (!drafts) return (
+  const [previews, setPreviews] = useState<Preview[] | null>(null)
+  const fallbackCategory = categories.includes('Kita') ? 'Kita' : categories[0] || 'Kita'
+  const selectableCategories = categories.length ? categories : [fallbackCategory]
+
+  function review() {
+    const names = vocabulary.map((item) => item.name)
+    const swapsByName = new Map<string, string>()
+    function resolveIngredient(written: string) {
+      const cleaned = ingredientNameWithoutQuantity(written)
+      const match = findVocabularyMatch(cleaned, names)
+      // A near-match is a guess, not a fact. Record what it replaced so the
+      // preview can show the swap rather than making it silently.
+      if (match && ingredientLookupKey(match) !== ingredientLookupKey(cleaned)) swapsByName.set(match, cleaned)
+      return match ?? cleaned
+    }
+    // The vocabulary tells the parser which unmeasured lines are shopping and
+    // which are dishes, which is most of what separates a pasted page from a
+    // list of dinners.
+    setPreviews(parseRecipeList(raw, { vocabulary: names }).map((parsed) => {
+      const ingredients = [...new Map(parsed.ingredients.map((item) => {
+        const resolved = resolveIngredient(item)
+        return [ingredientLookupKey(resolved), resolved]
+      })).values()]
+      const detected = classifyRecipe(parsed.title, ingredients)
+      const draft: RecipeDraft = {
+        ...parsed,
+        ingredients,
+        // A heading in the paste beats the classifier, and a type the
+        // household does not keep is no type at all.
+        dishType: categories.includes(parsed.dishType ?? '') ? parsed.dishType
+          : categories.includes(detected.dishType) ? detected.dishType : fallbackCategory,
+        cuisine: cuisines.includes(detected.cuisine) ? detected.cuisine : cuisines[0] || detected.cuisine,
+      }
+      const similar = draft.title.trim().length >= 3
+        ? allRecipes.find((r) => normalizeTitle(r.title) === normalizeTitle(draft.title))?.title
+          ?? allRecipes.filter((r) => titleSimilarity(draft.title, r.title) >= 0.7)
+            .sort((a, b) => titleSimilarity(draft.title, b.title) - titleSimilarity(draft.title, a.title))[0]?.title
+          ?? null
+        : null
+      return {
+        draft,
+        similar,
+        swaps: ingredients.filter((name) => swapsByName.has(name)).map((name) => `${swapsByName.get(name)} → ${name}`),
+      }
+    }))
+  }
+
+  function edit(index: number, changes: Partial<RecipeDraft>) {
+    setPreviews((current) => (current ?? []).map((preview, position) => (
+      position === index ? { ...preview, draft: { ...preview.draft, ...changes } } : preview
+    )))
+  }
+
+  if (!previews) return (
     <Modal title="Importuoti receptų sąrašą" onClose={onClose}>
-      <p className="muted">Įklijuokite po vieną patiekalą eilutėje. Produktus rašykite skliaustuose arba po brūkšnio, atskirtus kableliais. Sąrašo ženkliukai, numeracija ir žymimieji langeliai pašalinami. Antraštės (SRIUBOS, SALOTOS) tampa patiekalo tipu, o nuoroda — recepto šaltiniu.</p>
-      <textarea className="import-area" rows={10} value={raw} onChange={(event) => setRaw(event.target.value)} placeholder={'SRIUBOS\n• Pomidorų sriuba (pomidorai 2x, svogūnas, morka, sultinys)'} />
-      <p className="fine-print">Kalba nekeičiama. Prieš išsaugodami galėsite pataisyti kiekvieną receptą.</p>
-      <button className="button primary wide" disabled={!raw.trim()} onClick={() => {
-        const vocabularyByKey = new Map(vocabulary.map((item) => [ingredientLookupKey(item.name), item.name]))
-        const substitutions = new Map<string, string>()
-        function resolveIngredient(raw: string) {
-          const key = ingredientLookupKey(raw)
-          const exact = vocabularyByKey.get(key)
-          if (exact) return exact
-          const cleaned = ingredientNameWithoutQuantity(raw)
-          const best = vocabulary
-            .map((item) => ({ name: item.name, score: titleSimilarity(cleaned, item.name) }))
-            .filter((row) => row.score >= 0.65)
-            .sort((a, b) => b.score - a.score)[0]
-          // A near-match is a guess, not a fact. Record what it replaced so the
-          // preview can show the swap rather than making it silently.
-          if (best) substitutions.set(best.name, cleaned)
-          return best ? best.name : cleaned
-        }
-        setDrafts(parseRecipeList(raw).map((draft) => ({
-          ...draft,
-          ingredients: [...new Map(draft.ingredients.map((item) => {
-            const resolved = resolveIngredient(item)
-            return [ingredientLookupKey(resolved), resolved]
-          })).values()],
-        })))
-        setGuessed(substitutions)
-      }}>Peržiūrėti receptus</button>
+      <p className="muted">Tinka abu būdai: po vieną patiekalą eilutėje (produktai skliaustuose arba po brūkšnio) arba visas receptas per kelias eilutes — pavadinimas, po juo „Ingredientai“ ir „Gaminimas“. Sąrašo ženkliukai, numeracija, žymimieji langeliai, porcijos ir laikai pašalinami; antraštės (SRIUBOS, SALOTOS) tampa patiekalo tipu, o nuoroda — recepto šaltiniu.</p>
+      <textarea className="import-area" rows={10} value={raw} onChange={(event) => setRaw(event.target.value)} placeholder={'Pomidorų sriuba\nIngredientai:\n- 500 g pomidorų\n- 1 svogūnas\nGaminimas:\nPakepinti svogūną, suberti pomidorus.'} />
+      <p className="fine-print">Kalba nekeičiama. Prieš išsaugodami galėsite pataisyti kiekvieną receptą — įskaitant tipą ir virtuvę.</p>
+      <button className="button primary wide" disabled={!raw.trim()} onClick={review}>Peržiūrėti receptus</button>
     </Modal>
   )
   return (
-    <Modal title={`Peržiūrėti receptus (${drafts.length})`} onClose={onClose} wide>
+    <Modal title={`Peržiūrėti receptus (${previews.length})`} onClose={onClose} wide>
       <div className="import-preview">
-        {drafts.map((draft, index) => {
-          const similar = draft.title.trim().length >= 3
-            ? allRecipes.find((r) => normalizeTitle(r.title) === normalizeTitle(draft.title))?.title
-              ?? allRecipes.filter((r) => titleSimilarity(draft.title, r.title) >= 0.7).sort((a, b) => titleSimilarity(draft.title, b.title) - titleSimilarity(draft.title, a.title))[0]?.title
-              ?? null
-            : null
+        {previews.map(({ draft, similar, swaps }, index) => {
           // Computed from the chips as they stand, so correcting one clears its
           // flag. A silent import is worse than a noisy one: an ingredient that
           // was guessed at, or is about to become a new vocabulary entry, is
           // exactly what is worth a second's attention before saving.
           const known = new Set(vocabulary.map((item) => ingredientLookupKey(item.name)))
-          const swaps = draft.ingredients
-            .filter((name) => guessed.has(name))
-            .map((name) => `${guessed.get(name)} → ${name}`)
+          const stillSwapped = swaps.filter((swap) => draft.ingredients.includes(swap.split(' → ')[1]))
           const placeholders = draft.ingredients.filter(looksLikePlaceholder)
           const fresh = draft.ingredients.filter(
             (name) => !known.has(ingredientLookupKey(name)) && !looksLikePlaceholder(name),
           )
           return <div className="preview-card" key={index}>
           <div className="preview-number">{index + 1}</div>
-          <label>Patiekalas<input value={draft.title} onChange={(event) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item))} /></label>
+          <label>Patiekalas<input value={draft.title} onChange={(event) => edit(index, { title: event.target.value })} /></label>
           {similar && <p className="form-notice">Panašus receptas jau yra: <strong>{similar}</strong></p>}
           <div className="field"><span className="field-label">Produktai</span>
-            <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => setDrafts(drafts.map((item, itemIndex) => itemIndex === index ? { ...item, ingredients } : item))} />
+            <IngredientChips value={draft.ingredients} vocabulary={vocabulary} onChange={(ingredients) => edit(index, { ingredients })} />
           </div>
-          {swaps.length > 0 && <p className="fine-print">Spėta: {swaps.join(', ')}</p>}
+          <div className="category-grid">
+            <CategorySelect label="Patiekalo tipas" value={draft.dishType || fallbackCategory} options={selectableCategories} onChange={(dishType) => edit(index, { dishType })} onCreate={onCreateCategory} />
+            <CategorySelect label="Virtuvė" value={draft.cuisine || cuisines[0] || ''} options={cuisines} onChange={(cuisine) => edit(index, { cuisine })} onCreate={onCreateCuisine} />
+          </div>
+          {draft.notes && <label>Gaminimo žingsniai<textarea rows={3} value={draft.notes} onChange={(event) => edit(index, { notes: event.target.value })} /></label>}
+          {stillSwapped.length > 0 && <p className="fine-print">Spėta: {stillSwapped.join(', ')}</p>}
           {placeholders.length > 0 && <p className="form-notice">Neatrodo kaip produktas: {placeholders.join(', ')}</p>}
           {fresh.length > 0 && <p className="fine-print">Nauji produktai: {fresh.join(', ')}</p>}
-          <button className="text-button danger-text" onClick={() => setDrafts(drafts.filter((_, itemIndex) => itemIndex !== index))}>Pašalinti</button>
+          <button className="text-button danger-text" onClick={() => setPreviews(previews.filter((_, position) => position !== index))}>Pašalinti</button>
         </div>})}
       </div>
-      <div className="button-row sticky-actions"><button className="button secondary" onClick={() => setDrafts(null)}>Atgal</button><button className="button primary" disabled={loading || drafts.length === 0 || drafts.some((draft) => !draft.title.trim())} onClick={() => onSave(drafts)}>{loading ? 'Importuojama…' : `Importuoti (${drafts.length})`}</button></div>
+      <div className="button-row sticky-actions"><button className="button secondary" onClick={() => setPreviews(null)}>Atgal</button><button className="button primary" disabled={loading || previews.length === 0 || previews.some(({ draft }) => !draft.title.trim())} onClick={() => onSave(previews.map(({ draft }) => draft))}>{loading ? 'Importuojama…' : `Importuoti (${previews.length})`}</button></div>
     </Modal>
   )
 }

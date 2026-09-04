@@ -1,5 +1,5 @@
 import type { CategoryIndex } from '../lib/barboraMapping'
-import { ingredientLookupKey, ingredientNameWithoutQuantity, titleSimilarity } from '../lib/parser'
+import { findVocabularyMatch, ingredientLookupKey, ingredientNameWithoutQuantity, titleSimilarity } from '../lib/parser'
 import { SECTION_LABELS } from '../lib/sections'
 import type { IngredientSection, VocabularyIngredient } from '../lib/types'
 import { IngredientFormModal } from './IngredientFormModal'
@@ -8,9 +8,15 @@ import { useMemo, useState } from 'react'
 /**
  * Shared ingredient editor. Typing filters the household vocabulary, first on
  * plain substring matches and then on the same bigram similarity the importer
- * uses, so "svogun" still reaches "Svogūnai" despite the declension. Anything
- * unrecognised is kept as typed; the database links or creates the vocabulary
- * entry when the recipe is saved.
+ * uses, so "svogun" still reaches "Svogūnai" despite the declension.
+ *
+ * Nothing in the list is chosen for you. It used to be: the first suggestion
+ * was highlighted from the moment it appeared, so on a phone — where there are
+ * no arrow keys and Enter is the only key on the row — every new ingredient
+ * became whichever old one happened to look nearest, and the hint underneath
+ * promising otherwise was simply wrong. Enter now adds what was typed, a
+ * suggestion is taken by touching it, and creating an entry has a row of its
+ * own that a thumb can reach.
  */
 export function IngredientChips({ value, vocabulary, onChange, categoryIndex, onCreateIngredient }: {
   value: string[]
@@ -20,7 +26,9 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
   onCreateIngredient?: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
 }) {
   const [entry, setEntry] = useState('')
-  const [highlight, setHighlight] = useState(0)
+  // -1 is "nothing chosen", which is where it stays unless the arrow keys are
+  // used. A phone never leaves it.
+  const [highlight, setHighlight] = useState(-1)
   const [adding, setAdding] = useState(false)
   const [pendingNew, setPendingNew] = useState<string | null>(null)
   const taken = useMemo(() => new Set(value.map(ingredientLookupKey)), [value])
@@ -44,24 +52,17 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
 
   const exactMatch = suggestions.some((item) => ingredientLookupKey(item.name) === ingredientLookupKey(entry))
 
-  function add(name: string) {
+  function add(name: string, { asWritten = false } = {}) {
     const cleaned = ingredientNameWithoutQuantity(name)
     setEntry('')
-    setHighlight(0)
+    setHighlight(-1)
     if (!cleaned || taken.has(ingredientLookupKey(cleaned))) return
-    const key = ingredientLookupKey(cleaned)
-    const exactVocab = vocabulary.find((item) => ingredientLookupKey(item.name) === key)
-    if (exactVocab) {
-      onChange([...value, exactVocab.name])
-      return
-    }
-    const fuzzyMatch = vocabulary
-      .filter((item) => !taken.has(ingredientLookupKey(item.name)))
-      .map((item) => ({ item, score: titleSimilarity(cleaned, item.name) }))
-      .filter((row) => row.score >= 0.65)
-      .sort((a, b) => b.score - a.score)[0]
-    if (fuzzyMatch) {
-      onChange([...value, fuzzyMatch.item.name])
+    // A vocabulary entry picked from the list is itself. Typed text is matched
+    // against the vocabulary word for word, so `avinžirnių miltai` reaches
+    // `Avinžirnių miltai` and never `Avinžirniai`.
+    const existing = asWritten ? null : findVocabularyMatch(cleaned, vocabulary.map((item) => item.name))
+    if (existing) {
+      onChange([...value, existing])
       return
     }
     if (categoryIndex && onCreateIngredient) {
@@ -74,7 +75,9 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Enter') {
       event.preventDefault()
-      add(suggestions[highlight] ? suggestions[highlight].name : entry)
+      const chosen = highlight >= 0 ? suggestions[highlight] : null
+      if (chosen) add(chosen.name, { asWritten: true })
+      else add(entry)
       return
     }
     if (event.key === 'ArrowDown' && suggestions.length) {
@@ -84,12 +87,13 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
     }
     if (event.key === 'ArrowUp' && suggestions.length) {
       event.preventDefault()
-      setHighlight((current) => (current - 1 + suggestions.length) % suggestions.length)
+      setHighlight((current) => (current <= 0 ? suggestions.length : current) - 1)
       return
     }
     if (event.key === 'Escape') {
       event.preventDefault()
       setEntry('')
+      setHighlight(-1)
       setAdding(false)
       return
     }
@@ -113,29 +117,40 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
             <input
               autoFocus
               value={entry}
-              onChange={(event) => { setEntry(event.target.value); setHighlight(0) }}
+              onChange={(event) => { setEntry(event.target.value); setHighlight(-1) }}
               onKeyDown={onKeyDown}
               onBlur={() => { if (!entry.trim()) setAdding(false) }}
+              enterKeyHint="done"
+              autoCapitalize="off"
+              autoCorrect="off"
               placeholder="Pradėkite rašyti…"
               aria-label="Pridėti produktą"
             />
-            {suggestions.length > 0 && (
+            {(suggestions.length > 0 || entry.trim()) && (
               <ul className="chip-suggestions">
+                {entry.trim() && !exactMatch && (
+                  <li key="__new__">
+                    <button
+                      type="button"
+                      className={`chip-create${highlight < 0 ? ' active' : ''}`}
+                      onMouseDown={(event) => { event.preventDefault(); add(entry, { asWritten: true }) }}
+                    >
+                      <strong>＋ {ingredientNameWithoutQuantity(entry.trim()) || entry.trim()}</strong><span>naujas produktas</span>
+                    </button>
+                  </li>
+                )}
                 {suggestions.map((item, index) => (
                   <li key={item.id}>
                     <button
                       type="button"
                       className={index === highlight ? 'active' : ''}
-                      onMouseDown={(event) => { event.preventDefault(); add(item.name) }}
+                      onMouseDown={(event) => { event.preventDefault(); add(item.name, { asWritten: true }) }}
                     >
                       <strong>{item.name}</strong><span>{SECTION_LABELS[item.section]}</span>
                     </button>
                   </li>
                 ))}
               </ul>
-            )}
-            {entry.trim() && !exactMatch && (
-              <p className="chip-hint">„Enter" pridės <strong>{entry.trim()}</strong> kaip naują produktą</p>
             )}
           </div>
         ) : (

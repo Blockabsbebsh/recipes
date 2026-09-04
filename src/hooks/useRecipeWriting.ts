@@ -107,8 +107,11 @@ async function saveRecipe(draft: RecipeDraft, existing?: Recipe, destination: Re
  * not used before so they are offered on every later recipe. Reads the
  * vocabulary fresh rather than trusting component state, since the other
  * person may have added something since this page loaded.
+ *
+ * Taking every name an import needs at once matters: one read and one insert
+ * for thirty recipes rather than sixty round trips over a phone connection.
  */
-async function resolveIngredientIds(names: string[]): Promise<string[] | null> {
+async function resolveIngredientMap(names: string[]): Promise<Map<string, string> | null> {
   if (!household) return null
   const { data: existing, error: readError } = await supabase
     .from('ingredients')
@@ -136,50 +139,67 @@ async function resolveIngredientIds(names: string[]): Promise<string[] | null> {
     }
     ;(created || []).forEach((row) => idByName.set(ingredientLookupKey(row.name), row.id as string))
   }
+  return idByName
+}
+
+async function resolveIngredientIds(names: string[]): Promise<string[] | null> {
+  const idByName = await resolveIngredientMap(names)
+  if (!idByName) return null
   return [...new Set(names
     .map((name) => idByName.get(ingredientLookupKey(name)))
     .filter((id): id is string => Boolean(id)))]
 }
 
+/**
+ * The ids of the tags named here, creating the ones the household has not
+ * used yet. A duplicate is not a failure: two phones importing at once both
+ * want the tag to exist, and it does either way.
+ */
+async function ensureTagIds(names: string[]): Promise<Map<string, string> | null> {
+  if (!household) return null
+  const key = (name: string) => name.toLocaleLowerCase('lt')
+  const read = async () => {
+    const { data, error: readError } = await supabase
+      .from('tags')
+      .select('id, name')
+      .eq('household_id', household.id)
+    if (readError) {
+      onError(readError.message)
+      return null
+    }
+    return new Map((data || []).map((tag) => [key(tag.name), tag.id as string]))
+  }
+  const found = await read()
+  if (!found) return null
+  let idByName = found
+  const missing = [...new Set(names.filter((name) => !idByName.has(key(name))))]
+  if (!missing.length) return idByName
+  const { data: created, error: createError } = await supabase
+    .from('tags')
+    .insert(missing.map((name) => ({ household_id: household.id, name })))
+    .select('id, name')
+  if (createError && createError.code !== '23505') {
+    onError(createError.message)
+    return null
+  }
+  if (createError?.code === '23505') {
+    const refreshed = await read()
+    if (!refreshed) return null
+    idByName = refreshed
+  } else {
+    ;(created || []).forEach((tag) => idByName.set(key(tag.name), tag.id as string))
+  }
+  return idByName
+}
+
 async function saveRecipeClassification(recipeId: string, draft: RecipeDraft) {
   if (!household) return
   const desiredNames = classificationTags(draft)
-  const { data: currentTags, error: tagReadError } = await supabase
-    .from('tags')
-    .select('id, name')
-    .eq('household_id', household.id)
-  if (tagReadError) {
-    onError(tagReadError.message)
-    return
-  }
-  const tagIdByName = new Map((currentTags || []).map((tag) => [tag.name.toLocaleLowerCase('lt'), tag.id as string]))
-  const missing = desiredNames.filter((name) => !tagIdByName.has(name.toLocaleLowerCase('lt')))
-  if (missing.length) {
-    const { data: created, error: createError } = await supabase
-      .from('tags')
-      .insert(missing.map((name) => ({ household_id: household.id, name })))
-      .select('id, name')
-    if (createError && createError.code !== '23505') {
-      onError(createError.message)
-      return
-    }
-    ;(created || []).forEach((tag) => tagIdByName.set(tag.name.toLocaleLowerCase('lt'), tag.id as string))
-    if (createError?.code === '23505') {
-      const { data: refreshed } = await supabase.from('tags').select('id, name').eq('household_id', household.id)
-      ;(refreshed || []).forEach((tag) => tagIdByName.set(tag.name.toLocaleLowerCase('lt'), tag.id as string))
-    }
-  }
-  const { data: classifications, error: classificationReadError } = await supabase
-    .from('tags')
-    .select('id, name')
-    .eq('household_id', household.id)
-  if (classificationReadError) {
-    onError(classificationReadError.message)
-    return
-  }
-  const classificationIds = (classifications || [])
-    .filter((tag) => tag.name.startsWith(DISH_TAG_PREFIX) || tag.name.startsWith(CUISINE_TAG_PREFIX))
-    .map((tag) => tag.id)
+  const tagIdByName = await ensureTagIds(desiredNames)
+  if (!tagIdByName) return
+  const classificationIds = [...tagIdByName.entries()]
+    .filter(([name]) => name.startsWith(DISH_TAG_PREFIX.toLocaleLowerCase('lt')) || name.startsWith(CUISINE_TAG_PREFIX.toLocaleLowerCase('lt')))
+    .map(([, id]) => id)
   if (classificationIds.length) {
     const { error: deleteError } = await supabase
       .from('recipe_tags')
@@ -200,19 +220,101 @@ async function saveRecipeClassification(recipeId: string, draft: RecipeDraft) {
   }
 }
 
+/**
+ * A whole pasted list, written in five round trips rather than six per recipe.
+ *
+ * Importing used to call `saveRecipe` in a loop, and each pass read the
+ * vocabulary, read the tags, wrote its rows and then reloaded the entire
+ * household before the next one started. Twenty recipes was a minute of a
+ * dialog that would not close, and the preview behind it kept re-deciding
+ * which recipes looked familiar — so as the first ones landed, the ones still
+ * on screen started announcing that a similar recipe already existed. They
+ * were describing themselves.
+ *
+ * So: the dialog closes first, because the answer is already known and there
+ * is nothing left to decide in it; the ids are made here rather than read
+ * back, which is what lets every recipe, every ingredient link and every tag
+ * go in one statement each; and the household is reloaded once, at the end.
+ */
 async function saveImported(drafts: RecipeDraft[]) {
-  const fallbackCategory = recipeCategories.includes('Kita') ? 'Kita' : recipeCategories[0] || 'Kita'
-  for (const draft of drafts) {
-    const detected = classifyRecipe(draft.title, draft.ingredients)
-    await saveRecipe({
-      ...draft,
-      dishType: recipeCategories.includes(detected.dishType) ? detected.dishType : fallbackCategory,
-      cuisine: detected.cuisine,
-    })
-  }
+  if (!household || !userId || !drafts.length) return
+  setBusy(true)
+  onError(null)
   dismissImporter()
-  onMessage(`Importuota receptų: ${drafts.length}`)
+  const fallbackCategory = recipeCategories.includes('Kita') ? 'Kita' : recipeCategories[0] || 'Kita'
+  const prepared = drafts.map((draft) => {
+    const detected = classifyRecipe(draft.title, draft.ingredients)
+    return {
+      id: crypto.randomUUID(),
+      title: draft.title.trim(),
+      notes: draft.notes.trim() || null,
+      sourceUrl: draft.sourceUrl.trim() || null,
+      ingredients: [...new Map(
+        draft.ingredients
+          .map((item) => ingredientNameWithoutQuantity(item))
+          .filter(Boolean)
+          .map((item) => [ingredientLookupKey(item), item]),
+      ).values()],
+      // What was chosen in the preview, and only the classifier's guess where
+      // nothing was. A type the household has since stopped keeping falls back
+      // rather than creating itself again behind everyone's back.
+      tags: classificationTags({
+        ...draft,
+        dishType: recipeCategories.includes(draft.dishType ?? '') ? draft.dishType
+          : recipeCategories.includes(detected.dishType) ? detected.dishType : fallbackCategory,
+        cuisine: draft.cuisine || detected.cuisine,
+      }),
+    }
+  })
+
+  const { error: recipeError } = await supabase.from('recipes').insert(prepared.map((recipe) => ({
+    id: recipe.id,
+    household_id: household.id,
+    title: recipe.title,
+    notes: recipe.notes,
+    source_url: recipe.sourceUrl,
+    created_by: userId,
+  })))
+  if (recipeError) {
+    onError(recipeError.message)
+    setBusy(false)
+    return
+  }
+
+  const idByName = await resolveIngredientMap(prepared.flatMap((recipe) => recipe.ingredients))
+  const links = idByName ? prepared.flatMap((recipe) => {
+    const ids = [...new Set(recipe.ingredients
+      .map((name) => idByName.get(ingredientLookupKey(name)))
+      .filter((id): id is string => Boolean(id)))]
+    return ids.map((ingredient_id, position) => ({
+      household_id: household.id,
+      recipe_id: recipe.id,
+      ingredient_id,
+      position,
+    }))
+  }) : []
+  if (links.length) {
+    const { error: linkError } = await supabase.from('recipe_ingredients').insert(links)
+    if (linkError) onError(linkError.message)
+  }
+
+  const tagIdByName = await ensureTagIds([...new Set(prepared.flatMap((recipe) => recipe.tags))])
+  if (tagIdByName) {
+    const tagLinks = prepared.flatMap((recipe) => recipe.tags
+      .map((name) => tagIdByName.get(name.toLocaleLowerCase('lt')))
+      .filter((tag_id): tag_id is string => Boolean(tag_id))
+      .map((tag_id) => ({ household_id: household.id, recipe_id: recipe.id, tag_id })))
+    if (tagLinks.length) {
+      const { error: tagLinkError } = await supabase.from('recipe_tags').insert(tagLinks)
+      if (tagLinkError) onError(tagLinkError.message)
+    }
+  }
+
+  onMessage(`Importuota receptų: ${prepared.length}`)
+  await reload()
+  setBusy(false)
 }
+
 async function softDelete(recipe: Recipe) {
   if (!userId || !window.confirm(`Perkelti „${recipe.title}“ į ištrintus?`)) return
   const { error: deleteError } = await supabase

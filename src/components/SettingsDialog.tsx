@@ -1,4 +1,5 @@
 import type { CategoryIndex } from '../lib/barboraMapping'
+import { CUISINES, CUISINE_TAG_PREFIX, DISH_TAG_PREFIX, DISH_TYPES } from '../lib/categories'
 import { clearTrace, formatTrace, readTrace, trace } from '../lib/scrollTrace'
 import { supabase } from '../lib/supabase'
 import type { Household, HouseholdTag, IngredientSection, Recipe, VocabularyIngredient } from '../lib/types'
@@ -8,12 +9,13 @@ import { RecipeCategoriesManager } from './RecipeCategoriesManager'
 import { useEffect, useState } from 'react'
 import { backNav } from '../lib/backNav'
 
-export function SettingsDialog({ household, email, vocabulary, recipes, categories, categoryIndex, onCreateIngredient, onUpdateIngredient, onDeleteIngredient, onCreateCategory, onUpdateCategory, onDeleteCategory, onClose }: {
+export function SettingsDialog({ household, email, vocabulary, recipes, categories, cuisines, categoryIndex, onCreateIngredient, onUpdateIngredient, onDeleteIngredient, onCreateCategory, onUpdateCategory, onDeleteCategory, onCreateCuisine, onUpdateCuisine, onDeleteCuisine, onClose }: {
   household: Household
   email: string
   vocabulary: VocabularyIngredient[]
   recipes: Recipe[]
   categories: HouseholdTag[]
+  cuisines: HouseholdTag[]
   categoryIndex: CategoryIndex
   onCreateIngredient: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
   onUpdateIngredient: (ingredient: VocabularyIngredient, name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
@@ -21,9 +23,12 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
   onCreateCategory: (name: string) => Promise<boolean>
   onUpdateCategory: (category: HouseholdTag, name: string) => Promise<boolean>
   onDeleteCategory: (category: HouseholdTag) => Promise<void>
+  onCreateCuisine: (name: string) => Promise<boolean>
+  onUpdateCuisine: (cuisine: HouseholdTag, name: string) => Promise<boolean>
+  onDeleteCuisine: (cuisine: HouseholdTag) => Promise<void>
   onClose: () => void
 }) {
-  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories' | 'trace'>('menu')
+  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories' | 'cuisines' | 'trace'>('menu')
   /**
    * Settings has pages inside one dialog rather than a dialog each, so the
    * back button saw a single layer and closed the lot. A page of its own is a
@@ -45,7 +50,7 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
-  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : view === 'trace' ? 'Slinkties žurnalas' : 'Nustatymai'
+  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : view === 'cuisines' ? 'Virtuvės' : view === 'trace' ? 'Slinkties žurnalas' : 'Nustatymai'
   return (
     <Modal title={title} onClose={onClose} wide={view === 'ingredients'}>
       {view === 'menu' && <>
@@ -53,6 +58,7 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
           <button onClick={() => setView('invite')}><span><strong>Pakviesti prisijungti</strong><small>Virtuvės kodas kitam žmogui</small></span><b>›</b></button>
           <button onClick={() => setView('ingredients')}><span><strong>Ingredientai</strong><small>Pavadinimai ir skyriai parduotuvėje</small></span><b>›</b></button>
           <button onClick={() => setView('categories')}><span><strong>Receptų kategorijos</strong><small>Grupės receptų bibliotekoje</small></span><b>›</b></button>
+          <button onClick={() => setView('cuisines')}><span><strong>Virtuvės</strong><small>Šalys ir regionai receptų žymose</small></span><b>›</b></button>
           <button onClick={() => setView('trace')}><span><strong>Slinkties žurnalas</strong><small>Ką programa įsiminė perjungiant programas</small></span><b>›</b></button>
         </div>
         <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
@@ -69,7 +75,21 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
       </>}
       {view === 'categories' && <>
         <SettingsBack onClick={() => setView('menu')} />
-        <RecipeCategoriesManager categories={categories} recipes={recipes} onCreate={onCreateCategory} onUpdate={onUpdateCategory} onDelete={onDeleteCategory} />
+        <RecipeCategoriesManager
+          prefix={DISH_TAG_PREFIX}
+          preferred={DISH_TYPES}
+          blurb="Šios kategorijos sudaro receptų grupes bibliotekoje."
+          placeholder="Nauja kategorija"
+          categories={categories} recipes={recipes} onCreate={onCreateCategory} onUpdate={onUpdateCategory} onDelete={onDeleteCategory} />
+      </>}
+      {view === 'cuisines' && <>
+        <SettingsBack onClick={() => setView('menu')} />
+        <RecipeCategoriesManager
+          prefix={CUISINE_TAG_PREFIX}
+          preferred={CUISINES}
+          blurb="Virtuvė rodoma prie recepto ir dalyvauja paieškoje. Čia galite pridėti šalį, kurios sąraše dar nėra."
+          placeholder="Nauja virtuvė"
+          categories={cuisines} recipes={recipes} onCreate={onCreateCuisine} onUpdate={onUpdateCuisine} onDelete={onDeleteCuisine} />
       </>}
       {view === 'trace' && <>
         <SettingsBack onClick={() => setView('menu')} />
