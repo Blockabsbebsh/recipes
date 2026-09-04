@@ -6,7 +6,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 
 - Separate email/password accounts sharing one household through an invite code
 - Compact, dish-type-grouped recipe library with expandable details, actions, notes, and source links
-- Checklist importer with editable previews and case/quantity-tolerant ingredient matching
+- Importer that reads both a checklist and a recipe written over several lines, with editable previews, dish type and cuisine chosen per recipe, and case/quantity-tolerant ingredient matching
 - Current recipes with Cooked/Skipped actions and a 30-second Undo
 - Recently cooked section for the last five days and per-recipe last-cooked dates
 - Temporary meal batch and a deduplicated ingredient list showing which recipes use each item
@@ -18,10 +18,10 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Installable PWA layout for Android and iOS, remembering your tab and scroll position across app switches and eviction
 - The Android back button closes what is open — dialogs innermost first, then the settings page you are on, then home from another tab — before it leaves the app
 - Lithuanian interface copy and metadata
-- Automatic dish-type and cuisine classification with manual editing
+- Automatic dish-type and cuisine classification with manual editing, and new dish types or cuisines added from the editor, the importer, or settings
 - Library search across recipe names, ingredients, dish types, and cuisines
 - Library sections grouped by dish type, with cuisine shown as an extra tag
-- Household ingredient and recipe-category management from the settings menu
+- Household ingredient, recipe-category and cuisine management from the settings menu
 
 ## Run locally
 
@@ -39,7 +39,7 @@ New sign-ups are disabled in the Supabase dashboard, which is why a public publi
 ## Testing
 
 ```bash
-npm test          # 161 unit tests, none of which need a browser
+npm test          # 172 unit tests, none of which need a browser
 npm run harness   # the real app on an emulated phone, against a fake Supabase
 npm run dbtest    # every migration applied to a throwaway Postgres, then checked
 ```
@@ -87,7 +87,7 @@ Every public table has RLS. Policies authorize through `household_members`, not 
 
 Grants are as narrow as the app allows and are pinned by a test, because RLS does not cover everything. TRUNCATE is not subject to row security at all, and a column a policy does not mention is a column a policy cannot protect. Supabase grants the client roles everything on `public` by default, so both of those were open until a table-level revoke replaced the blanket with an explicit list. A new table now starts closed and is opened deliberately.
 
-Recipe classifications reuse the existing normalized tag relation. Machine-readable names use `Tipas: ` for the single dish-type axis and `Virtuvė: ` for cuisine; the UI removes those prefixes. Dish type controls library grouping, while both axes participate in search. New recipes are classified locally with deterministic Lithuanian/English keyword rules and can be corrected in the editor.
+Recipe classifications reuse the existing normalized tag relation. Machine-readable names use `Tipas: ` for the single dish-type axis and `Virtuvė: ` for cuisine; the UI removes those prefixes. Dish type controls library grouping, while both axes participate in search. New recipes are classified locally with deterministic Lithuanian/English keyword rules and can be corrected in the editor or in the import preview. Both axes are household vocabulary rather than fixed lists: a dish type or a cuisine that is not on offer is added where it is needed, from the select itself, and lives as a tag like any other.
 
 ## Barbora shopping links
 
@@ -118,7 +118,7 @@ A browser cannot call the second one — `barbora.lt` sends no CORS headers, and
 
 ## Current MVP limits
 
-- The importer parses checkboxes, numbering, dish names, and comma-separated ingredients, but preserves the source language. Automated translation needs a separate model/API and review rules.
+- The importer reads checkboxes, numbering, dish names, comma-separated ingredients, and a recipe written over several lines under `Ingredientai`/`Gaminimas` headings or with quantities. Lines that carry neither a heading, a quantity, nor a word the household already buys are still read a dish to a line — the preview is where that gets corrected. The source language is preserved; automated translation needs a separate model/API and review rules.
 - Ingredient quantities and shopping-item checkboxes are intentionally absent.
 - 17 of 217 ingredients still link to their section's aisle because Barbora's tree does not distinguish them safely (for example dry versus canned chickpeas). The picker closes the gap for anything worth choosing by hand.
 - Barbora's app-link files contain at least one retired route that launches the app and then returns a 404. Links therefore always preserve the crawler's current website path and use plain HTTPS with `target="_blank"`. Whether the link opens the app is decided by the OS and Barbora's association files. On iOS the preference may have to be granted once — long-press a category link in Notes and choose **Open in Barbora**.

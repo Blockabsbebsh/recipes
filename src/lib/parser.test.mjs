@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { ingredientLookupKey, ingredientNameWithoutQuantity, looksLikePlaceholder, parseRecipeList, titleSimilarity } from './parser.js'
+import { findVocabularyMatch, ingredientLookupKey, ingredientNameWithoutQuantity, looksLikePlaceholder, matchesIngredient, parseRecipeList, titleSimilarity } from './parser.js'
 
 test('parses a numbered checked Lithuanian recipe line', () => {
   const [recipe] = parseRecipeList('[v] 2. Enchiladas — tortilijos, pupelės, sūris.')
@@ -163,4 +163,95 @@ test('knows a note to self from something to buy', () => {
   assert.ok(!looksLikePlaceholder('daržovės'))
   assert.ok(!looksLikePlaceholder('skirtingi grybai'))
   assert.ok(!looksLikePlaceholder('kokosų kremas'))
+})
+
+test('a title with its ingredients underneath is one recipe, not five', () => {
+  const recipes = parseRecipeList([
+    'Lęšių troškinys',
+    'Ingredientai:',
+    '200 g raudonų lęšių',
+    '1 svogūnas',
+    '2 morkos',
+    'Gaminimas:',
+    'Svogūnus pakepinti, suberti lęšius.',
+    'Virti 20 minučių.',
+  ].join('\n'))
+  assert.equal(recipes.length, 1)
+  assert.equal(recipes[0].title, 'Lęšių troškinys')
+  assert.deepEqual(recipes[0].ingredients, ['200 g raudonų lęšių', '1 svogūnas', '2 morkos'])
+  assert.equal(recipes[0].notes, 'Svogūnus pakepinti, suberti lęšius.\nVirti 20 minučių.')
+})
+
+test('measured lines are ingredients even with no heading above them', () => {
+  const [recipe] = parseRecipeList('Blynai\n- 200 g miltų\n- 300 ml pieno\n- 2 kiaušiniai')
+  assert.equal(recipe.title, 'Blynai')
+  assert.deepEqual(recipe.ingredients, ['200 g miltų', '300 ml pieno', '2 kiaušiniai'])
+})
+
+test('the household vocabulary carries an unmeasured ingredient list', () => {
+  const recipes = parseRecipeList('Kugelis\n• bulvės\n• svogūnai\n• grietinė', {
+    vocabulary: ['Bulvės', 'Svogūnai', 'Grietinė'],
+  })
+  assert.deepEqual(recipes.map((r) => r.title), ['Kugelis'])
+  assert.deepEqual(recipes[0].ingredients, ['bulvės', 'svogūnai', 'grietinė'])
+})
+
+test('without that vocabulary the same lines are dishes, never ingredients', () => {
+  // Nothing here says `Blynai` is something you buy, so the marked lines stay
+  // what a marked line has always been: a dish, under a heading.
+  const recipes = parseRecipeList('Kugelis\n• Blynai\n• Cepelinai')
+  assert.deepEqual(recipes.map((r) => r.title), ['Blynai', 'Cepelinai'])
+  assert.deepEqual(recipes.map((r) => r.ingredients), [[], []])
+})
+
+test('several blocks in one paste, separated by blank lines', () => {
+  const recipes = parseRecipeList([
+    'Pomidorų sriuba', 'Ingredientai:', 'pomidorai', 'svogūnas', '',
+    'Agurkų salotos', 'Ingredientai:', 'agurkai', 'krapai',
+  ].join('\n'))
+  assert.deepEqual(recipes.map((r) => r.title), ['Pomidorų sriuba', 'Agurkų salotos'])
+  assert.deepEqual(recipes[1].ingredients, ['agurkai', 'krapai'])
+})
+
+test('a copied page keeps its link and drops its furniture', () => {
+  const [recipe] = parseRecipeList([
+    'Paella', 'Porcijos: 4', 'Gaminimo laikas: 40 min', 'https://cookieandkate.com/vegetable-paella-recipe/',
+    'Ingredientai:', '300 g ryžių', '1 paprika',
+  ].join('\n'))
+  assert.equal(recipe.title, 'Paella')
+  assert.equal(recipe.sourceUrl, 'https://cookieandkate.com/vegetable-paella-recipe/')
+  assert.deepEqual(recipe.ingredients, ['300 g ryžių', '1 paprika'])
+})
+
+test('a section heading still groups blocks under it', () => {
+  const recipes = parseRecipeList([
+    'SRIUBOS', 'Lęšių sriuba', 'Ingredientai:', 'lęšiai', 'morkos',
+  ].join('\n'))
+  assert.deepEqual(recipes.map((r) => r.dishType), ['Sriubos'])
+  assert.deepEqual(recipes[0].ingredients, ['lęšiai', 'morkos'])
+})
+
+test('a comma-separated ingredient line inside a block is still split', () => {
+  const [recipe] = parseRecipeList('Kiaušinienė\nIngredientai:\nkiaušiniai, sviestas, krapai')
+  assert.deepEqual(recipe.ingredients, ['kiaušiniai', 'sviestas', 'krapai'])
+})
+
+test('flour made of a thing is not the thing', () => {
+  assert.ok(!matchesIngredient('avinžirnių miltai', 'Avinžirniai'))
+  assert.ok(!matchesIngredient('pomidorų pasta', 'Pomidorai'))
+  assert.ok(!matchesIngredient('kokosų pienas', 'Kokosai'))
+  assert.ok(!matchesIngredient('česnako milteliai', 'Česnakas'))
+})
+
+test('but the same thing in another case still is', () => {
+  assert.ok(matchesIngredient('kokoso pienas', 'Kokosų pienas'))
+  assert.ok(matchesIngredient('svogūno', 'Svogūnai'))
+  assert.ok(matchesIngredient('raudonų lęšių', 'Raudoni lęšiai'))
+  assert.ok(!matchesIngredient('žali lęšiai', 'Raudoni lęšiai'))
+})
+
+test('finds the vocabulary entry a written ingredient means', () => {
+  const vocabulary = ['Avinžirniai', 'Miltai', 'Pomidorai']
+  assert.equal(findVocabularyMatch('avinžirnių', vocabulary), 'Avinžirniai')
+  assert.equal(findVocabularyMatch('avinžirnių miltai', vocabulary), null)
 })

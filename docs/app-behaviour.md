@@ -21,11 +21,78 @@ without a browser.
 | `src/hooks/useHouseholdData.ts` | the five reads, the realtime subscription, and the coalescing refresh |
 | `src/hooks/useRecipeWriting.ts` | saving, importing, deleting and restoring recipes |
 | `src/hooks/usePlanning.ts` | the week: basket, shop, cooked, undone |
-| `src/hooks/useVocabulary.ts`, `useRecipeCategories.ts` | the household's own lists |
+| `src/hooks/useVocabulary.ts`, `useRecipeCategories.ts` | the household's own lists — ingredients, dish types, cuisines |
+| `src/lib/parser.js` | what a pasted list or page says: where one recipe ends, which lines are ingredients, and whether two written ingredients are the same thing |
 | `src/components/` | the dialogs, and the shared `Modal` every one of them uses |
 
 The `Modal` is worth knowing about: it is where Escape, the keyboard inset and
 the back button are handled, so a new dialog gets all three by using it.
+
+## Reading a pasted recipe
+
+The importer began as one recipe per line, because that is what the list it was
+written for looked like: `Enchiladas — tortilijos, pupelės, sūris`. Anything
+else — a page copied out of a browser, a recipe typed into a notes app over a
+week — is written the other way round, with the title on one line and its
+ingredients under it, and every one of those ingredients used to become a
+recipe of its own. The bulleted-list heuristic made it worse rather than
+better: bulleted lines outnumbered plain ones, so the *title* was read as a
+section heading and thrown away.
+
+Both shapes now go through the same walk over the lines, and the parser reads
+a block only where the paste gives it a reason to:
+
+- **A heading says so.** `Ingredientai:` starts the ingredients, `Gaminimas:`
+  starts the method, and everything after the second one is notes until
+  something announces a new recipe. `Porcijos: 4` and `Gaminimo laikas` belong
+  to neither and are dropped.
+- **A number says so.** Two consecutive lines that measure something —
+  `200 g miltų`, `1 svogūnas` — are an ingredient list. One is not: `3 sūrių
+  pica` is a dish. A number is the only signal trusted without a heading,
+  because `Kopūstų lapai` is a dish and `lapai` is in the unit list.
+- **The household's own vocabulary says so.** Lines that are all things this
+  kitchen already buys are ingredients. This is what separates `• bulvės` from
+  `• Cepelinai` without either carrying a quantity, and it is why the importer
+  hands the vocabulary to the parser rather than only using it afterwards.
+
+Where none of that holds, the paste is still read a dish to a line, exactly as
+before. Both readings are wrong sometimes; the preview is where that gets
+fixed, which is also where the dish type and the cuisine are now chosen rather
+than merely being announced.
+
+### Which vocabulary entry an ingredient means
+
+`avinžirnių miltai` used to be imported as `avinžirniai`. The two score 0.7
+against each other on bigrams — they share every letter of the shorter one —
+and 0.65 was the threshold. Chickpea flour is not chickpeas, and the shopping
+list said to buy the wrong bag.
+
+A near-match now has to account for every word on both sides: the same number
+of significant words, each one close to its counterpart, on the stems the
+lookup key already produces. `kokoso pienas` still reaches `Kokosų pienas`;
+`avinžirnių miltai` reaches nothing and becomes its own entry. That is the
+mistake that costs a tap, rather than the one that hides an ingredient — and
+the same rule now governs the chip editor, where the substitution used to
+happen silently as you typed.
+
+## What a whole import costs
+
+Importing called `saveRecipe` in a loop. Each pass read the vocabulary, read
+the tags, wrote its rows and then reloaded the entire household before the next
+recipe started — six round trips each, over whatever a phone had. Twenty
+recipes was a minute of a dialog that would not close, and the preview behind
+it kept re-deciding which recipes looked familiar as the earlier ones landed,
+so recipes still on screen began announcing that a similar recipe already
+existed. They were describing themselves.
+
+Three things fixed it, in `saveImported`:
+
+- The dialog closes first. Everything has been decided by then; keeping it up
+  only gives it something to say.
+- Recipe ids are made in the browser rather than read back from the insert,
+  which is what allows every recipe, every ingredient link and every tag to go
+  in one statement each instead of one per recipe.
+- The household is reloaded once, at the end.
 
 ## Opening on the right tab
 
