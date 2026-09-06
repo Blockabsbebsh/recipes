@@ -21,6 +21,7 @@ without a browser.
 | `src/lib/palette.js` | which accent an aisle or a dish type wears, and why a name keeps it |
 | `src/lib/debugFlags.js` | the things that are in the app for us rather than for the household |
 | `src/lib/shoppingTicks.js` | what is already in the trolley, and why it is not in the database |
+| `src/lib/library.js` | what the library shows and in what order, as plain objects |
 | `src/hooks/useHouseholdData.ts` | the five reads, the realtime subscription, and the coalescing refresh |
 | `src/hooks/useRecipeWriting.ts` | saving, importing, deleting and restoring recipes |
 | `src/hooks/usePlanning.ts` | the week: basket, shop, cooked, undone |
@@ -472,3 +473,36 @@ underneath — two cards to a screen. All of that is what the window it opens is
 
 It is the title, one row with the two tags, and a single line of ingredients
 cut off where it runs out of room. Four fit where two did.
+
+## Two questions the library can answer
+
+Sorting by dish type answers "where is the one I am thinking of". The other
+order answers the question a planner is actually for — "what have we not had
+in a while" — and the app has always known: every cooked meal leaves a dated
+row behind for ever, and nothing prunes `roster_entries`. It was simply never
+asked.
+
+**Seniausiai gaminti** is longest-since-cooked first, and a recipe never
+cooked counts as longest of all: it has been waiting since the day it was
+written down, and those are the ones you meant to make. Ties break on the
+title in both orders, so the list never depends on which row the database
+returned first — two people on two phones see the same library.
+
+Cuisine is the second filter. It is a select rather than a second rail:
+fourteen more chips would be another forty pixels of a header that is already
+sticky, in order to narrow a list the first rail has usually narrowed already.
+
+Both axes are counted **against everything filtered except themselves**, which
+is the rule that makes a faceted filter honest. A dish-type chip has to say
+what choosing it would show, so it is counted after the cuisine filter and
+before its own — count it after its own and every chip but the chosen one
+reads zero, which is both useless and alarming.
+
+Neither filter is remembered between visits, for the reason the dish rail
+never was. The sort is not remembered either, which is a smaller loss and
+keeps the two consistent.
+
+`src/lib/library.js` holds all of it as pure functions over plain objects, so
+the ordering can be read and tested without a browser — including the one that
+matters most and is easiest to break: that neither order depends on the order
+the rows arrived in.

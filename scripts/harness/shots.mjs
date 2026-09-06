@@ -71,6 +71,24 @@ try {
   await page.evaluate(() => window.scrollTo(0, 700))
   await page.waitForTimeout(400)
   await shot('05-library-scrolled')
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await page.waitForTimeout(300)
+  await page.evaluate(() => {
+    const select = document.querySelector('.pill-select select')
+    select.value = 'stale'
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await page.waitForTimeout(600)
+  await shot('05b-library-stale')
+  await page.evaluate(() => {
+    const select = document.querySelectorAll('.pill-select select')[1]
+    const option = [...select.options].find((o) => o.value)
+    select.value = option.value
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await page.waitForTimeout(600)
+  await shot('05c-library-cuisine')
+  await page.waitForTimeout(200)
   await tap(page, '.bottom-nav button', 'Krepšelis')
   await page.waitForTimeout(900)
   await shot('06-shop')

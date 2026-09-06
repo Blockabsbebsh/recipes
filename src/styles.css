@@ -581,8 +581,19 @@ textarea { resize: vertical; line-height: 1.5; }
 .library-head { position: sticky; z-index: 3; top: 0; min-width: 0; margin: 0 -20px; padding: 8px 20px 4px; background: var(--canvas); }
 .library-head::after { content: ''; position: absolute; right: 0; bottom: -14px; left: 0; height: 14px; background: linear-gradient(var(--canvas), transparent); pointer-events: none; }
 
-.chip-rail { display: flex; gap: 7px; margin: 10px -20px 0; padding: 0 20px 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.chip-rail { display: flex; gap: 7px; margin: 10px -20px 8px; padding: 0 20px 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .chip-rail::-webkit-scrollbar { display: none; }
+/* The row under the rail: how the grid is ordered, and the second filter.
+   Both are native selects, so the phone opens its own picker and fourteen
+   cuisines cost no height at all. A segmented control read better but wrapped
+   to a second line on a 390px screen, and this header is already sticky. */
+.library-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-bottom: 2px; }
+.pill-select { position: relative; display: inline-flex; min-width: 0; flex: 1 1 auto; align-items: center; }
+.pill-select select { min-height: 38px; width: 100%; padding: 0 32px 0 14px; overflow: hidden; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); color: var(--ink-2); font-size: .78rem; font-weight: 650; text-overflow: ellipsis; appearance: none; -webkit-appearance: none; cursor: pointer; }
+/* The chevron the native control no longer draws for us. */
+.pill-select::after { content: ''; position: absolute; right: 14px; width: 7px; height: 7px; border-right: 1.8px solid var(--muted); border-bottom: 1.8px solid var(--muted); transform: translateY(-2px) rotate(45deg); pointer-events: none; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
 .rail-chip { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border: 1px solid var(--accent-tint-line, var(--line)); border-radius: 99px; background: var(--accent-soft, var(--surface)); color: var(--accent-ink, var(--ink-2)); font: inherit; font-size: .82rem; font-weight: 650; white-space: nowrap; cursor: pointer; transition: transform .12s ease, box-shadow .16s ease; }
 .rail-chip i { font-size: .74rem; font-style: normal; font-variant-numeric: tabular-nums; opacity: .62; }
 .rail-chip:active { transform: scale(.96); }
