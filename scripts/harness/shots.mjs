@@ -115,7 +115,9 @@ try {
   await page.waitForTimeout(400)
   await page.keyboard.press('Escape')
   await page.waitForTimeout(400)
-  await tap(page, '.bottom-nav button', 'Ištrinti')
+  await tap(page, '.icon-button')
+  await page.waitForTimeout(600)
+  await tap(page, '.settings-options button', 'Ištrinti receptai')
   await page.waitForTimeout(700)
   await shot('16-deleted')
 } catch (e) {

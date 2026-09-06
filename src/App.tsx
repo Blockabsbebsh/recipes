@@ -762,14 +762,15 @@ function App() {
             onInspect={(item) => setInspecting({ item: item.item, href: item.href })}
           />
         )}
-        {tab === 'deleted' && <DeletedView recipes={deletedRecipes} onRestore={(recipe) => void restoreRecipe(recipe)} />}
       </main>
 
+      {/* Three tabs, not four. The bin is a place you go to undo something,
+          not a place you go every day, and it was taking a quarter of the bar
+          and the last thumb-width before Krepšelis. It lives in settings now. */}
       <nav className="bottom-nav" aria-label="Pagrindinė navigacija">
         <NavButton active={tab === 'current'} label="Meniu" icon={<BowlIcon />} onClick={() => changeTab('current')} />
         <NavButton active={tab === 'library'} label="Receptai" icon={<BookIcon />} onClick={() => changeTab('library')} />
         <NavButton active={tab === 'shop'} label="Krepšelis" icon={<BasketIcon />} badge={queue.length} onClick={() => changeTab('shop')} />
-        <NavButton active={tab === 'deleted'} label="Ištrinti" icon={<TrashIcon />} onClick={() => changeTab('deleted')} />
       </nav>
 
       {editor && (
@@ -839,6 +840,8 @@ function App() {
           onCreateCuisine={createCuisine}
           onUpdateCuisine={updateCuisine}
           onDeleteCuisine={deleteCuisine}
+          deletedRecipes={deletedRecipes}
+          onRestoreRecipe={(recipe) => void restoreRecipe(recipe)}
           onClose={() => setSettingsOpen(false)}
         />
       )}
@@ -1167,12 +1170,6 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
   )
 }
 
-function DeletedView({ recipes, onRestore }: { recipes: Recipe[]; onRestore: (recipe: Recipe) => void }) {
-  return recipes.length === 0
-    ? <EmptyState title="Ištrintų receptų nėra" text="Pašalintus receptus čia visada galėsite atkurti." />
-    : <section className="library-list">{recipes.map((recipe) => <article className="library-card" key={recipe.id}><div className="library-main"><p className="eyebrow">Ištrinta · {formatRelative(recipe.deleted_at)}</p><h2>{recipe.title}</h2><IngredientLine recipe={recipe} /></div><button className="button secondary" onClick={() => onRestore(recipe)}>Atkurti</button></article>)}</section>
-}
-
 function IngredientLine({ recipe }: { recipe: Recipe }) {
   const sorted = [...recipe.recipe_ingredients].sort((a, b) => a.position - b.position)
   return sorted.length ? <p className="ingredients">{sorted.map((ingredient) => ingredient.item).join(' · ')}</p> : <p className="ingredients empty">Produktų nepridėta</p>
@@ -1221,6 +1218,3 @@ function BasketIcon() {
   return <svg {...iconProps}><path d="M4.6 8.5h14.8l-1.2 10.1a2 2 0 0 1-2 1.8H7.8a2 2 0 0 1-2-1.8L4.6 8.5Z" /><path d="M9 8.5v-2a3 3 0 0 1 6 0v2" /></svg>
 }
 
-function TrashIcon() {
-  return <svg {...iconProps}><path d="M4.5 6.6h15" /><path d="M9.6 6.6V5.1A1.6 1.6 0 0 1 11.2 3.5h1.6a1.6 1.6 0 0 1 1.6 1.6v1.5" /><path d="M6.6 6.6l.85 12.05a2 2 0 0 0 2 1.85h5.1a2 2 0 0 0 2-1.85L17.4 6.6" /></svg>
-}

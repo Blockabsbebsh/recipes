@@ -106,6 +106,6 @@ export type RecipeDraft = {
   cuisine?: string
 }
 
-export type Tab = 'current' | 'library' | 'shop' | 'deleted'
+export type Tab = 'current' | 'library' | 'shop'
 
 export type RecipeDestination = 'library' | 'queue'

@@ -10,7 +10,7 @@ import { RecipeCategoriesManager } from './RecipeCategoriesManager'
 import { useEffect, useState } from 'react'
 import { backNav } from '../lib/backNav'
 
-export function SettingsDialog({ household, email, vocabulary, recipes, categories, cuisines, categoryIndex, onCreateIngredient, onUpdateIngredient, onDeleteIngredient, onCreateCategory, onUpdateCategory, onDeleteCategory, onCreateCuisine, onUpdateCuisine, onDeleteCuisine, onClose }: {
+export function SettingsDialog({ household, email, vocabulary, recipes, categories, cuisines, categoryIndex, onCreateIngredient, onUpdateIngredient, onDeleteIngredient, onCreateCategory, onUpdateCategory, onDeleteCategory, onCreateCuisine, onUpdateCuisine, onDeleteCuisine, deletedRecipes, onRestoreRecipe, onClose }: {
   household: Household
   email: string
   vocabulary: VocabularyIngredient[]
@@ -27,9 +27,11 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
   onCreateCuisine: (name: string) => Promise<boolean>
   onUpdateCuisine: (cuisine: HouseholdTag, name: string) => Promise<boolean>
   onDeleteCuisine: (cuisine: HouseholdTag) => Promise<void>
+  deletedRecipes: Recipe[]
+  onRestoreRecipe: (recipe: Recipe) => void
   onClose: () => void
 }) {
-  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories' | 'cuisines' | 'trace'>('menu')
+  const [view, setView] = useState<'menu' | 'invite' | 'ingredients' | 'categories' | 'cuisines' | 'deleted' | 'trace'>('menu')
   /**
    * Settings has pages inside one dialog rather than a dialog each, so the
    * back button saw a single layer and closed the lot. A page of its own is a
@@ -51,7 +53,7 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
-  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : view === 'cuisines' ? 'Virtuvės' : view === 'trace' ? 'Slinkties žurnalas' : 'Nustatymai'
+  const title = view === 'invite' ? 'Pakviesti prisijungti' : view === 'ingredients' ? 'Ingredientai' : view === 'categories' ? 'Receptų kategorijos' : view === 'cuisines' ? 'Virtuvės' : view === 'deleted' ? 'Ištrinti receptai' : view === 'trace' ? 'Slinkties žurnalas' : 'Nustatymai'
   return (
     <Modal title={title} onClose={onClose} wide={view === 'ingredients'}>
       {view === 'menu' && <>
@@ -60,6 +62,7 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
           <button onClick={() => setView('ingredients')}><span><strong>Ingredientai</strong><small>Pavadinimai ir skyriai parduotuvėje</small></span><b>›</b></button>
           <button onClick={() => setView('categories')}><span><strong>Receptų kategorijos</strong><small>Grupės receptų bibliotekoje</small></span><b>›</b></button>
           <button onClick={() => setView('cuisines')}><span><strong>Virtuvės</strong><small>Šalys ir regionai receptų žymose</small></span><b>›</b></button>
+          <button onClick={() => setView('deleted')}><span><strong>Ištrinti receptai</strong><small>{deletedRecipes.length ? `${deletedRecipes.length} laukia atkūrimo` : 'Nieko neištrinta'}</small></span><b>›</b></button>
           {debugEnabled() && <button onClick={() => setView('trace')}><span><strong>Slinkties žurnalas</strong><small>Ką programa įsiminė perjungiant programas</small></span><b>›</b></button>}
         </div>
         <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
@@ -91,6 +94,20 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
           blurb="Virtuvė rodoma prie recepto ir dalyvauja paieškoje. Čia galite pridėti šalį, kurios sąraše dar nėra."
           placeholder="Nauja virtuvė"
           categories={cuisines} recipes={recipes} onCreate={onCreateCuisine} onUpdate={onUpdateCuisine} onDelete={onDeleteCuisine} />
+      </>}
+      {view === 'deleted' && <>
+        <SettingsBack onClick={() => setView('menu')} />
+        {deletedRecipes.length === 0
+          ? <p className="muted">Ištrintų receptų nėra. Pašalintus receptus čia visada galėsite atkurti.</p>
+          : <div className="deleted-list">{deletedRecipes.map((recipe) => (
+              <article className="deleted-row" key={recipe.id}>
+                <div>
+                  <strong>{recipe.title}</strong>
+                  <small>{recipe.recipe_ingredients.length} produktai</small>
+                </div>
+                <button className="button secondary" onClick={() => onRestoreRecipe(recipe)}>Atkurti</button>
+              </article>
+            ))}</div>}
       </>}
       {view === 'trace' && <>
         <SettingsBack onClick={() => setView('menu')} />

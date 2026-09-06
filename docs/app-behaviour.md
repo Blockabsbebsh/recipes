@@ -272,11 +272,19 @@ stylesheet — and what keeps the two themes from drifting apart in layout.
 Dark is by `prefers-color-scheme` only. There is no in-app switch, because
 the phone already has one and a second one is a setting to get wrong.
 
-The display face is the loose end. `--display-font` asks for DM Serif Display
-and nothing loads it — there is no `@font-face` and no stylesheet link — so
-every phone falls back to whatever serif it has, and Android's is not
-Georgia. Self-hosting it is a one-line change at `--display-font`; deciding
-whether the app wants a webfont at all is not.
+## The dish names are set in the system font
+
+For a long time the stylesheet asked for DM Serif Display and nothing loaded
+it — no `@font-face`, no link — so every phone drew whatever serif it had, and
+Android's is not Georgia. Three candidates were set on the same recipe card
+and compared side by side: a downloaded serif, a downloaded grotesk, and the
+system font at a heavier weight. The system font won, and not by default: it
+already draws `ąčęėįšųūž` correctly on both phones, it costs nothing to
+fetch, and at 660 with -.021em of tracking it has more presence than the
+serif it replaces.
+
+`--title-weight` and `--title-tracking` are the whole treatment. Adding a
+webfont later means adding a family beside them, not rewriting seven rules.
 
 ## The scroll log is no longer on the menu
 
@@ -291,3 +299,23 @@ read one. Only the way in changed: `?debug=1` in the address bar turns it on
 and it remembers, so the household can be talked through switching it on over
 the phone and it survives the reloads that follow; `?debug=0` puts it away.
 `src/lib/debugFlags.js` is the whole mechanism.
+
+## Three tabs, and where the bin went
+
+`Ištrinti` was a quarter of the tab bar and the last thumb-width before
+`Krepšelis` — a recovery view sitting at equal weight with the three screens
+used every day, and one you have to reach past to get to the basket. It is a
+page inside settings now, **Nustatymai → Ištrinti receptai**, which is where
+the rest of the household's rarely-touched business already lives.
+
+Two things this touched that are easy to miss:
+
+- `TABS` in `src/lib/viewState.js` is the list of places the app can open on,
+  and a phone that has not been opened since the change still has `deleted`
+  written in its record. Refusing the whole record over it would also throw
+  away how far down the library they were, so a retired tab now falls back to
+  the menu and everything else in the record survives. `RETIRED_TABS` is
+  where the next one goes.
+- The `planning` scenario used to restore a recipe by opening the fourth tab.
+  It goes through settings now. Nothing else in the harness names a tab by
+  index above 2.

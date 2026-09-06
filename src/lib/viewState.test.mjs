@@ -5,7 +5,7 @@ import { EMPTY_SCROLL, SCROLL_MEMORY_MS, lastTab, parseViewState, positionsFrom,
 const record = (over = {}) => ({
   version: 1,
   tab: 'shop',
-  scrollByTab: { current: 0, library: 1500, shop: 605, deleted: 0 },
+  scrollByTab: { current: 0, library: 1500, shop: 605 },
   expandedRecipeId: null,
   savedAt: 1_000_000,
   ...over,
@@ -39,11 +39,11 @@ test('refuses anything that is not one of its own records', () => {
 
 test('repairs a record with nonsense in its numbers', () => {
   const parsed = parseViewState(JSON.stringify(record({
-    scrollByTab: { current: -40, library: 'far', shop: Number.NaN, deleted: 12 },
+    scrollByTab: { current: -40, library: 'far', shop: Number.NaN },
     expandedRecipeId: 7,
     savedAt: 'yesterday',
   })))
-  assert.deepEqual(parsed.scrollByTab, { current: 0, library: 0, shop: 0, deleted: 12 })
+  assert.deepEqual(parsed.scrollByTab, { current: 0, library: 0, shop: 0 })
   assert.equal(parsed.expandedRecipeId, null)
   assert.equal(parsed.savedAt, 0, 'a record from before the timestamp existed is old by definition')
 })
@@ -97,4 +97,19 @@ test('a storage that refuses does not take the write down with it', () => {
   const angry = { getItem: () => { throw new Error('denied') }, setItem: () => { throw new Error('quota') } }
   assert.doesNotThrow(() => rememberLastTab('shop', angry))
   assert.equal(lastTab(angry), null)
+})
+
+test('a record left on the bin tab keeps its positions and lands on the menu', () => {
+  // The bin was a tab until it moved into settings. A phone that has not been
+  // opened since still holds `deleted` in its record, and throwing the whole
+  // record away over it would also throw away where they were in the library.
+  const parsed = parseViewState(JSON.stringify(record({ tab: 'deleted' })))
+  assert.equal(parsed.tab, 'current')
+  assert.equal(parsed.scrollByTab.library, 1500)
+})
+
+test('the bin is not somewhere the app opens on', () => {
+  const storage = store()
+  rememberLastTab('deleted', storage)
+  assert.equal(lastTab(storage), null)
 })
