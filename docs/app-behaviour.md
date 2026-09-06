@@ -21,6 +21,7 @@ without a browser.
 | `src/lib/palette.js` | which accent an aisle or a dish type wears, and why a name keeps it |
 | `src/lib/debugFlags.js` | the things that are in the app for us rather than for the household |
 | `src/lib/shoppingTicks.js` | what is already in the trolley, and why it is not in the database |
+| `src/lib/library.js` | what the library shows and in what order, as plain objects |
 | `src/hooks/useHouseholdData.ts` | the five reads, the realtime subscription, and the coalescing refresh |
 | `src/hooks/useRecipeWriting.ts` | saving, importing, deleting and restoring recipes |
 | `src/hooks/usePlanning.ts` | the week: basket, shop, cooked, undone |
@@ -415,7 +416,24 @@ search has emptied stops being a filter, so you cannot end up looking at an
 empty library with no way to see why.
 
 The filter is not remembered between visits. A filter you cannot see the top
-of is a library that has silently lost half its recipes.
+of is a library that has silently lost half its recipes. The search and the
+rail are sticky for the same reason: in a library this long, a filter you have
+to scroll back up to reach is a filter you stop using.
+
+The grid is **sorted by dish type**, in the order the rail lists, then by name
+inside each type. That is one change doing two jobs. Sixty-five recipes in
+whatever order the database returned them become sixty-five recipes in the
+order of the chips above them, so a chip is a place on the page as well as a
+filter. And the tints arrive in bands rather than as confetti — which is what
+had made a deliberate palette read as a random one. The colours were never the
+problem; the ordering was.
+
+Dish types also gave up the two coldest accents. Indigo and slate belong to
+the shop, where an aisle's colour has a job and dairy is meant to be blue; the
+library draws from seven warm ones, plus slate for `Kita`, which is less a
+colour than the absence of one. They are assigned along the order the types
+ship in, so no two bands that touch are the same colour — `palette.test.mjs`
+fails if a later edit breaks that.
 
 This also meant teaching the `layout` and `shapes` scenarios the difference
 between content off the edge and content further along a rail: both now walk
@@ -455,3 +473,66 @@ underneath — two cards to a screen. All of that is what the window it opens is
 
 It is the title, one row with the two tags, and a single line of ingredients
 cut off where it runs out of room. Four fit where two did.
+
+## Two questions the library can answer
+
+Sorting by dish type answers "where is the one I am thinking of". The other
+order answers the question a planner is actually for — "what have we not had
+in a while" — and the app has always known: every cooked meal leaves a dated
+row behind for ever, and nothing prunes `roster_entries`. It was simply never
+asked.
+
+**Seniausiai gaminti** is longest-since-cooked first, and a recipe never
+cooked counts as longest of all: it has been waiting since the day it was
+written down, and those are the ones you meant to make. Ties break on the
+title in both orders, so the list never depends on which row the database
+returned first — two people on two phones see the same library.
+
+Cuisine is the second filter. It is a select rather than a second rail:
+fourteen more chips would be another forty pixels of a header that is already
+sticky, in order to narrow a list the first rail has usually narrowed already.
+
+Both axes are counted **against everything filtered except themselves**, which
+is the rule that makes a faceted filter honest. A dish-type chip has to say
+what choosing it would show, so it is counted after the cuisine filter and
+before its own — count it after its own and every chip but the chosen one
+reads zero, which is both useless and alarming.
+
+Neither filter is remembered between visits, for the reason the dish rail
+never was. The sort is not remembered either, which is a smaller loss and
+keeps the two consistent.
+
+`src/lib/library.js` holds all of it as pure functions over plain objects, so
+the ordering can be read and tested without a browser — including the one that
+matters most and is easiest to break: that neither order depends on the order
+the rows arrived in.
+
+## One bar, and it stays
+
+The page title used to be a hundred-pixel block at the top of every tab — an
+eyebrow with the household's name and a line of display type — scrolled past
+within a thumb's flick and never seen again. Meanwhile the thing you actually
+wanted up there, *add something*, was a button further down the page and in a
+different place on each tab: above the meal cards on Meniu, beside the search
+on Receptai, next to a section heading on Krepšelis.
+
+Both are the sticky bar now: the tab's name, a count of what is on it, the
+one primary action, and the settings button. Three tabs, one place to add.
+
+`position: sticky` rather than `fixed`, deliberately. A fixed bar comes out of
+the flow and the page below it has to be padded to compensate; a sticky one
+changes no document height at all — and document height is exactly what
+`restoreScroll` waits on. The same reasoning as the recipe window.
+
+Two details that are easy to get wrong:
+
+- The bar is pulled up into the shell's `env(safe-area-inset-top)` padding and
+  pads itself by the same amount, so when it is stuck it covers the notch
+  rather than sliding under it.
+- Its height is set from `--appbar-h` rather than falling out of its padding,
+  because the library's own sticky row sticks at `--appbar-h` below it. When
+  the two numbers disagree by a pixel, a sliver of scrolled card shows through
+  the seam.
+
+The household's name lived only in the eyebrow the bar replaced. It is in
+**Nustatymai** now, above the address you are signed in as.

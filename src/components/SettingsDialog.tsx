@@ -66,7 +66,7 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
           <button onClick={() => setView('deleted')}><span><strong>Ištrinti receptai</strong><small>{deletedRecipes.length ? `${deletedRecipes.length} laukia atkūrimo` : 'Nieko neištrinta'}</small></span><b><ChevronIcon size={16} /></b></button>
           {debugEnabled() && <button onClick={() => setView('trace')}><span><strong>Slinkties žurnalas</strong><small>Ką programa įsiminė perjungiant programas</small></span><b><ChevronIcon size={16} /></b></button>}
         </div>
-        <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
+        <div className="settings-meta"><span>Virtuvė</span><strong>{household.name}</strong><span>Prisijungta kaip</span><strong>{email}</strong></div>
         <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Atsijungti</button>
       </>}
       {view === 'invite' && <>

@@ -22,6 +22,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Lithuanian interface copy and metadata
 - Automatic dish-type and cuisine classification with manual editing, and new dish types or cuisines added from the editor, the importer, or settings
 - Library search across recipe names, ingredients, dish types, and cuisines
+- Library sorted by dish type or by longest-since-cooked, filtered by a dish-type rail and a cuisine select
 - Household ingredient, recipe-category and cuisine management from the settings menu
 
 The colours, why they are what they are, and the one loose end in the typography are in [`docs/app-behaviour.md`](docs/app-behaviour.md#colour).
@@ -42,7 +43,7 @@ New sign-ups are disabled in the Supabase dashboard, which is why a public publi
 ## Testing
 
 ```bash
-npm test          # 196 unit tests, none of which need a browser
+npm test          # 208 unit tests, none of which need a browser
 npm run harness   # the real app on an emulated phone, against a fake Supabase
 npm run dbtest    # every migration applied to a throwaway Postgres, then checked
 ```
