@@ -7,6 +7,9 @@ npm i --no-save playwright@1.62.1   # deliberately not a dependency; see below
 node scripts/harness/run.mjs        # every scenario
 node scripts/harness/run.mjs keyboard appswitch
 node scripts/harness/run.mjs --shots tmp/shots layout
+
+node scripts/harness/shots.mjs tmp/shots        # every screen, for a design change
+DARK=1 node scripts/harness/shots.mjs tmp/dark
 ```
 
 The runner starts the stub, builds the app pointed at it, serves that build, runs the scenarios, and shuts everything down. It exits non-zero if anything regressed. **It never touches the real Supabase project**, so a scenario may delete every recipe without consequence.
@@ -20,6 +23,7 @@ The runner starts the stub, builds the app pointed at it, serves that build, run
 | `vocab.json` | The ingredient seed. |
 | `probe.mjs` | The scenarios and the helpers they share. |
 | `run.mjs` | Starts everything, runs scenarios, reports, cleans up. |
+| `shots.mjs` | Not a scenario: walks every screen and photographs it, light and dark, for looking at a change to the design. `DARK=1` for the night theme. |
 
 The app reaches the stub through `VITE_SUPABASE_URL`, which the runner sets for the build. Nothing is written to `.env.local`.
 

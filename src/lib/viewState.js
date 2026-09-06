@@ -7,9 +7,17 @@
  * household, so two people on one device never inherit each other's place.
  */
 
-export const TABS = ['current', 'library', 'shop', 'deleted']
+export const TABS = ['current', 'library', 'shop']
 
-export const EMPTY_SCROLL = { current: 0, library: 0, shop: 0, deleted: 0 }
+/**
+ * A tab that used to exist. The bin was a fourth tab until it moved into
+ * settings, and a phone that has not been reopened since then still has
+ * `deleted` written in its record. Reading it back must land somewhere real
+ * rather than on a tab that no longer draws.
+ */
+const RETIRED_TABS = ['deleted']
+
+export const EMPTY_SCROLL = { current: 0, library: 0, shop: 0 }
 
 /**
  * How long a scroll position is worth coming back to.
@@ -63,7 +71,13 @@ export function viewStateKey(userId, householdId) {
 export function parseViewState(raw) {
   try {
     const parsed = JSON.parse(raw ?? 'null')
-    if (!parsed || parsed.version !== 1 || !TABS.includes(parsed.tab)) return null
+    if (!parsed || parsed.version !== 1) return null
+    // A record written while the bin was still a tab keeps its scroll
+    // positions; only the tab itself is no longer somewhere to land.
+    const tab = TABS.includes(parsed.tab) ? parsed.tab
+      : RETIRED_TABS.includes(parsed.tab) ? TABS[0]
+      : null
+    if (tab === null) return null
     const saved = parsed.scrollByTab
     const scroll = (tab) => {
       const value = saved?.[tab]
@@ -71,12 +85,11 @@ export function parseViewState(raw) {
     }
     return {
       version: 1,
-      tab: parsed.tab,
+      tab,
       scrollByTab: {
         current: scroll('current'),
         library: scroll('library'),
         shop: scroll('shop'),
-        deleted: scroll('deleted'),
       },
       expandedRecipeId: typeof parsed.expandedRecipeId === 'string' ? parsed.expandedRecipeId : null,
       // Anything written before this field existed is old by definition.

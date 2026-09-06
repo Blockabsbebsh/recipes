@@ -1,7 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { readDebugFlagFromUrl } from './lib/debugFlags'
 import './styles.css'
+
+readDebugFlagFromUrl()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

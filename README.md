@@ -17,11 +17,14 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Live refresh when the other person edits data
 - Installable PWA layout for Android and iOS, remembering your tab and scroll position across app switches and eviction
 - The Android back button closes what is open — dialogs innermost first, then the settings page you are on, then home from another tab — before it leaves the app
+- A neutral light or dark interface that follows the phone, with colour carried by the seven shop aisles and by each dish type rather than sprayed over everything tappable
 - Lithuanian interface copy and metadata
 - Automatic dish-type and cuisine classification with manual editing, and new dish types or cuisines added from the editor, the importer, or settings
 - Library search across recipe names, ingredients, dish types, and cuisines
 - Library sections grouped by dish type, with cuisine shown as an extra tag
 - Household ingredient, recipe-category and cuisine management from the settings menu
+
+The colours, why they are what they are, and the one loose end in the typography are in [`docs/app-behaviour.md`](docs/app-behaviour.md#colour).
 
 ## Run locally
 
@@ -39,7 +42,7 @@ New sign-ups are disabled in the Supabase dashboard, which is why a public publi
 ## Testing
 
 ```bash
-npm test          # 172 unit tests, none of which need a browser
+npm test          # 180 unit tests, none of which need a browser
 npm run harness   # the real app on an emulated phone, against a fake Supabase
 npm run dbtest    # every migration applied to a throwaway Postgres, then checked
 ```

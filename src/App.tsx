@@ -17,6 +17,7 @@ import { HOLD_MS, MOMENTUM_MS, RESTORE_PATIENCE_MS, STILL_MS, createGesture, has
 import { EMPTY_SCROLL, SCROLL_MEMORY_MS, lastTab, positionsFrom, readViewState, viewStateKey, writeViewState } from './lib/viewState'
 import type { PersistedViewState } from './lib/viewState'
 import { SECTION_LABELS, SECTION_ORDER } from './lib/sections'
+import { groupAccent, sectionAccent } from './lib/palette'
 import { RecipeEditor } from './components/RecipeEditor'
 import { ImportDialog } from './components/ImportDialog'
 import { MealPicker } from './components/MealPicker'
@@ -761,14 +762,15 @@ function App() {
             onInspect={(item) => setInspecting({ item: item.item, href: item.href })}
           />
         )}
-        {tab === 'deleted' && <DeletedView recipes={deletedRecipes} onRestore={(recipe) => void restoreRecipe(recipe)} />}
       </main>
 
+      {/* Three tabs, not four. The bin is a place you go to undo something,
+          not a place you go every day, and it was taking a quarter of the bar
+          and the last thumb-width before Krepšelis. It lives in settings now. */}
       <nav className="bottom-nav" aria-label="Pagrindinė navigacija">
         <NavButton active={tab === 'current'} label="Meniu" icon={<BowlIcon />} onClick={() => changeTab('current')} />
         <NavButton active={tab === 'library'} label="Receptai" icon={<BookIcon />} onClick={() => changeTab('library')} />
         <NavButton active={tab === 'shop'} label="Krepšelis" icon={<BasketIcon />} badge={queue.length} onClick={() => changeTab('shop')} />
-        <NavButton active={tab === 'deleted'} label="Ištrinti" icon={<TrashIcon />} onClick={() => changeTab('deleted')} />
       </nav>
 
       {editor && (
@@ -838,6 +840,8 @@ function App() {
           onCreateCuisine={createCuisine}
           onUpdateCuisine={updateCuisine}
           onDeleteCuisine={deleteCuisine}
+          deletedRecipes={deletedRecipes}
+          onRestoreRecipe={(recipe) => void restoreRecipe(recipe)}
           onClose={() => setSettingsOpen(false)}
         />
       )}
@@ -997,7 +1001,7 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
             const recipe = recipeById.get(entry.recipe_id)
             if (!recipe || recipe.deleted_at) return null
             return (
-              <article className="meal-card" key={entry.id}>
+              <article className="meal-card" data-accent={groupAccent(dishTypeFor(recipe))} key={entry.id}>
                 <div className="meal-copy">
                   <div className="meal-head">
                     <button className="text-button" onClick={() => onEdit(recipe)}>Redaguoti</button>
@@ -1073,7 +1077,7 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
       {filtered.length === 0 ? <EmptyState title={recipes.length ? 'Nieko nerasta' : 'Receptų nėra'} text={recipes.length ? 'Pabandykite kitą paiešką.' : 'Pridėkite receptą arba įklijuokite turimą savaitės sąrašą.'} action={recipes.length ? undefined : 'Pridėti receptą'} onAction={recipes.length ? undefined : onAdd} /> : (
         <div className="library-groups">
           {groups.map((group) => (
-            <section className="library-group" key={group.dishType}>
+            <section className="library-group" data-accent={groupAccent(group.dishType)} key={group.dishType}>
               <div className="library-group-heading"><h2>{group.dishType}</h2><span>{group.recipes.length}</span></div>
               <div className="recipe-tile-grid">
                 {group.recipes.map((recipe) => {
@@ -1137,7 +1141,7 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
           <section className="shopping-card">
             <div className="section-heading"><h2>Pirkinių sąrašas</h2><span className="count-pill">{count}</span></div>
             {count ? sections.map((group) => (
-              <div className="shop-section" key={group.section}>
+              <div className="shop-section" data-accent={sectionAccent(group.section)} key={group.section}>
                 <h3 className="shop-section-title">
                   <BarboraLink href={SECTION_BARBORA_URLS[group.section] ?? null}>
                     {SECTION_LABELS[group.section]} {SECTION_BARBORA_URLS[group.section] && <small aria-hidden="true">↗</small>}
@@ -1164,12 +1168,6 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
       )}
     </div>
   )
-}
-
-function DeletedView({ recipes, onRestore }: { recipes: Recipe[]; onRestore: (recipe: Recipe) => void }) {
-  return recipes.length === 0
-    ? <EmptyState title="Ištrintų receptų nėra" text="Pašalintus receptus čia visada galėsite atkurti." />
-    : <section className="library-list">{recipes.map((recipe) => <article className="library-card" key={recipe.id}><div className="library-main"><p className="eyebrow">Ištrinta · {formatRelative(recipe.deleted_at)}</p><h2>{recipe.title}</h2><IngredientLine recipe={recipe} /></div><button className="button secondary" onClick={() => onRestore(recipe)}>Atkurti</button></article>)}</section>
 }
 
 function IngredientLine({ recipe }: { recipe: Recipe }) {
@@ -1220,6 +1218,3 @@ function BasketIcon() {
   return <svg {...iconProps}><path d="M4.6 8.5h14.8l-1.2 10.1a2 2 0 0 1-2 1.8H7.8a2 2 0 0 1-2-1.8L4.6 8.5Z" /><path d="M9 8.5v-2a3 3 0 0 1 6 0v2" /></svg>
 }
 
-function TrashIcon() {
-  return <svg {...iconProps}><path d="M4.5 6.6h15" /><path d="M9.6 6.6V5.1A1.6 1.6 0 0 1 11.2 3.5h1.6a1.6 1.6 0 0 1 1.6 1.6v1.5" /><path d="M6.6 6.6l.85 12.05a2 2 0 0 0 2 1.85h5.1a2 2 0 0 0 2-1.85L17.4 6.6" /></svg>
-}

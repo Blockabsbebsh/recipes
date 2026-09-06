@@ -616,6 +616,12 @@ export async function scrolltrace(page, base) {
   if (!tail.some((kind) => kind.startsWith('restore'))) findings.push('the trace says nothing about what the restore did after the reload')
 
   // And it has to be legible from the phone, which is the only place it runs.
+  // It lives behind the debug flag now — see `src/lib/debugFlags.js` — so the
+  // scenario turns it on the way the household would, through the address
+  // bar, rather than by writing the key it happens to be stored under.
+  await page.goto(`${base}?debug=1`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('.bottom-nav button', { timeout: 15000 })
+  await page.waitForTimeout(800)
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, 'button', 'Slinkties žurnalas')
   await page.waitForTimeout(300)
@@ -701,10 +707,13 @@ export async function planning(page, base) {
   await tap(page, '.recipe-tile button', 'Ištrinti')
   await page.waitForTimeout(800)
   if (await page.locator('.recipe-tile').count() !== inLibrary - 1) findings.push('deleting a recipe did not take it out of the library')
-  await openTab(page, 3)
-  if (await page.locator('.library-card').count() === 0) findings.push('a deleted recipe did not appear under Ištrinti')
-  await tap(page, '.library-card button', 'Atkurti')
+  await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
+  await tap(page, '.settings-options button', 'Ištrinti receptai')
+  if (await page.locator('.deleted-row').count() === 0) findings.push('a deleted recipe did not appear under Ištrinti receptai')
+  await tap(page, '.deleted-row button', 'Atkurti')
   await page.waitForTimeout(800)
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(400)
   await openTab(page, 1)
   if (await page.locator('.recipe-tile').count() !== inLibrary) findings.push('restoring a recipe did not put it back in the library')
   return findings
@@ -1113,7 +1122,7 @@ export async function shapes(page, base) {
   const narrow = { width: 320, height: 568 }
   await page.setViewportSize(narrow)
   await page.waitForTimeout(500)
-  for (const [index, label] of ['Meniu', 'Receptai', 'Krepšelis', 'Ištrinti'].entries()) {
+  for (const [index, label] of ['Meniu', 'Receptai', 'Krepšelis'].entries()) {
     await openTab(page, index)
     for (const fault of await faults(narrow.width)) findings.push(`${narrow.width}px wide, ${label}: ${fault}`)
   }
