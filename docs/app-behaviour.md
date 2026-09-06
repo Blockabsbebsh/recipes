@@ -506,3 +506,33 @@ keeps the two consistent.
 the ordering can be read and tested without a browser — including the one that
 matters most and is easiest to break: that neither order depends on the order
 the rows arrived in.
+
+## One bar, and it stays
+
+The page title used to be a hundred-pixel block at the top of every tab — an
+eyebrow with the household's name and a line of display type — scrolled past
+within a thumb's flick and never seen again. Meanwhile the thing you actually
+wanted up there, *add something*, was a button further down the page and in a
+different place on each tab: above the meal cards on Meniu, beside the search
+on Receptai, next to a section heading on Krepšelis.
+
+Both are the sticky bar now: the tab's name, a count of what is on it, the
+one primary action, and the settings button. Three tabs, one place to add.
+
+`position: sticky` rather than `fixed`, deliberately. A fixed bar comes out of
+the flow and the page below it has to be padded to compensate; a sticky one
+changes no document height at all — and document height is exactly what
+`restoreScroll` waits on. The same reasoning as the recipe window.
+
+Two details that are easy to get wrong:
+
+- The bar is pulled up into the shell's `env(safe-area-inset-top)` padding and
+  pads itself by the same amount, so when it is stuck it covers the notch
+  rather than sliding under it.
+- Its height is set from `--appbar-h` rather than falling out of its padding,
+  because the library's own sticky row sticks at `--appbar-h` below it. When
+  the two numbers disagree by a pixel, a sliver of scrolled card shows through
+  the seam.
+
+The household's name lived only in the eyebrow the bar replaced. It is in
+**Nustatymai** now, above the address you are signed in as.

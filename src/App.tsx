@@ -758,12 +758,25 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">{household.name}</p>
-          <h1>{tab === 'current' ? 'Meniu' : tab === 'library' ? 'Receptai' : tab === 'shop' ? 'Krepšelis' : 'Ištrinti'}</h1>
+      {/* One bar, and it stays. The page title used to be a 100px block of
+          eyebrow and display type at the top of every tab, scrolled past
+          within a thumb's flick and never seen again; the thing you actually
+          wanted up there — add something — was a button further down the
+          page, in a different place on each tab. Both live here now.
+
+          `position: sticky` is deliberate over `fixed`: it changes no
+          document height, and `restoreScroll` measures document height. */}
+      <header className="appbar">
+        <div className="appbar-title">
+          <h1>{tab === 'current' ? 'Meniu' : tab === 'library' ? 'Receptai' : 'Krepšelis'}</h1>
+          <span>{tab === 'current' ? readyEntries.length : tab === 'library' ? activeRecipes.length : shoppingCount}</span>
         </div>
-        <button className="icon-button" aria-label="Namų ūkio nustatymai" onClick={() => setSettingsOpen(true)}><MoreIcon size={20} /></button>
+        <div className="appbar-actions">
+          {tab === 'library'
+            ? <button className="button primary" onClick={() => setEditor({ destination: 'library' })} aria-label="Naujas receptas"><PlusIcon size={20} /></button>
+            : <button className="button primary" onClick={() => setPickerOpen(true)}><PlusIcon size={17} /> Pridėti</button>}
+          <button className="icon-button" aria-label="Namų ūkio nustatymai" onClick={() => setSettingsOpen(true)}><MoreIcon size={20} /></button>
+        </div>
       </header>
 
       <main>
@@ -1068,7 +1081,6 @@ function CurrentView({ entries, recent, recipeById, onOpen, onQueue, onAdd }: {
 }) {
   return (
     <div className="page-stack">
-      <button className="button primary add-meals" onClick={onAdd}><PlusIcon size={17} /> Pridėti</button>
       {entries.length === 0 ? (
         <EmptyState title="Nėra laukiančių receptų" text="Pridėkite kelis patiekalus, apsipirkite, ir jie atsiras čia." action="Pridėti" onAction={onAdd} />
       ) : (
@@ -1173,7 +1185,6 @@ function LibraryView({ recipes, categories, cuisines, lastCooked, expanded, onEx
             <SearchIcon size={18} />
             <input className="search" type="search" placeholder="Ieškoti receptų ar produktų" value={search} onChange={(event) => setSearch(event.target.value)} />
           </div>
-          <button className="button primary" onClick={onAdd} aria-label="Naujas receptas"><PlusIcon size={21} /></button>
         </div>
         {/* The dish types are a rail across the top rather than a card around
             each group. Grouping cost a whole level of nesting and a heading for
@@ -1261,7 +1272,7 @@ function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTick
   const progress = shoppingProgress(count, [...ticked].length)
   return (
     <div className="page-stack shop-page">
-      <div className="section-heading"><h2>Suplanuoti patiekalai</h2><button className="button primary" onClick={onAdd}><PlusIcon size={17} /> Pridėti</button></div>
+      <div className="section-heading"><h2>Suplanuoti patiekalai</h2></div>
       {queue.length === 0 ? <EmptyState title="Krepšelis tuščias" text="Pasirinkite visus norimus patiekalus ir gausite vieną bendrą sąrašą." action="Pridėti" onAction={onAdd} /> : (
         <>
           <div className="queue-chips">
