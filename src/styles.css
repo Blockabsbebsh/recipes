@@ -192,20 +192,14 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .card-grid, .library-list { display: grid; gap: 14px; }
 .meal-card, .library-card, .shopping-card { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--card-shadow); }
 .meal-card { border-color: var(--accent-tint-line, var(--line)); background: var(--accent-wash, var(--surface)); }
-.meal-card .resolve-actions, .meal-card .resolve + .resolve, .meal-card .notes { border-color: var(--accent-tint-line, var(--line)); }
-.meal-card { display: grid; grid-template-columns: 1fr auto; overflow: hidden; }
+.meal-card .notes { border-color: var(--accent-tint-line, var(--line)); }
+.meal-card { overflow: hidden; }
+.meal-open { display: block; width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .meal-copy { padding: 20px; }
 .meal-copy h2, .library-main h2 { font-size: 1.36rem; font-weight: var(--title-weight); letter-spacing: var(--title-tracking); line-height: 1.18; }
 .ingredients { margin: 0; color: var(--ink-2); font-size: .9rem; line-height: 1.6; }
 .ingredients.empty { color: var(--muted); font-style: italic; }
 .notes { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; line-height: 1.55; white-space: pre-wrap; }
-.resolve-actions { display: grid; min-width: 82px; border-left: 1px solid var(--line); }
-.resolve { display: grid; min-height: 82px; padding: 12px; place-content: center; gap: 4px; border: 0; background: transparent; font-size: 1.3rem; font-weight: 700; cursor: pointer; }
-.resolve + .resolve { border-top: 1px solid var(--line); }
-.resolve span { font-size: .68rem; }
-.resolve.cooked { color: var(--ok); background: var(--ok-soft); }
-.resolve.cooked:hover { background: var(--ok-line); }
-.resolve.skipped { color: var(--muted); }
 
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .section-heading h2 { margin-bottom: 0; font-size: 1.34rem; font-weight: var(--title-weight); letter-spacing: var(--title-tracking); }
@@ -232,23 +226,19 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .library-group-heading span { display: grid; min-width: 24px; height: 24px; padding: 0 7px; place-items: center; border-radius: 99px; background: var(--accent-soft, var(--sunk)); color: var(--accent-ink, var(--muted)); font-size: .7rem; font-weight: 800; }
 .recipe-tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 8px; }
 .recipe-tile { display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid var(--accent-tint-line, var(--line)); border-radius: 12px; background: var(--accent-wash, var(--surface)); transition: border-color .15s ease, box-shadow .15s ease; }
-.recipe-tile.expanded { grid-column: 1 / -1; border-color: var(--accent-solid, var(--brand)); box-shadow: var(--card-shadow); }
-.recipe-tile-detail { border-top-color: var(--accent-tint-line, var(--line)); }
-.recipe-tile-summary { position: relative; display: grid; width: 100%; min-height: 116px; flex: 1 1 auto; padding: 12px; align-content: space-between; gap: 10px; border: 0; background: transparent; text-align: left; cursor: pointer; }
-.recipe-tile.expanded .recipe-tile-summary { min-height: 0; grid-template-columns: 1fr auto; align-items: center; }
+/* The tile whose window is open, so closing it lands you somewhere you
+   recognise rather than on an undifferentiated grid. */
+.recipe-tile.expanded { border-color: var(--accent-solid, var(--brand)); box-shadow: 0 0 0 1px var(--accent-solid, var(--brand)), var(--card-shadow); }
+.recipe-tile-summary { position: relative; display: grid; width: 100%; min-height: 92px; flex: 1 1 auto; padding: 11px 12px; align-content: space-between; gap: 9px; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .recipe-tile-copy strong, .recipe-tile-copy small { display: block; }
 .recipe-tile-copy strong { overflow-wrap: anywhere; font-size: 1.02rem; font-weight: var(--title-weight); letter-spacing: var(--title-tracking); line-height: 1.16; }
-.recipe-tile-copy small { margin-top: 5px; color: var(--muted); font-size: .65rem; line-height: 1.3; }
-.recipe-tile-meta { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 6px; }
+.recipe-tile-meta { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; }
+.recipe-tile-meta small { flex: 0 0 auto; color: var(--muted); font-size: .66rem; font-variant-numeric: tabular-nums; }
 .recipe-tile-meta > span { overflow: hidden; padding: 2px 7px; border-radius: 99px; background: var(--tint-chip); color: var(--muted); font-size: .66rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.recipe-tile-chevron { position: absolute; right: 10px; bottom: 7px; color: var(--line-strong); font-size: .8rem; }
-.recipe-tile.expanded .recipe-tile-meta, .recipe-tile.expanded .recipe-tile-chevron { display: none; }
-.recipe-tile-detail { padding: 2px 12px 13px; border-top: 1px solid var(--line); }
-.recipe-tile-detail .ingredients { padding-top: 12px; }
+.dish-tag { padding: 4px 10px; border-radius: 999px; background: var(--accent-soft, var(--sunk)); color: var(--accent-ink, var(--ink-2)); font-size: .7rem; font-weight: 650; }
+
 .recipe-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0 9px; }
 .recipe-tags span { padding: 4px 9px; border-radius: 999px; background: var(--tint-chip); color: var(--ink-2); font-size: .68rem; font-weight: 700; }
-.library-actions { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
-.library-actions button { padding: 5px 0; border: 0; background: transparent; color: var(--brand-ink); font-size: .78rem; font-weight: 700; cursor: pointer; }
 .source-link { display: inline-block; margin-top: 12px; color: var(--brand-ink); font-size: .8rem; font-weight: 700; }
 
 .queue-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -417,9 +407,7 @@ textarea { resize: vertical; line-height: 1.5; }
 .shop-section-title a small { font-size: .72rem; }
 .shop-section-title span { display: grid; min-width: 18px; height: 18px; padding: 0 5px; place-items: center; border-radius: 99px; background: var(--accent-soft, var(--sunk)); color: var(--accent-ink, var(--muted)); font-size: .68rem; font-weight: 700; letter-spacing: 0; }
 
-.meal-head { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: -4px; }
-.meal-head .text-button { padding: 6px 2px; color: var(--muted); font-size: .74rem; font-weight: 600; }
-.meal-head .text-button:hover { color: var(--brand-ink); }
+.meal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .recent-chip { position: relative; padding-right: 34px; }
 .recent-again { position: absolute; top: 50%; right: 6px; display: grid; width: 26px; height: 26px; transform: translateY(-50%); place-items: center; border: 0; border-radius: 50%; background: var(--sunk); color: var(--muted); font-size: .82rem; line-height: 1; cursor: pointer; }
 .recent-again:hover { background: var(--brand); color: #fff; }
@@ -478,3 +466,21 @@ textarea { resize: vertical; line-height: 1.5; }
 .product-out { color: var(--danger); font-weight: 600; }
 .product-throttled { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--brand-line); border-radius: 14px; background: var(--brand-soft); color: var(--ink); font-size: .88rem; }
 .product-throttled small { color: var(--muted); font-size: .76rem; }
+
+/* The recipe window: the editor's sheet with nothing to fill in. */
+.recipe-detail-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.recipe-detail-tags span { padding: 4px 10px; border-radius: 999px; background: var(--tint-chip); color: var(--ink-2); font-size: .7rem; font-weight: 600; }
+.detail-heading { margin: 0 0 6px; color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.detail-heading b { margin-left: 3px; color: var(--line-strong); font-weight: 800; }
+.detail-products { margin: 0 0 20px; padding: 0; list-style: none; }
+.detail-products li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: .95rem; }
+/* A dot rather than a bullet, so the list reads as things to buy rather than
+   as prose, and takes the dish type's colour like everything else here. */
+.detail-products li::before { content: ''; flex: 0 0 auto; width: 5px; height: 5px; border-radius: 50%; background: var(--accent-solid, var(--line-strong)); }
+.detail-notes { margin: 0 0 20px; color: var(--ink-2); font-size: .92rem; line-height: 1.6; white-space: pre-wrap; }
+.detail-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
+.detail-links a, .detail-links button { padding: 7px 0; border: 0; background: transparent; color: var(--brand-ink); font: inherit; font-size: .84rem; font-weight: 650; text-decoration: none; cursor: pointer; }
+/* Sticky, so the decision is reachable however long the ingredient list is. */
+.detail-actions { position: sticky; bottom: -24px; display: flex; gap: 9px; margin: 18px -20px -24px; padding: 13px 20px calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); }
+.detail-actions .button { flex: 1 1 auto; min-height: 50px; }
+.detail-actions .button.secondary { flex: 0 1 auto; color: var(--muted); }

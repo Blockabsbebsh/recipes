@@ -655,7 +655,7 @@ export async function planning(page, base) {
       const summary = document.querySelector('.recipe-tile-summary')
       if (summary?.getAttribute('aria-expanded') !== 'true') summary?.click()
     })
-    await page.waitForTimeout(400)
+    await page.waitForTimeout(500)
   }
 
   // Into the basket, from the library.
@@ -663,7 +663,7 @@ export async function planning(page, base) {
   const basketBefore = await chips()
   await openTab(page, 1)
   await openRecipe()
-  await tap(page, '.recipe-tile button', 'Į krepšelį')
+  await tap(page, '.detail-actions button', 'Į krepšelį')
   await openTab(page, 2)
   if (await chips() !== basketBefore + 1) findings.push(`adding a recipe to the basket left ${await chips()} chips, not ${basketBefore + 1}`)
 
@@ -692,8 +692,12 @@ export async function planning(page, base) {
 
   // Cooked, and then not.
   const beforeCooking = await readyMeals()
-  await tap(page, '.resolve.cooked')
-  await page.waitForTimeout(600)
+  // Cooking is decided in the recipe's window now, not on the card: the card
+  // opens it, and Pagaminta is one of the two buttons at the bottom.
+  await tap(page, '.meal-open')
+  await page.waitForTimeout(500)
+  await tap(page, '.detail-actions button', 'Pagaminta')
+  await page.waitForTimeout(700)
   if (await readyMeals() !== beforeCooking - 1) findings.push(`marking one cooked left ${await readyMeals()} meals, not ${beforeCooking - 1}`)
   if (await page.locator('.undo-toast').count() === 0) findings.push('marking a meal cooked offered no way to undo it')
   await tap(page, '.undo-toast button')
@@ -704,7 +708,7 @@ export async function planning(page, base) {
   await openTab(page, 1)
   const inLibrary = await page.locator('.recipe-tile').count()
   await openRecipe()
-  await tap(page, '.recipe-tile button', 'Ištrinti')
+  await tap(page, '.detail-links button', 'Ištrinti')
   await page.waitForTimeout(800)
   if (await page.locator('.recipe-tile').count() !== inLibrary - 1) findings.push('deleting a recipe did not take it out of the library')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
@@ -928,14 +932,15 @@ export async function concurrent(page, base) {
     }, [title, tileOf.toString()])
     if (!found) return false
     await who.waitForTimeout(600)
-    const done = await who.evaluate(([wanted, action, source]) => {
-      const tile = new Function(`return ${source}`)()(wanted)
-      const button = [...(tile?.querySelectorAll('button') ?? [])]
+    // The buttons moved out of the tile and into the window the tile opens,
+    // which is a portal into <body> rather than a descendant of the tile.
+    const done = await who.evaluate((action) => {
+      const button = [...document.querySelectorAll('.modal-backdrop button')]
         .find((node) => (node.textContent || '').includes(action))
       if (!button) return false
       button.click()
       return true
-    }, [title, label, tileOf.toString()])
+    }, label)
     await who.waitForTimeout(800)
     return done
   }

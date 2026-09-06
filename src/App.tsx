@@ -23,6 +23,7 @@ import { ImportDialog } from './components/ImportDialog'
 import { MealPicker } from './components/MealPicker'
 import { SettingsDialog } from './components/SettingsDialog'
 import { BarboraProductsModal } from './components/BarboraProductsModal'
+import { RecipeDetail } from './components/RecipeDetail'
 
 // The aisle each section falls back to, read from the same crawled catalogue
 // the mapper walks. Association-file aliases are deliberately not used here:
@@ -32,6 +33,11 @@ const SECTION_BARBORA_URLS = Object.fromEntries(
     .filter(([, path]) => path !== null)
     .map(([section, path]) => [section, shoppingUrl(path as string)]),
 ) as Partial<Record<IngredientSection, string>>
+
+/** The window's third tag: when this was last made, already phrased. */
+function cookedLabel(dateValue: string | null) {
+  return dateValue ? `Gaminta ${formatRelative(dateValue).toLocaleLowerCase('lt')}` : 'Dar negaminta'
+}
 
 function formatRelative(dateValue: string | null) {
   if (!dateValue) return 'Niekada'
@@ -91,6 +97,9 @@ function App() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [inspecting, setInspecting] = useState<{ item: string; href: string | null } | null>(null)
+  // The planned meal whose window is open. The library's equivalent is
+  // `libraryExpanded`, which is a recipe id rather than a roster row.
+  const [openMeal, setOpenMeal] = useState<RosterEntry | null>(null)
   const tabRef = useRef<Tab>(tab)
   const expandedRecipeRef = useRef<string | null>(null)
   const scrollByTab = useRef<Record<Tab, number>>({ ...EMPTY_SCROLL })
@@ -574,6 +583,12 @@ function App() {
     )
   }, [roster])
 
+  // Which library recipe's window is open, resolved fresh from the data so a
+  // recipe the other person has just binned cannot stay on screen.
+  const openLibraryRecipe = libraryExpanded
+    ? activeRecipes.find((recipe) => recipe.id === libraryExpanded) ?? null
+    : null
+
   const lastCooked = useCallback(
     (recipeId: string) => {
       const dates = roster
@@ -727,9 +742,7 @@ function App() {
             entries={readyEntries}
             recent={recentCooked}
             recipeById={recipeById}
-            onCooked={(entry) => void resolveEntry(entry, 'cooked')}
-            onSkipped={(entry) => void resolveEntry(entry, 'skipped')}
-            onEdit={(recipe) => setEditor({ recipe, destination: 'library' })}
+            onOpen={(entry) => setOpenMeal(entry)}
             onQueue={(recipe) => void planRecipe(recipe, 'queue')}
             onAdd={() => setPickerOpen(true)}
           />
@@ -743,10 +756,6 @@ function App() {
             onExpandedChange={changeExpandedRecipe}
             onAdd={() => setEditor({ destination: 'library' })}
             onImport={() => setImportOpen(true)}
-            onEdit={(recipe) => setEditor({ recipe, destination: 'library' })}
-            onQueue={(recipe) => void planRecipe(recipe, 'queue')}
-            onCurrent={(recipe) => void planRecipe(recipe, 'roster')}
-            onDelete={(recipe) => void softDelete(recipe)}
           />
         )}
         {tab === 'shop' && (
@@ -788,6 +797,34 @@ function App() {
           onCreateIngredient={createIngredient}
           onCreateCategory={createRecipeCategory}
           onCreateCuisine={createCuisine}
+        />
+      )}
+      {/* One window, opened from two places, with a different decision to
+          offer in each: a planned meal is cooked or skipped, a recipe in the
+          library is put in the basket or straight on the menu. */}
+      {openMeal && recipeById.get(openMeal.recipe_id) && (
+        <RecipeDetail
+          recipe={recipeById.get(openMeal.recipe_id)!}
+          lastCookedLabel={cookedLabel(lastCooked(openMeal.recipe_id))}
+          actions={[
+            { label: '✓ Pagaminta', tone: 'ok', onClick: () => { const entry = openMeal; setOpenMeal(null); void resolveEntry(entry, 'cooked') } },
+            { label: '× Praleisti', onClick: () => { const entry = openMeal; setOpenMeal(null); void resolveEntry(entry, 'skipped') } },
+          ]}
+          onEdit={() => { const recipe = recipeById.get(openMeal.recipe_id)!; setOpenMeal(null); setEditor({ recipe, destination: 'library' }) }}
+          onClose={() => setOpenMeal(null)}
+        />
+      )}
+      {openLibraryRecipe && (
+        <RecipeDetail
+          recipe={openLibraryRecipe}
+          lastCookedLabel={cookedLabel(lastCooked(openLibraryRecipe.id))}
+          actions={[
+            { label: 'Į krepšelį', tone: 'ok', onClick: () => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); void planRecipe(recipe, 'queue') } },
+            { label: 'Gaminti dabar', onClick: () => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); void planRecipe(recipe, 'roster') } },
+          ]}
+          onEdit={() => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); setEditor({ recipe, destination: 'library' }) }}
+          onDelete={() => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); void softDelete(recipe) }}
+          onClose={() => changeExpandedRecipe(null)}
         />
       )}
       {inspecting && (
@@ -980,13 +1017,11 @@ function HouseholdSetup({ loading, error, onCreate, onJoin }: {
   )
 }
 
-function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit, onQueue, onAdd }: {
+function CurrentView({ entries, recent, recipeById, onOpen, onQueue, onAdd }: {
   entries: RosterEntry[]
   recent: RosterEntry[]
   recipeById: Map<string, Recipe>
-  onCooked: (entry: RosterEntry) => void
-  onSkipped: (entry: RosterEntry) => void
-  onEdit: (recipe: Recipe) => void
+  onOpen: (entry: RosterEntry) => void
   onQueue: (recipe: Recipe) => void
   onAdd: () => void
 }) {
@@ -1002,19 +1037,17 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
             if (!recipe || recipe.deleted_at) return null
             return (
               <article className="meal-card" data-accent={groupAccent(dishTypeFor(recipe))} key={entry.id}>
+                <button className="meal-open" onClick={() => onOpen(entry)} aria-label={`Atverti „${recipe.title}“`}>
                 <div className="meal-copy">
                   <div className="meal-head">
-                    <button className="text-button" onClick={() => onEdit(recipe)}>Redaguoti</button>
+                    <span className="dish-tag">{dishTypeFor(recipe)}</span>
                   </div>
                   <h2>{recipe.title}</h2>
                   <RecipeTags recipe={recipe} />
                   <IngredientLine recipe={recipe} />
                   {recipe.notes && <p className="notes">{recipe.notes}</p>}
                 </div>
-                <div className="resolve-actions">
-                  <button className="resolve cooked" onClick={() => onCooked(entry)} aria-label={`Pažymėti „${recipe.title}“ kaip pagamintą`}>✓ <span>Pagaminta</span></button>
-                  <button className="resolve skipped" onClick={() => onSkipped(entry)} aria-label={`Praleisti „${recipe.title}“`}>× <span>Praleisti</span></button>
-                </div>
+                </button>
               </article>
             )
           })}
@@ -1041,7 +1074,7 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
   )
 }
 
-function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChange, onAdd, onImport, onEdit, onQueue, onCurrent, onDelete }: {
+function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChange, onAdd, onImport }: {
   recipes: Recipe[]
   categories: string[]
   lastCooked: (id: string) => string | null
@@ -1049,10 +1082,6 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
   onExpandedChange: (recipeId: string | null) => void
   onAdd: () => void
   onImport: () => void
-  onEdit: (recipe: Recipe) => void
-  onQueue: (recipe: Recipe) => void
-  onCurrent: (recipe: Recipe) => void
-  onDelete: (recipe: Recipe) => void
 }) {
   const [search, setSearch] = useState('')
   const needle = normalizeTitle(search)
@@ -1086,23 +1115,12 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
                   return (
                     <article className={`recipe-tile ${isExpanded ? 'expanded' : ''}`} key={recipe.id}>
                       <button className="recipe-tile-summary" aria-expanded={isExpanded} onClick={() => onExpandedChange(isExpanded ? null : recipe.id)}>
-                        <span className="recipe-tile-copy"><strong>{recipe.title}</strong><small>{cookedAt ? `Gaminta ${formatRelative(cookedAt).toLocaleLowerCase('lt')}` : 'Dar negaminta'}</small></span>
-                        <span className="recipe-tile-meta"><span>{cuisineFor(recipe)}</span></span>
-                        <span className="recipe-tile-chevron" aria-hidden="true">⌄</span>
+                        <span className="recipe-tile-copy"><strong>{recipe.title}</strong></span>
+                        <span className="recipe-tile-meta">
+                          <span>{cuisineFor(recipe)}</span>
+                          <small>{cookedAt ? formatRelative(cookedAt).toLocaleLowerCase('lt') : '—'}</small>
+                        </span>
                       </button>
-                      {isExpanded && (
-                        <div className="recipe-tile-detail">
-                          <IngredientLine recipe={recipe} />
-                          {recipe.notes && <p className="notes">{recipe.notes}</p>}
-                          {recipe.source_url && <a className="source-link" href={recipe.source_url} target="_blank" rel="noreferrer">Atverti originalų receptą ↗</a>}
-                          <div className="library-actions">
-                            <button onClick={() => onQueue(recipe)}>Į krepšelį</button>
-                            <button onClick={() => onCurrent(recipe)}>Gaminti dabar</button>
-                            <button onClick={() => onEdit(recipe)}>Redaguoti</button>
-                            <button className="danger-text" onClick={() => onDelete(recipe)}>Ištrinti</button>
-                          </div>
-                        </div>
-                      )}
                     </article>
                   )
                 })}
