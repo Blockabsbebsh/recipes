@@ -616,6 +616,12 @@ export async function scrolltrace(page, base) {
   if (!tail.some((kind) => kind.startsWith('restore'))) findings.push('the trace says nothing about what the restore did after the reload')
 
   // And it has to be legible from the phone, which is the only place it runs.
+  // It lives behind the debug flag now — see `src/lib/debugFlags.js` — so the
+  // scenario turns it on the way the household would, through the address
+  // bar, rather than by writing the key it happens to be stored under.
+  await page.goto(`${base}?debug=1`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('.bottom-nav button', { timeout: 15000 })
+  await page.waitForTimeout(800)
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, 'button', 'Slinkties žurnalas')
   await page.waitForTimeout(300)

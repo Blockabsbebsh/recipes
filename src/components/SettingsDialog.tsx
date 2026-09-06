@@ -1,6 +1,7 @@
 import type { CategoryIndex } from '../lib/barboraMapping'
 import { CUISINES, CUISINE_TAG_PREFIX, DISH_TAG_PREFIX, DISH_TYPES } from '../lib/categories'
 import { clearTrace, formatTrace, readTrace, trace } from '../lib/scrollTrace'
+import { debugEnabled } from '../lib/debugFlags'
 import { supabase } from '../lib/supabase'
 import type { Household, HouseholdTag, IngredientSection, Recipe, VocabularyIngredient } from '../lib/types'
 import { IngredientsManager } from './IngredientsManager'
@@ -59,7 +60,7 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
           <button onClick={() => setView('ingredients')}><span><strong>Ingredientai</strong><small>Pavadinimai ir skyriai parduotuvėje</small></span><b>›</b></button>
           <button onClick={() => setView('categories')}><span><strong>Receptų kategorijos</strong><small>Grupės receptų bibliotekoje</small></span><b>›</b></button>
           <button onClick={() => setView('cuisines')}><span><strong>Virtuvės</strong><small>Šalys ir regionai receptų žymose</small></span><b>›</b></button>
-          <button onClick={() => setView('trace')}><span><strong>Slinkties žurnalas</strong><small>Ką programa įsiminė perjungiant programas</small></span><b>›</b></button>
+          {debugEnabled() && <button onClick={() => setView('trace')}><span><strong>Slinkties žurnalas</strong><small>Ką programa įsiminė perjungiant programas</small></span><b>›</b></button>}
         </div>
         <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
         <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Atsijungti</button>

@@ -998,7 +998,7 @@ function CurrentView({ entries, recent, recipeById, onCooked, onSkipped, onEdit,
             const recipe = recipeById.get(entry.recipe_id)
             if (!recipe || recipe.deleted_at) return null
             return (
-              <article className="meal-card" key={entry.id}>
+              <article className="meal-card" data-accent={groupAccent(dishTypeFor(recipe))} key={entry.id}>
                 <div className="meal-copy">
                   <div className="meal-head">
                     <button className="text-button" onClick={() => onEdit(recipe)}>Redaguoti</button>

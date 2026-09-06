@@ -19,6 +19,7 @@ without a browser.
 | `src/lib/readiness.js` | whether the loading screen belongs on screen, and whether the household check failed or merely came back empty |
 | `src/lib/ingredientMapping.js` | what the four Barbora columns say about an ingredient |
 | `src/lib/palette.js` | which accent an aisle or a dish type wears, and why a name keeps it |
+| `src/lib/debugFlags.js` | the things that are in the app for us rather than for the household |
 | `src/hooks/useHouseholdData.ts` | the five reads, the realtime subscription, and the coalescing refresh |
 | `src/hooks/useRecipeWriting.ts` | saving, importing, deleting and restoring recipes |
 | `src/hooks/usePlanning.ts` | the week: basket, shop, cooked, undone |
@@ -253,7 +254,14 @@ them:
   carry a colour, from `src/lib/palette.js`. The aisle is still written out
   in words beside its colour — the colour halves the time it takes to find
   where the frozen things start, and costs nothing to anyone who cannot see
-  it.
+  it. A recipe card takes the same colour as a wash across the whole card,
+  which is what makes a soup and a pudding different objects at a glance
+  without drawing anything new.
+
+The first version of this ran a coloured rail down the side of every aisle
+and every library group as well. It said what the coloured heading already
+said, and a hard vertical edge beside a column of soft cards is the loudest
+mark on the screen for the least information. The tint replaced it.
 
 Two rules hold the rest together. Every ink clears 4.5:1 on the surface it is
 written on, in both themes; the old orange-on-white text button was at 2.6.
@@ -269,3 +277,17 @@ and nothing loads it — there is no `@font-face` and no stylesheet link — so
 every phone falls back to whatever serif it has, and Android's is not
 Georgia. Self-hosting it is a one-line change at `--display-font`; deciding
 whether the app wants a webfont at all is not.
+
+## The scroll log is no longer on the menu
+
+It earned its place while the restore was being fought over and there was no
+console to attach to the phone it was failing on. That fight is won. A
+settings menu of five rows, four of them the household's business and one of
+them ours, was paying for a diagnostic nobody opens.
+
+The code is untouched — `src/lib/scrollTrace.js` still records, the harness
+still checks that it survives a reload, and the README still explains how to
+read one. Only the way in changed: `?debug=1` in the address bar turns it on
+and it remembers, so the household can be talked through switching it on over
+the phone and it survives the reloads that follow; `?debug=0` puts it away.
+`src/lib/debugFlags.js` is the whole mechanism.
