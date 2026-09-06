@@ -725,11 +725,17 @@ function App() {
   const ticksStoreKey = household ? ticksKey(household.id) : null
 
   // Read the ticks back whenever the list itself changes, which is also what
-  // drops a tick for something that has left the basket.
+  // forgets a tick for something that has left the basket.
+  //
+  // Gated on the data being loaded, and that is not a nicety. `readTicks`
+  // prunes to what is on the list and writes the shorter set back, so running
+  // it against the empty list of a household that has not finished loading
+  // deletes every tick on the phone — which is what happened, and what the
+  // `shopticks` scenario caught by reloading mid-shop.
   useEffect(() => {
-    if (!ticksStoreKey) return
+    if (!ticksStoreKey || !dataReady) return
     setTicked(readTicks(ticksStoreKey, shoppingItems))
-  }, [ticksStoreKey, shoppingItems])
+  }, [ticksStoreKey, dataReady, shoppingItems])
 
   function toggleTicked(item: string) {
     setTicked((current) => {
@@ -1115,49 +1121,75 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
   onImport: () => void
 }) {
   const [search, setSearch] = useState('')
+  // Which dish type the chip rail is filtering to. Null is "Visi", and it is
+  // deliberately not remembered between visits: a filter you cannot see the
+  // top of is a library that has silently lost half its recipes.
+  const [only, setOnly] = useState<string | null>(null)
   const needle = normalizeTitle(search)
-  const filtered = recipes.filter((recipe) => {
+  const found = recipes.filter((recipe) => {
     if (!needle) return true
     const tags = recipeTagNames(recipe).map((name) => name.replace(DISH_TAG_PREFIX, '').replace(CUISINE_TAG_PREFIX, ''))
     const haystack = normalizeTitle(`${recipe.title} ${recipe.recipe_ingredients.map((item) => item.item).join(' ')} ${tags.join(' ')}`)
     return haystack.includes(needle)
   })
-  const usedCategories = [...new Set(filtered.map(dishTypeFor))]
-  const groupOrder = [...categories, ...usedCategories.filter((name) => !categories.includes(name))]
-  const groups = groupOrder
-    .map((dishType) => ({ dishType, recipes: filtered.filter((recipe) => dishTypeFor(recipe) === dishType) }))
-    .filter((group) => group.recipes.length > 0)
+  // The rail counts what the search left, so a chip never offers a number it
+  // cannot then show — and a dish type with nothing in it is not on the rail.
+  const usedCategories = [...new Set(found.map(dishTypeFor))]
+  const railOrder = [...categories, ...usedCategories.filter((name) => !categories.includes(name))]
+  const rail = railOrder
+    .map((dishType) => ({ dishType, count: found.filter((recipe) => dishTypeFor(recipe) === dishType).length }))
+    .filter((chip) => chip.count > 0)
+  // A chip whose dish type the search has emptied stops being a filter.
+  const active = only && rail.some((chip) => chip.dishType === only) ? only : null
+  const filtered = active ? found.filter((recipe) => dishTypeFor(recipe) === active) : found
+
   return (
     <div className="page-stack">
       <div className="toolbar">
-        <input className="search" type="search" placeholder="Ieškoti receptų, produktų ar virtuvių" value={search} onChange={(event) => setSearch(event.target.value)} />
-        <button className="button primary" onClick={onAdd}>＋ Naujas</button>
+        <input className="search" type="search" placeholder="Ieškoti receptų ar produktų" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <button className="button primary" onClick={onAdd} aria-label="Naujas receptas">＋</button>
       </div>
+      {/* The dish types are a rail across the top rather than a card around
+          each group. Grouping cost a whole level of nesting and a heading for
+          every type on screen at once; filtering costs one tap and gives the
+          tint the job of saying what a recipe is. */}
+      {rail.length > 1 && (
+        <div className="chip-rail" role="group" aria-label="Filtruoti pagal patiekalo tipą">
+          <button className={`rail-chip ${active === null ? 'is-on' : ''}`} aria-pressed={active === null} onClick={() => setOnly(null)}>
+            Visi <i>{found.length}</i>
+          </button>
+          {rail.map((chip) => (
+            <button
+              key={chip.dishType}
+              className={`rail-chip ${active === chip.dishType ? 'is-on' : ''}`}
+              data-accent={groupAccent(chip.dishType)}
+              aria-pressed={active === chip.dishType}
+              onClick={() => setOnly(active === chip.dishType ? null : chip.dishType)}
+            >{chip.dishType} <i>{chip.count}</i></button>
+          ))}
+        </div>
+      )}
       <button className="text-button import-button" onClick={onImport}>Importuoti receptus</button>
       {filtered.length === 0 ? <EmptyState title={recipes.length ? 'Nieko nerasta' : 'Receptų nėra'} text={recipes.length ? 'Pabandykite kitą paiešką.' : 'Pridėkite receptą arba įklijuokite turimą savaitės sąrašą.'} action={recipes.length ? undefined : 'Pridėti receptą'} onAction={recipes.length ? undefined : onAdd} /> : (
-        <div className="library-groups">
-          {groups.map((group) => (
-            <section className="library-group" data-accent={groupAccent(group.dishType)} key={group.dishType}>
-              <div className="library-group-heading"><h2>{group.dishType}</h2><span>{group.recipes.length}</span></div>
-              <div className="recipe-tile-grid">
-                {group.recipes.map((recipe) => {
-                  const isExpanded = expanded === recipe.id
-                  const cookedAt = lastCooked(recipe.id)
-                  return (
-                    <article className={`recipe-tile ${isExpanded ? 'expanded' : ''}`} key={recipe.id}>
-                      <button className="recipe-tile-summary" aria-expanded={isExpanded} onClick={() => onExpandedChange(isExpanded ? null : recipe.id)}>
-                        <span className="recipe-tile-copy"><strong>{recipe.title}</strong></span>
-                        <span className="recipe-tile-meta">
-                          <span>{cuisineFor(recipe)}</span>
-                          <small>{cookedAt ? formatRelative(cookedAt).toLocaleLowerCase('lt') : '—'}</small>
-                        </span>
-                      </button>
-                    </article>
-                  )
-                })}
-              </div>
-            </section>
-          ))}
+        <div className="recipe-tile-grid">
+          {filtered.map((recipe) => {
+            const isExpanded = expanded === recipe.id
+            const cookedAt = lastCooked(recipe.id)
+            const dishType = dishTypeFor(recipe)
+            return (
+              <article className={`recipe-tile ${isExpanded ? 'expanded' : ''}`} data-accent={groupAccent(dishType)} key={recipe.id}>
+                <button className="recipe-tile-summary" aria-expanded={isExpanded} onClick={() => onExpandedChange(isExpanded ? null : recipe.id)}>
+                  <span className="recipe-tile-copy"><strong>{recipe.title}</strong></span>
+                  <span className="recipe-tile-meta">
+                    {/* The dish type is on the tile now that nothing above it
+                        says so, and it wears the same colour as the wash. */}
+                    <span className="dish-tag">{dishType}</span>
+                    <small>{cookedAt ? formatRelative(cookedAt).toLocaleLowerCase('lt') : '—'}</small>
+                  </span>
+                </button>
+              </article>
+            )
+          })}
         </div>
       )}
     </div>
@@ -1235,7 +1267,6 @@ function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTick
               ordinary way to use a list, and a button that refuses to believe
               you is worse than one that cannot count. */}
           <button className="button success wide complete-button" disabled={loading} onClick={onComplete}>✓ Apsipirkta</button>
-          {progress.note && <p className="center-note">{progress.note}</p>}
           <p className="center-note">Visi suplanuoti patiekalai bus perkelti į „Meniu“, o krepšelis išvalytas.</p>
         </>
       )}

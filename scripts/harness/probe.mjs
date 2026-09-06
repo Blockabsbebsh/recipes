@@ -200,11 +200,28 @@ export async function layout(page, base) {
         if (document.documentElement.scrollWidth > vw + 1) {
           out.push(`page scrolls sideways: ${document.documentElement.scrollWidth}px of content in ${vw}px`)
         }
+// Something inside a rail that scrolls sideways on purpose is not off
+        // the edge — it is further along the rail, and the rail clips it. The
+        // check is for content the page cannot reach, so walk up and ask.
+        const insideSideScroller = (el) => {
+          for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+            const overflowX = getComputedStyle(node).overflowX
+            if (overflowX === 'auto' || overflowX === 'scroll') return true
+            if (overflowX === 'hidden') return false
+          }
+          return false
+        }
         const past = [...document.querySelectorAll('body *')].filter((el) => {
           const r = el.getBoundingClientRect()
-          return r.width && r.height && getComputedStyle(el).position !== 'fixed' && (r.right > vw + 1 || r.left < -1)
+          if (!r.width || !r.height) return false
+          if (getComputedStyle(el).position === 'fixed') return false
+          if (r.right <= vw + 1 && r.left >= -1) return false
+          return !insideSideScroller(el)
         })
-        if (past.length) out.push(`${past.length} element(s) past the viewport edge`)
+        if (past.length) {
+          const worst = past.map((el) => `"${(el.textContent || '').trim().slice(0, 16)}"`).slice(0, 3).join(', ')
+          out.push(`${past.length} element(s) past the viewport edge: ${worst}`)
+        }
         // Advisory: Apple asks for 44px, but plenty of these are text links
         // inside lists and the household reports no trouble hitting them.
         const small = [...document.querySelectorAll('button, a, input, select')]
@@ -1115,11 +1132,27 @@ export async function shapes(page, base) {
     if (document.documentElement.scrollWidth > edge + 1) {
       out.push(`${document.documentElement.scrollWidth}px of content in ${edge}px`)
     }
+    // Same rule as `layout`: a rail that scrolls sideways on purpose puts its
+    // own children past the edge, and that is the rail working.
+    const insideSideScroller = (el) => {
+      for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+        const overflowX = getComputedStyle(node).overflowX
+        if (overflowX === 'auto' || overflowX === 'scroll') return true
+        if (overflowX === 'hidden') return false
+      }
+      return false
+    }
     const past = [...document.querySelectorAll('body *')].filter((el) => {
       const box = el.getBoundingClientRect()
-      return box.width && box.height && getComputedStyle(el).position !== 'fixed' && (box.right > edge + 1 || box.left < -1)
+      if (!box.width || !box.height) return false
+      if (getComputedStyle(el).position === 'fixed') return false
+      if (box.right <= edge + 1 && box.left >= -1) return false
+      return !insideSideScroller(el)
     })
-    if (past.length) out.push(`${past.length} element(s) past the edge`)
+    if (past.length) {
+      const worst = past.map((el) => `"${(el.textContent || '').trim().slice(0, 16)}"`).slice(0, 3).join(', ')
+      out.push(`${past.length} element(s) past the edge: ${worst}`)
+    }
     return out
   }, width)
 
