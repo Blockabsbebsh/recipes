@@ -18,6 +18,7 @@ without a browser.
 | `src/lib/scrollTrace.js` | the on-device log, and the environment it was recorded on |
 | `src/lib/readiness.js` | whether the loading screen belongs on screen, and whether the household check failed or merely came back empty |
 | `src/lib/ingredientMapping.js` | what the four Barbora columns say about an ingredient |
+| `src/lib/palette.js` | which accent an aisle or a dish type wears, and why a name keeps it |
 | `src/hooks/useHouseholdData.ts` | the five reads, the realtime subscription, and the coalescing refresh |
 | `src/hooks/useRecipeWriting.ts` | saving, importing, deleting and restoring recipes |
 | `src/hooks/usePlanning.ts` | the week: basket, shop, cooked, undone |
@@ -228,3 +229,43 @@ The log also records what the harness cannot reach: whether the app's own loadin
 That loading-screen line settled an argument, and against the theory held here at the time. Both iOS and Android *do* paint something of their own over a resuming web app, and the loading screen the household kept seeing was assumed to be that — a stored image of an earlier launch. It was not. A `splash shown=yes` with no `boot` line beside it says the app rendered it, live, on a page that was never reloaded, which is how the real cause was found. The lesson is the general one: a plausible platform explanation is worth exactly as much as the line in the log that confirms it.
 
 The log exists to separate two failures that look identical from the outside: a position already lost before the app went away (a capture site recorded a scroll the household did not make) from a position that survived and was not put back (the restore ran out of frames, or the page was reloaded and the list was still short). The tail after one app switch says which. The reading table is in [`scripts/harness/README.md`](../scripts/harness/README.md); the `scrolltrace` harness scenario keeps the record itself honest, including that it survives the reload.
+
+## Colour
+
+The app was cream on cream: a `#f7f2e8` page, `#fffdf8` cards, and four
+percent between them — which at arm's length in a kitchen is nothing, so a
+card did not read as a card. Orange was the only other colour and it was on
+everything that could be tapped, which meant it told you nothing about which
+of two things to tap. The primary button and the import link beside it were
+the same colour, and on a recipe tile the cuisine was set in bold orange
+beside a black dish name, so the aside won.
+
+What is there now is three things, and `src/styles.css` begins with all of
+them:
+
+- **A quiet neutral shell.** A cool grey canvas with white cards on it. The
+  point is not the grey; it is that white is now available to mean "this is a
+  surface", and black text has something to be black against.
+- **One brand colour, spent deliberately.** The primary button, the brand
+  mark, the active tab, the basket badge. Secondary actions are grey, which
+  is the whole reason the primary one is visible.
+- **Accents that mean something.** Seven shop aisles and every dish type
+  carry a colour, from `src/lib/palette.js`. The aisle is still written out
+  in words beside its colour — the colour halves the time it takes to find
+  where the frozen things start, and costs nothing to anyone who cannot see
+  it.
+
+Two rules hold the rest together. Every ink clears 4.5:1 on the surface it is
+written on, in both themes; the old orange-on-white text button was at 2.6.
+And no rule outside the token block at the top of the stylesheet names a
+colour, which is what makes the dark theme thirty lines rather than a second
+stylesheet — and what keeps the two themes from drifting apart in layout.
+
+Dark is by `prefers-color-scheme` only. There is no in-app switch, because
+the phone already has one and a second one is a setting to get wrong.
+
+The display face is the loose end. `--display-font` asks for DM Serif Display
+and nothing loads it — there is no `@font-face` and no stylesheet link — so
+every phone falls back to whatever serif it has, and Android's is not
+Georgia. Self-hosting it is a one-line change at `--display-font`; deciding
+whether the app wants a webfont at all is not.

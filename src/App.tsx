@@ -17,6 +17,7 @@ import { HOLD_MS, MOMENTUM_MS, RESTORE_PATIENCE_MS, STILL_MS, createGesture, has
 import { EMPTY_SCROLL, SCROLL_MEMORY_MS, lastTab, positionsFrom, readViewState, viewStateKey, writeViewState } from './lib/viewState'
 import type { PersistedViewState } from './lib/viewState'
 import { SECTION_LABELS, SECTION_ORDER } from './lib/sections'
+import { groupAccent, sectionAccent } from './lib/palette'
 import { RecipeEditor } from './components/RecipeEditor'
 import { ImportDialog } from './components/ImportDialog'
 import { MealPicker } from './components/MealPicker'
@@ -1073,7 +1074,7 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
       {filtered.length === 0 ? <EmptyState title={recipes.length ? 'Nieko nerasta' : 'Receptų nėra'} text={recipes.length ? 'Pabandykite kitą paiešką.' : 'Pridėkite receptą arba įklijuokite turimą savaitės sąrašą.'} action={recipes.length ? undefined : 'Pridėti receptą'} onAction={recipes.length ? undefined : onAdd} /> : (
         <div className="library-groups">
           {groups.map((group) => (
-            <section className="library-group" key={group.dishType}>
+            <section className="library-group" data-accent={groupAccent(group.dishType)} key={group.dishType}>
               <div className="library-group-heading"><h2>{group.dishType}</h2><span>{group.recipes.length}</span></div>
               <div className="recipe-tile-grid">
                 {group.recipes.map((recipe) => {
@@ -1137,7 +1138,7 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
           <section className="shopping-card">
             <div className="section-heading"><h2>Pirkinių sąrašas</h2><span className="count-pill">{count}</span></div>
             {count ? sections.map((group) => (
-              <div className="shop-section" key={group.section}>
+              <div className="shop-section" data-accent={sectionAccent(group.section)} key={group.section}>
                 <h3 className="shop-section-title">
                   <BarboraLink href={SECTION_BARBORA_URLS[group.section] ?? null}>
                     {SECTION_LABELS[group.section]} {SECTION_BARBORA_URLS[group.section] && <small aria-hidden="true">↗</small>}
