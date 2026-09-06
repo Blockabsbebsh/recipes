@@ -20,6 +20,7 @@ without a browser.
 | `src/lib/ingredientMapping.js` | what the four Barbora columns say about an ingredient |
 | `src/lib/palette.js` | which accent an aisle or a dish type wears, and why a name keeps it |
 | `src/lib/debugFlags.js` | the things that are in the app for us rather than for the household |
+| `src/lib/shoppingTicks.js` | what is already in the trolley, and why it is not in the database |
 | `src/hooks/useHouseholdData.ts` | the five reads, the realtime subscription, and the coalescing refresh |
 | `src/hooks/useRecipeWriting.ts` | saving, importing, deleting and restoring recipes |
 | `src/hooks/usePlanning.ts` | the week: basket, shop, cooked, undone |
@@ -319,3 +320,70 @@ Two things this touched that are easy to miss:
 - The `planning` scenario used to restore a recipe by opening the fourth tab.
   It goes through settings now. Nothing else in the harness names a tab by
   index above 2.
+
+## A recipe opens in a window
+
+The library used to open a recipe by growing its tile in place, and the menu
+never opened one at all — it offered Pagaminta and Praleisti on a card showing
+three of its ingredients. Both are one window now, `RecipeDetail`: the
+editor's sheet without the fields, over a blurred page. There is one place
+that shows everything a recipe has, and each decision is made with the whole
+thing in front of you rather than a summary of it.
+
+It is also the safer answer, which was not why it was chosen but is why it
+stays. `restoreScroll` waits for `document.documentElement.scrollHeight` to
+reach the saved position before it scrolls. A tile that grows moves that
+number for a quarter of a second, so a restore landing mid-animation measures
+a page that is still moving — the exact class of fault the scroll log exists
+to chase. A dialog changes the document's height by nothing at all.
+
+The library still remembers which recipe was open, under the same
+`expandedRecipeId` it always used; only what that means on screen changed.
+
+## Ticking things off in the shop
+
+The list had no per-item state: thirty-eight things in seven aisles, and the
+only record of what was already in the trolley was your own memory. There is
+a box on each row now, on the left where a thumb already is, and it is its
+own button — tapping the *name* still opens the Barbora products, and the two
+must not be the same tap.
+
+Three rules, all in `src/lib/shoppingTicks.js`:
+
+- **A tick never blocks finishing.** Apsipirkta is a normal button at every
+  point; what changes is the line under it. Buying without ticking is the
+  ordinary way to use a list, and a screen that refuses to believe you is
+  worse than one that cannot count. The `shopticks` scenario exists mostly to
+  keep this true — it has been run against a `disabled={left > 0}` and fails
+  three ways.
+- **It lives on the phone.** A tick is worth nothing an hour after the shop.
+  Putting it in Postgres means a table, a policy, a migration and a realtime
+  subscription for a value with a half-life of twenty minutes.
+- **So two people shopping together do not see each other's ticks.** That is
+  the real cost of the line above. If a shop is ever split between two
+  trolleys, this is the thing to move into the database, and the shape in
+  that module — a set of ingredient names under one household — is what the
+  table would hold.
+
+A tick for something that has left the basket is dropped on the way in, or it
+would come back days later when that ingredient reappears from another
+recipe, already ticked and silently wrong.
+
+## Movement
+
+Nothing in the app moved: a tapped card swapped to its open state in one
+frame, which reads as a redraw rather than as a response. What there is now
+is four transitions at the bottom of `styles.css` — the window arriving, the
+tap that precedes it, the tab cross-fade, and the tick — and two rules that
+govern all of them.
+
+Everything is on `transform` and `opacity`, which the compositor can do
+without laying the page out again; a phone mid-scroll has nothing spare. And
+**nothing animates a height**, for the reason in the section above.
+
+Tabs cross-fade rather than slide. Three tabs are not a sequence, and sliding
+invents a left and a right that mean nothing.
+
+`prefers-reduced-motion` turns all of it off, and that block now covers
+`animation` as well as `transition` — it did not, which would have left every
+new keyframe running for the people who asked for none.

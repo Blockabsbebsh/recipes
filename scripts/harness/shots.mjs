@@ -76,7 +76,15 @@ try {
   await shot('06-shop')
   await page.evaluate(() => window.scrollTo(0, 800))
   await page.waitForTimeout(400)
+  await page.evaluate(() => {
+    const boxes = [...document.querySelectorAll('.shop-tick')]
+    boxes[0]?.click(); boxes[1]?.click(); boxes[3]?.click()
+  })
+  await page.waitForTimeout(500)
   await shot('07-shop-list')
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+  await page.waitForTimeout(400)
+  await shot('07b-shop-complete')
   await tap(page, '.shop-item')
   await page.waitForTimeout(2500)
   await shot('08-products-modal')

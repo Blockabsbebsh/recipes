@@ -249,7 +249,7 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .ingredient-shopping-list { margin: 18px 0 0; padding: 0; list-style: none; }
 .ingredient-shopping-list li { border-top: 1px solid var(--line); }
 .ingredient-shopping-list strong { display: block; }
-.ingredient-recipe-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 2px 12px; }
+.ingredient-recipe-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 2px 12px 56px; }
 .ingredient-recipe-tags span { padding: 4px 8px; border-radius: 99px; background: var(--sunk); color: var(--muted); font-size: .66rem; font-weight: 600; }
 .complete-button { margin-top: 4px; }
 
@@ -378,7 +378,7 @@ textarea { resize: vertical; line-height: 1.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
 }
 
 .field { display: grid; gap: 7px; }
@@ -440,7 +440,19 @@ textarea { resize: vertical; line-height: 1.5; }
 .category-picker-footer div { display: flex; flex: 0 0 auto; gap: 8px; }
 
 /* Shopping-list row, and the Barbora products behind it */
-.shop-item { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 10px; padding: 13px 2px 5px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.shop-progress { height: 5px; margin: 12px 0 2px; overflow: hidden; border-radius: 99px; background: var(--sunk); }
+.shop-progress i { display: block; height: 100%; border-radius: 99px; background: var(--ok); transition: width .28s cubic-bezier(.22, .9, .28, 1); }
+
+.shop-row { display: flex; align-items: center; gap: 12px; }
+/* 44px of thumb around a 26px box, on the left where a thumb already is. */
+.shop-tick { display: grid; flex: 0 0 auto; width: 44px; height: 44px; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
+.shop-tick span { display: grid; width: 26px; height: 26px; place-items: center; border: 1.5px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: transparent; font-size: .9rem; font-weight: 700; line-height: 1; transition: background .16s ease, border-color .16s ease, color .16s ease; }
+.shop-tick[aria-pressed="true"] span { border-color: var(--ok); background: var(--ok); color: #fff; }
+.ingredient-shopping-list li.is-ticked .shop-item strong { color: var(--muted); text-decoration: line-through; }
+.ingredient-shopping-list li.is-ticked .ingredient-recipe-tags { opacity: .5; }
+.ingredient-shopping-list li.is-ticked { opacity: .72; }
+
+.shop-item { display: flex; flex: 1 1 auto; min-width: 0; align-items: baseline; justify-content: space-between; gap: 10px; padding: 13px 2px 5px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .shop-item:hover { color: var(--brand-ink); }
 .shop-item:hover span { color: var(--brand-ink); }
 .shop-item strong { display: block; min-width: 0; }
@@ -484,3 +496,61 @@ textarea { resize: vertical; line-height: 1.5; }
 .detail-actions { position: sticky; bottom: -24px; display: flex; gap: 9px; margin: 18px -20px -24px; padding: 13px 20px calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); }
 .detail-actions .button { flex: 1 1 auto; min-height: 50px; }
 .detail-actions .button.secondary { flex: 0 1 auto; color: var(--muted); }
+
+/* ---------------------------------------------------------------------------
+   Movement.
+
+   Nothing in the app moved: a tapped card swapped to its open state in one
+   frame, which reads as a redraw rather than as a response. Four transitions
+   cover almost all of it, and none of them needs a library.
+
+   Two rules they all follow. Everything is on `transform` and `opacity`,
+   which the compositor can do without laying the page out again — a phone
+   mid-scroll has nothing spare. And nothing here animates a height: the
+   scroll restore waits for `document.documentElement.scrollHeight` to reach
+   the saved position, so a height that is still moving is a restore that
+   measures a page it cannot trust. That is the reason a recipe opens in a
+   window rather than by growing its tile.
+
+   `prefers-reduced-motion` turns every one of them off, above.
+   --------------------------------------------------------------------------- */
+
+/* The window arriving. It comes up from the bottom edge, which is where a
+   thumb is and where it will go back to. */
+@keyframes sheet-in { from { transform: translateY(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+.modal-backdrop { animation: scrim-in 200ms ease both; }
+.modal { animation: sheet-in 260ms cubic-bezier(.22, .9, .28, 1) both; }
+/* A modal opened on top of another one is a step deeper, not a new arrival:
+   the backdrop behind it is already dark, so only the card moves. */
+.modal-backdrop .modal-backdrop { animation-duration: 120ms; }
+
+/* The tap itself, which is the only feedback there is before the window
+   arrives. Kept on the pressed element rather than a class, so nothing has to
+   remember to take it off again. */
+.meal-open, .recipe-tile-summary, .shop-item, .settings-options button, .picker-row {
+  transition: transform 120ms ease, background-color 140ms ease;
+}
+.meal-open:active, .recipe-tile-summary:active, .shop-item:active { transform: scale(.978); }
+.settings-options button:active, .picker-row:active { background: var(--sunk); }
+
+/* Switching tabs cross-fades. It never slides: the three tabs are not a
+   sequence, and sliding invents a left and a right that mean nothing. */
+@keyframes tab-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.tab-pane { animation: tab-in 150ms ease both; }
+
+/* A tick in the shop, and the row settling into its ticked state. */
+.shop-tick span { transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s cubic-bezier(.3, 1.5, .5, 1); }
+.shop-tick:active span { transform: scale(.88); }
+.shop-tick[aria-pressed="true"] span { transform: scale(1.06); }
+.ingredient-shopping-list li { transition: opacity .18s ease; }
+.ingredient-shopping-list li .shop-item strong { transition: color .18s ease; }
+
+/* The undo toast, which arrives after a decision and has thirty seconds to
+   be noticed. */
+@keyframes toast-in { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+.undo-toast { animation: toast-in 220ms cubic-bezier(.22, .9, .28, 1) both; }
+
+/* The banner at the top of a tab, same idea, smaller. */
+@keyframes banner-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+.banner { animation: banner-in 180ms ease both; }

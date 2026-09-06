@@ -18,6 +18,7 @@ import { EMPTY_SCROLL, SCROLL_MEMORY_MS, lastTab, positionsFrom, readViewState, 
 import type { PersistedViewState } from './lib/viewState'
 import { SECTION_LABELS, SECTION_ORDER } from './lib/sections'
 import { groupAccent, sectionAccent } from './lib/palette'
+import { clearTicks, readTicks, shoppingProgress, ticksKey, toggleTick, writeTicks } from './lib/shoppingTicks'
 import { RecipeEditor } from './components/RecipeEditor'
 import { ImportDialog } from './components/ImportDialog'
 import { MealPicker } from './components/MealPicker'
@@ -100,6 +101,9 @@ function App() {
   // The planned meal whose window is open. The library's equivalent is
   // `libraryExpanded`, which is a recipe id rather than a roster row.
   const [openMeal, setOpenMeal] = useState<RosterEntry | null>(null)
+  // What is already in the trolley. Kept on this phone rather than in the
+  // database — see `src/lib/shoppingTicks.js` for why, and for what it costs.
+  const [ticked, setTicked] = useState<Set<string>>(new Set())
   const tabRef = useRef<Tab>(tab)
   const expandedRecipeRef = useRef<string | null>(null)
   const scrollByTab = useRef<Record<Tab, number>>({ ...EMPTY_SCROLL })
@@ -714,6 +718,26 @@ function App() {
     () => shoppingSections.reduce((total, group) => total + group.items.length, 0),
     [shoppingSections],
   )
+  const shoppingItems = useMemo(
+    () => shoppingSections.flatMap((group) => group.items.map((item) => item.item)),
+    [shoppingSections],
+  )
+  const ticksStoreKey = household ? ticksKey(household.id) : null
+
+  // Read the ticks back whenever the list itself changes, which is also what
+  // drops a tick for something that has left the basket.
+  useEffect(() => {
+    if (!ticksStoreKey) return
+    setTicked(readTicks(ticksStoreKey, shoppingItems))
+  }, [ticksStoreKey, shoppingItems])
+
+  function toggleTicked(item: string) {
+    setTicked((current) => {
+      const next = toggleTick(current, item)
+      if (ticksStoreKey) writeTicks(ticksStoreKey, next)
+      return next
+    })
+  }
 
   if (!authReady) return <Splash />
   if (!session) return <AuthScreen />
@@ -737,6 +761,10 @@ function App() {
         {error && <Banner tone="error" onClose={() => setError(null)}>{error}</Banner>}
         {message && <Banner onClose={() => setMessage(null)}>{message}</Banner>}
 
+        {/* Keyed by tab so a switch is a new element and the cross-fade runs.
+            The views are already unmounted when their tab is not showing, so
+            the key costs no state that was not being thrown away anyway. */}
+        <div className="tab-pane" key={tab}>
         {tab === 'current' && (
           <CurrentView
             entries={readyEntries}
@@ -764,13 +792,16 @@ function App() {
             recipeById={recipeById}
             sections={shoppingSections}
             count={shoppingCount}
+            ticked={ticked}
+            onToggleTicked={toggleTicked}
             loading={loading}
             onAdd={() => setPickerOpen(true)}
             onRemove={(entry) => void removeFromQueue(entry)}
-            onComplete={() => void completeShopping()}
+            onComplete={() => { if (ticksStoreKey) clearTicks(ticksStoreKey); setTicked(new Set()); void completeShopping() }}
             onInspect={(item) => setInspecting({ item: item.item, href: item.href })}
           />
         )}
+        </div>
       </main>
 
       {/* Three tabs, not four. The bin is a place you go to undo something,
@@ -1133,17 +1164,20 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
   )
 }
 
-function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRemove, onComplete, onInspect }: {
+function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTicked, loading, onAdd, onRemove, onComplete, onInspect }: {
   queue: QueueEntry[]
   recipeById: Map<string, Recipe>
   sections: { section: IngredientSection; items: { item: string; href: string | null; recipes: Set<string> }[] }[]
   count: number
+  ticked: Set<string>
+  onToggleTicked: (item: string) => void
   loading: boolean
   onAdd: () => void
   onRemove: (entry: QueueEntry) => void
   onComplete: () => void
   onInspect: (item: { item: string; href: string | null }) => void
 }) {
+  const progress = shoppingProgress(count, [...ticked].length)
   return (
     <div className="page-stack shop-page">
       <div className="section-heading"><h2>Suplanuoti patiekalai</h2><button className="button primary" onClick={onAdd}>＋ Pridėti</button></div>
@@ -1157,7 +1191,12 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
             })}
           </div>
           <section className="shopping-card">
-            <div className="section-heading"><h2>Pirkinių sąrašas</h2><span className="count-pill">{count}</span></div>
+            <div className="section-heading"><h2>Pirkinių sąrašas</h2><span className="count-pill">{progress.ticked} / {count}</span></div>
+            {count > 0 && (
+              <div className="shop-progress" role="presentation">
+                <i style={{ width: `${Math.round(progress.fraction * 100)}%` }} />
+              </div>
+            )}
             {count ? sections.map((group) => (
               <div className="shop-section" data-accent={sectionAccent(group.section)} key={group.section}>
                 <h3 className="shop-section-title">
@@ -1168,11 +1207,23 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
                 </h3>
                 <ul className="ingredient-shopping-list">
                   {group.items.map((item) => (
-                    <li key={item.item}>
-                      <button type="button" className="shop-item" onClick={() => onInspect(item)}>
-                        <strong>{item.item}</strong>
-                        <span aria-hidden="true">›</span>
-                      </button>
+                    <li key={item.item} className={ticked.has(item.item) ? 'is-ticked' : ''}>
+                      <div className="shop-row">
+                        {/* The box is its own button, on the thumb's side of
+                            the row: tapping the name is how you look a
+                            product up, and the two must not be the same tap. */}
+                        <button
+                          type="button"
+                          className="shop-tick"
+                          aria-pressed={ticked.has(item.item)}
+                          aria-label={`Pažymėti „${item.item}“ kaip įdėtą`}
+                          onClick={() => onToggleTicked(item.item)}
+                        ><span aria-hidden="true">✓</span></button>
+                        <button type="button" className="shop-item" onClick={() => onInspect(item)}>
+                          <strong>{item.item}</strong>
+                          <span aria-hidden="true">›</span>
+                        </button>
+                      </div>
                       <div className="ingredient-recipe-tags">{[...item.recipes].map((title) => <span key={title}>{title}</span>)}</div>
                     </li>
                   ))}
@@ -1180,7 +1231,11 @@ function ShoppingView({ queue, recipeById, sections, count, loading, onAdd, onRe
               </div>
             )) : <p className="muted">Šiuose receptuose produktų dar nėra.</p>}
           </section>
+          {/* Never disabled by the ticks. Buying without ticking is the
+              ordinary way to use a list, and a button that refuses to believe
+              you is worse than one that cannot count. */}
           <button className="button success wide complete-button" disabled={loading} onClick={onComplete}>✓ Apsipirkta</button>
+          {progress.note && <p className="center-note">{progress.note}</p>}
           <p className="center-note">Visi suplanuoti patiekalai bus perkelti į „Meniu“, o krepšelis išvalytas.</p>
         </>
       )}

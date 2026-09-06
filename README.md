@@ -11,6 +11,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Recently cooked section for the last five days and per-recipe last-cooked dates
 - Temporary meal batch and a deduplicated ingredient list showing which recipes use each item
 - Barbora category links for individual ingredients, chosen automatically or by hand through a tree picker, with the shop aisle as a fallback
+- Tick items off as they go in the trolley, with Apsipirkta always available whether or not the list is finished
 - Real Barbora products behind every shopping-list item: tap an ingredient for two or three matches with prices, discounts, price per kilo, stock at our shop, and a link that opens the Barbora app
 - One-tap shopping completion that atomically moves planned meals to Current
 - Soft deletion and recovery
@@ -42,14 +43,14 @@ New sign-ups are disabled in the Supabase dashboard, which is why a public publi
 ## Testing
 
 ```bash
-npm test          # 180 unit tests, none of which need a browser
+npm test          # 194 unit tests, none of which need a browser
 npm run harness   # the real app on an emulated phone, against a fake Supabase
 npm run dbtest    # every migration applied to a throwaway Postgres, then checked
 ```
 
 The unit tests cover the parser, the classifier, the Barbora mapper, crawler and price merge, and the rules the phone taught us: what counts as the household's own scrolling, when a remembered position has gone stale, what the back button should undo, and whether the loading screen belongs on screen.
 
-The harness exists because this app's bugs are rarely logic bugs. They are about what a thumb can reach with the keyboard up, and where you land after switching apps — which no unit test sees. It builds the app against an in-memory stub, drives it in a phone-emulated browser, and runs seven scenarios: layout on every tab, the keyboard against a nested modal, the modal stack, view restoration across app switches and eviction, the on-device scroll log, a week of shopping and cooking, and the back button. It never touches the real Supabase project, so a scenario may delete every recipe without consequence.
+The harness exists because this app's bugs are rarely logic bugs. They are about what a thumb can reach with the keyboard up, and where you land after switching apps — which no unit test sees. It builds the app against an in-memory stub, drives it in a phone-emulated browser, and runs thirteen scenarios: layout on every tab, the keyboard against a nested modal, the modal stack, view restoration across app switches and eviction, the on-device scroll log, a week of shopping and cooking, and the back button. It never touches the real Supabase project, so a scenario may delete every recipe without consequence.
 
 It needs Playwright, which is installed on demand rather than carried as a dependency:
 

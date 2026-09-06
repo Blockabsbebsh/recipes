@@ -1239,4 +1239,86 @@ export async function modals(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, back, join, concurrent, coldstart, shapes, offline }
+/**
+ * Ticking things off in the shop.
+ *
+ * The rule worth protecting is the one that is easy to break by accident:
+ * Apsipirkta is never gated on the ticks. Buying without ticking is the
+ * ordinary way to use a list, and a scenario is the only thing that will
+ * notice if someone later makes the button `disabled={left > 0}`.
+ */
+export async function shopticks(page, base) {
+  const findings = []
+  // Finishing a shop asks first, and Playwright answers no by default — the
+  // whole scenario would pass while doing nothing. See README, "Accept
+  // dialogs": this cost a debugging round even with it written down.
+  page.on('dialog', (dialog) => dialog.accept())
+  await signIn(page, base)
+  await openTab(page, 2)
+
+  // Scenarios share one database in order, so this puts its own recipes in
+  // the basket rather than trusting whatever the one before it left there.
+  // The library window is the way in, exactly as a household would do it.
+  for (const index of [0, 1]) {
+    await openTab(page, 1)
+    await page.evaluate((i) => {
+      const summary = document.querySelectorAll('.recipe-tile-summary')[i]
+      if (summary?.getAttribute('aria-expanded') !== 'true') summary?.click()
+    }, index)
+    await page.waitForTimeout(600)
+    await tap(page, '.detail-actions button', 'Į krepšelį')
+    await page.waitForTimeout(900)
+  }
+  await openTab(page, 2)
+  await page.waitForTimeout(500)
+
+  const boxes = await page.locator('.shop-tick').count()
+  if (boxes === 0) { findings.push('the shopping list offered nothing to tick off'); return findings }
+
+  const pressed = () => page.locator('.shop-tick[aria-pressed="true"]').count()
+  const completeDisabled = () => page.locator('.complete-button').isDisabled()
+
+  if (await completeDisabled()) findings.push('Apsipirkta was disabled with nothing ticked')
+
+  await page.evaluate(() => document.querySelectorAll('.shop-tick')[0].click())
+  await page.waitForTimeout(350)
+  if (await pressed() !== 1) findings.push(`ticking one item left ${await pressed()} ticked`)
+  if (await completeDisabled()) findings.push('Apsipirkta went disabled once something was ticked')
+
+  // A tick has to survive the app being thrown away and rebuilt, or it is
+  // useless the moment the phone reloads the web view in a shop.
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForSelector('.bottom-nav button', { timeout: 15000 })
+  await page.waitForTimeout(1200)
+  if (await page.locator('.shop-tick').count() === 0) await openTab(page, 2)
+  await page.waitForTimeout(400)
+  if (await pressed() !== 1) findings.push(`a tick did not survive a reload: ${await pressed()} ticked afterwards`)
+
+  await page.evaluate(() => document.querySelectorAll('.shop-tick')[0].click())
+  await page.waitForTimeout(350)
+  if (await pressed() !== 0) findings.push('ticking the same item again did not untick it')
+
+  // And the one that matters: finish the shop with most of it unticked.
+  await page.evaluate(() => document.querySelectorAll('.shop-tick')[0].click())
+  await page.waitForTimeout(300)
+  await openTab(page, 0)
+  await page.waitForTimeout(500)
+  const mealsBefore = await page.locator('.meal-card').count()
+  const plannedNow = await page.evaluate(async () => {
+    document.querySelectorAll('.bottom-nav button')[2].click()
+    await new Promise((r) => setTimeout(r, 700))
+    return document.querySelectorAll('.queue-chip').length
+  })
+  await page.waitForTimeout(500)
+  await tap(page, '.complete-button')
+  await page.waitForTimeout(1800)
+  await openTab(page, 0)
+  await page.waitForTimeout(600)
+  const mealsAfter = await page.locator('.meal-card').count()
+  if (mealsAfter !== mealsBefore + plannedNow) {
+    findings.push(`finishing a shop with items unticked turned ${plannedNow} planned recipes into ${mealsAfter - mealsBefore} meals`)
+  }
+  return findings
+}
+
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, shopticks, back, join, concurrent, coldstart, shapes, offline }
