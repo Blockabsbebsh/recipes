@@ -31,20 +31,20 @@
   --title-weight: 660;
   --title-tracking: -.021em;
 
-  /* The shell. The canvas is a clear step below the cards rather than a
-     shade of the same white: that step, not the tint, is what makes a card
-     read as an object sitting on something. */
-  --canvas: #dde2ea;
+  /* The shell. The canvas is light — a card is separated from it by its own
+     edge and shadow, not by standing on a darker ground. A ground dark
+     enough to do that work turned out to fight every tint sitting on it. */
+  --canvas: #ebeff3;
   --surface: #ffffff;
-  --sunk: #eaeef3;
-  --line: #d3d9e2;
-  --line-strong: #b9c1cd;
+  --sunk: #ecf1f5;
+  --line: #d8dde3;
+  --line-strong: #b6bfc8;
 
   /* Text. --ink-2 is for prose that is not a heading and not an aside:
      ingredient lines, mostly. --muted is for asides only. */
-  --ink: #14171c;
-  --ink-2: #3d434d;
-  --muted: #58616f;
+  --ink: #161920;
+  --ink-2: #434851;
+  --muted: #646b79;
 
   /* The brand. --brand fills, --brand-ink writes. They are different colours
      because a fill only needs 3:1 and text needs 4.5:1, and one value cannot
@@ -67,7 +67,7 @@
   --nav-bg: rgba(255, 255, 255, .93);
   --scrim: rgba(16, 19, 24, .5);
   --shadow: 0 18px 44px rgba(19, 26, 38, .16);
-  --card-shadow: 0 1px 2px rgba(19, 26, 38, .06), 0 8px 20px rgba(19, 26, 38, .07);
+  --card-shadow: 0 1px 1px rgba(22, 25, 32, .05), 0 2px 4px rgba(22, 25, 32, .05), 0 10px 22px rgba(22, 25, 32, .06);
 
   /* The undo toast is a dark slab in both themes: it is a thing that arrived
      over the page, and inverting it is what says so. */
@@ -89,15 +89,15 @@
    card and a pudding card different objects at a glance without drawing
    anything new. `palette.test.mjs` fails if this list stops covering what
    that module can return. */
-[data-accent="green"]  { --accent-ink: #1f7a44; --accent-solid: #2f9e5b; --accent-soft: #cfe9da; --accent-wash: #e6f4ec; --accent-tint-line: #c4e2d1; }
-[data-accent="amber"]  { --accent-ink: #8a5a05; --accent-solid: #c2860c; --accent-soft: #f6e4bd; --accent-wash: #fbf1dc; --accent-tint-line: #eedaae; }
-[data-accent="indigo"] { --accent-ink: #3f4fb0; --accent-solid: #5566cc; --accent-soft: #dbe0f7; --accent-wash: #e9ecfb; --accent-tint-line: #d0d7f3; }
-[data-accent="cyan"]   { --accent-ink: #10707f; --accent-solid: #1394a6; --accent-soft: #c9e6ec; --accent-wash: #ddf0f4; --accent-tint-line: #bcdfe8; }
-[data-accent="brown"]  { --accent-ink: #7a5230; --accent-solid: #9a6a3f; --accent-soft: #e8dbcc; --accent-wash: #f3ebe2; --accent-tint-line: #e0cebc; }
-[data-accent="red"]    { --accent-ink: #b03026; --accent-solid: #d1483a; --accent-soft: #f7d9d6; --accent-wash: #fceceb; --accent-tint-line: #f4ccc7; }
-[data-accent="violet"] { --accent-ink: #6b45b8; --accent-solid: #8a5fd4; --accent-soft: #e3d9f6; --accent-wash: #efe9fb; --accent-tint-line: #dccef1; }
-[data-accent="teal"]   { --accent-ink: #0f7566; --accent-solid: #14907d; --accent-soft: #cbe8e1; --accent-wash: #e3f3ef; --accent-tint-line: #c2e3da; }
-[data-accent="slate"]  { --accent-ink: #5a6472; --accent-solid: #78828f; --accent-soft: #dfe4ea; --accent-wash: #edf0f4; --accent-tint-line: #d8dee7; }
+[data-accent="green"]  { --accent-ink: #1e6c37; --accent-solid: #34a357; --accent-soft: #d1f0d6; --accent-wash: #ecfaee; --accent-tint-line: #c8e3cc; }
+[data-accent="amber"]  { --accent-ink: #7b5200; --accent-solid: #b97e00; --accent-soft: #f7e3c3; --accent-wash: #fdf5e6; --accent-tint-line: #ead8bc; }
+[data-accent="indigo"] { --accent-ink: #495399; --accent-solid: #7180e4; --accent-soft: #dce4ff; --accent-wash: #f1f5ff; --accent-tint-line: #d2d9f7; }
+[data-accent="cyan"]   { --accent-ink: #006982; --accent-solid: #009fc3; --accent-soft: #c3effa; --accent-wash: #e7faff; --accent-tint-line: #bce2ec; }
+[data-accent="brown"]  { --accent-ink: #834b1f; --accent-solid: #c57335; --accent-soft: #fde0cd; --accent-wash: #fff3eb; --accent-tint-line: #eed5c5; }
+[data-accent="red"]    { --accent-ink: #8f3d3a; --accent-solid: #d6605b; --accent-soft: #ffdbd6; --accent-wash: #fff1ef; --accent-tint-line: #f6d1cd; }
+[data-accent="violet"] { --accent-ink: #6e4789; --accent-solid: #a66ece; --accent-soft: #f0deff; --accent-wash: #faf2ff; --accent-tint-line: #e3d4f0; }
+[data-accent="teal"]   { --accent-ink: #006e5d; --accent-solid: #00a78e; --accent-soft: #c5f1e7; --accent-wash: #e8fbf6; --accent-tint-line: #bee4dc; }
+[data-accent="slate"]  { --accent-ink: #475d75; --accent-solid: #6e8eb0; --accent-soft: #dde8f4; --accent-wash: #f1f6fc; --accent-tint-line: #d2dce6; }
 
 /* The kitchen at night.
    This app is read while cooking, and half of that happens after dark on a
@@ -106,15 +106,15 @@
    drift between the two themes. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #0f1115;
-    --surface: #1b1e24;
-    --sunk: #262a31;
-    --line: #2f343c;
-    --line-strong: #434a55;
+    --canvas: #101317;
+    --surface: #1e2026;
+    --sunk: #2b2e35;
+    --line: #32353d;
+    --line-strong: #4e535d;
 
-    --ink: #eef1f5;
-    --ink-2: #c3c9d2;
-    --muted: #9aa3b2;
+    --ink: #eceef3;
+    --ink-2: #c3c7cf;
+    --muted: #9298a5;
 
     --brand: #d9532b;
     --brand-ink: #ff8a5c;
@@ -133,22 +133,22 @@
     --nav-bg: rgba(27, 30, 36, .94);
     --scrim: rgba(4, 6, 9, .66);
     --shadow: 0 18px 44px rgba(0, 0, 0, .55);
-    --card-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 20px rgba(0, 0, 0, .3);
+    --card-shadow: 0 1px 1px rgba(0, 0, 0, .4), 0 2px 4px rgba(0, 0, 0, .3), 0 10px 22px rgba(0, 0, 0, .3);
     --tint-chip: rgba(255, 255, 255, .09);
     --toast-bg: #30353f;
     --toast-ink: #f7f9fc;
     --toast-action: #ffa97e;
   }
 
-  [data-accent="green"]  { --accent-ink: #5fd08a; --accent-solid: #3fae6f; --accent-soft: #1d3327; --accent-wash: #16281e; --accent-tint-line: #2c4738; }
-  [data-accent="amber"]  { --accent-ink: #e8b44a; --accent-solid: #c2860c; --accent-soft: #302818; --accent-wash: #262014; --accent-tint-line: #3f3826; }
-  [data-accent="indigo"] { --accent-ink: #93a2ee; --accent-solid: #5566cc; --accent-soft: #212640; --accent-wash: #1a1e2f; --accent-tint-line: #2f3450; }
-  [data-accent="cyan"]   { --accent-ink: #52c3d6; --accent-solid: #1394a6; --accent-soft: #173039; --accent-wash: #12262c; --accent-tint-line: #274048; }
-  [data-accent="brown"]  { --accent-ink: #d4a273; --accent-solid: #9a6a3f; --accent-soft: #302820; --accent-wash: #26201a; --accent-tint-line: #3c332a; }
-  [data-accent="red"]    { --accent-ink: #f28b7e; --accent-solid: #d1483a; --accent-soft: #33221f; --accent-wash: #271b1a; --accent-tint-line: #40302c; }
-  [data-accent="violet"] { --accent-ink: #b596f0; --accent-solid: #8a5fd4; --accent-soft: #2c2340; --accent-wash: #221b30; --accent-tint-line: #382e4b; }
-  [data-accent="teal"]   { --accent-ink: #4fc9b0; --accent-solid: #14907d; --accent-soft: #19332c; --accent-wash: #142621; --accent-tint-line: #26433a; }
-  [data-accent="slate"]  { --accent-ink: #a5aebc; --accent-solid: #78828f; --accent-soft: #272b33; --accent-wash: #1e2128; --accent-tint-line: #2f343e; }
+  [data-accent="green"]  { --accent-ink: #89d699; --accent-solid: #42aa60; --accent-soft: #243c29; --accent-wash: #1e2d21; --accent-tint-line: #2f4834; }
+  [data-accent="amber"]  { --accent-ink: #e8b966; --accent-solid: #c08600; --accent-soft: #423319; --accent-wash: #302717; --accent-tint-line: #4e3e25; }
+  [data-accent="indigo"] { --accent-ink: #abbbff; --accent-solid: #7989ea; --accent-soft: #2e344d; --accent-wash: #242737; --accent-tint-line: #3a3f59; }
+  [data-accent="cyan"]   { --accent-ink: #58d4ef; --accent-solid: #00a7c9; --accent-soft: #153b44; --accent-wash: #162c32; --accent-tint-line: #224750; }
+  [data-accent="brown"]  { --accent-ink: #f2b083; --accent-solid: #cb7c41; --accent-soft: #453022; --accent-wash: #32251c; --accent-tint-line: #513c2d; }
+  [data-accent="red"]    { --accent-ink: #ffa39b; --accent-solid: #dd6a64; --accent-soft: #4a2c2a; --accent-wash: #362321; --accent-tint-line: #573835; }
+  [data-accent="violet"] { --accent-ink: #d8acf9; --accent-solid: #ad76d4; --accent-soft: #3c2f47; --accent-wash: #2d2434; --accent-tint-line: #483a53; }
+  [data-accent="teal"]   { --accent-ink: #5dd9c4; --accent-solid: #00ae96; --accent-soft: #173d36; --accent-wash: #172d29; --accent-tint-line: #234942; }
+  [data-accent="slate"]  { --accent-ink: #aac4e0; --accent-solid: #7696b7; --accent-soft: #2e363f; --accent-wash: #24292e; --accent-tint-line: #3a424b; }
 }
 
 body { color: var(--ink); background: var(--canvas); }
@@ -192,20 +192,14 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .card-grid, .library-list { display: grid; gap: 14px; }
 .meal-card, .library-card, .shopping-card { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--card-shadow); }
 .meal-card { border-color: var(--accent-tint-line, var(--line)); background: var(--accent-wash, var(--surface)); }
-.meal-card .resolve-actions, .meal-card .resolve + .resolve, .meal-card .notes { border-color: var(--accent-tint-line, var(--line)); }
-.meal-card { display: grid; grid-template-columns: 1fr auto; overflow: hidden; }
+.meal-card .notes { border-color: var(--accent-tint-line, var(--line)); }
+.meal-card { overflow: hidden; }
+.meal-open { display: block; width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .meal-copy { padding: 20px; }
 .meal-copy h2, .library-main h2 { font-size: 1.36rem; font-weight: var(--title-weight); letter-spacing: var(--title-tracking); line-height: 1.18; }
 .ingredients { margin: 0; color: var(--ink-2); font-size: .9rem; line-height: 1.6; }
 .ingredients.empty { color: var(--muted); font-style: italic; }
 .notes { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; line-height: 1.55; white-space: pre-wrap; }
-.resolve-actions { display: grid; min-width: 82px; border-left: 1px solid var(--line); }
-.resolve { display: grid; min-height: 82px; padding: 12px; place-content: center; gap: 4px; border: 0; background: transparent; font-size: 1.3rem; font-weight: 700; cursor: pointer; }
-.resolve + .resolve { border-top: 1px solid var(--line); }
-.resolve span { font-size: .68rem; }
-.resolve.cooked { color: var(--ok); background: var(--ok-soft); }
-.resolve.cooked:hover { background: var(--ok-line); }
-.resolve.skipped { color: var(--muted); }
 
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .section-heading h2 { margin-bottom: 0; font-size: 1.34rem; font-weight: var(--title-weight); letter-spacing: var(--title-tracking); }
@@ -227,29 +221,24 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .library-main { min-width: 0; }
 .library-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; gap: 16px; }
 .library-group { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--card-shadow); }
-.library-group-heading { display: flex; align-items: center; gap: 9px; padding: 0 2px 2px; }
+.library-group-heading { display: flex; align-items: center; gap: 10px; padding: 0 2px 2px; }
 .library-group-heading h2 { margin: 0; color: var(--accent-ink, var(--ink)); font-size: 1.24rem; font-weight: var(--title-weight); letter-spacing: var(--title-tracking); }
 .library-group-heading span { display: grid; min-width: 24px; height: 24px; padding: 0 7px; place-items: center; border-radius: 99px; background: var(--accent-soft, var(--sunk)); color: var(--accent-ink, var(--muted)); font-size: .7rem; font-weight: 800; }
 .recipe-tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 8px; }
 .recipe-tile { display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid var(--accent-tint-line, var(--line)); border-radius: 12px; background: var(--accent-wash, var(--surface)); transition: border-color .15s ease, box-shadow .15s ease; }
-.recipe-tile.expanded { grid-column: 1 / -1; border-color: var(--accent-solid, var(--brand)); box-shadow: var(--card-shadow); }
-.recipe-tile-detail { border-top-color: var(--accent-tint-line, var(--line)); }
-.recipe-tile-summary { position: relative; display: grid; width: 100%; min-height: 116px; flex: 1 1 auto; padding: 12px; align-content: space-between; gap: 10px; border: 0; background: transparent; text-align: left; cursor: pointer; }
-.recipe-tile.expanded .recipe-tile-summary { min-height: 0; grid-template-columns: 1fr auto; align-items: center; }
+/* The tile whose window is open, so closing it lands you somewhere you
+   recognise rather than on an undifferentiated grid. */
+.recipe-tile.expanded { border-color: var(--accent-solid, var(--brand)); box-shadow: 0 0 0 1px var(--accent-solid, var(--brand)), var(--card-shadow); }
+.recipe-tile-summary { position: relative; display: grid; width: 100%; min-height: 92px; flex: 1 1 auto; padding: 11px 12px; align-content: space-between; gap: 9px; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .recipe-tile-copy strong, .recipe-tile-copy small { display: block; }
 .recipe-tile-copy strong { overflow-wrap: anywhere; font-size: 1.02rem; font-weight: var(--title-weight); letter-spacing: var(--title-tracking); line-height: 1.16; }
-.recipe-tile-copy small { margin-top: 5px; color: var(--muted); font-size: .65rem; line-height: 1.3; }
-.recipe-tile-meta { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 6px; }
+.recipe-tile-meta { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; }
+.recipe-tile-meta small { flex: 0 0 auto; color: var(--muted); font-size: .66rem; font-variant-numeric: tabular-nums; }
 .recipe-tile-meta > span { overflow: hidden; padding: 2px 7px; border-radius: 99px; background: var(--tint-chip); color: var(--muted); font-size: .66rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.recipe-tile-meta i { display: grid; min-width: 21px; height: 21px; padding: 0 5px; place-items: center; border-radius: 99px; background: var(--tint-chip); color: var(--muted); font-size: .63rem; font-style: normal; }
-.recipe-tile-chevron { position: absolute; right: 10px; bottom: 7px; color: var(--line-strong); font-size: .8rem; }
-.recipe-tile.expanded .recipe-tile-meta, .recipe-tile.expanded .recipe-tile-chevron { display: none; }
-.recipe-tile-detail { padding: 2px 12px 13px; border-top: 1px solid var(--line); }
-.recipe-tile-detail .ingredients { padding-top: 12px; }
+.dish-tag { padding: 4px 10px; border-radius: 999px; background: var(--accent-soft, var(--sunk)); color: var(--accent-ink, var(--ink-2)); font-size: .7rem; font-weight: 650; }
+
 .recipe-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0 9px; }
 .recipe-tags span { padding: 4px 9px; border-radius: 999px; background: var(--tint-chip); color: var(--ink-2); font-size: .68rem; font-weight: 700; }
-.library-actions { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
-.library-actions button { padding: 5px 0; border: 0; background: transparent; color: var(--brand-ink); font-size: .78rem; font-weight: 700; cursor: pointer; }
 .source-link { display: inline-block; margin-top: 12px; color: var(--brand-ink); font-size: .8rem; font-weight: 700; }
 
 .queue-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -260,7 +249,7 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .ingredient-shopping-list { margin: 18px 0 0; padding: 0; list-style: none; }
 .ingredient-shopping-list li { border-top: 1px solid var(--line); }
 .ingredient-shopping-list strong { display: block; }
-.ingredient-recipe-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 2px 12px; }
+.ingredient-recipe-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 2px 12px 56px; }
 .ingredient-recipe-tags span { padding: 4px 8px; border-radius: 99px; background: var(--sunk); color: var(--muted); font-size: .66rem; font-weight: 600; }
 .complete-button { margin-top: 4px; }
 
@@ -389,7 +378,7 @@ textarea { resize: vertical; line-height: 1.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
 }
 
 .field { display: grid; gap: 7px; }
@@ -418,9 +407,7 @@ textarea { resize: vertical; line-height: 1.5; }
 .shop-section-title a small { font-size: .72rem; }
 .shop-section-title span { display: grid; min-width: 18px; height: 18px; padding: 0 5px; place-items: center; border-radius: 99px; background: var(--accent-soft, var(--sunk)); color: var(--accent-ink, var(--muted)); font-size: .68rem; font-weight: 700; letter-spacing: 0; }
 
-.meal-head { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: -4px; }
-.meal-head .text-button { padding: 6px 2px; color: var(--muted); font-size: .74rem; font-weight: 600; }
-.meal-head .text-button:hover { color: var(--brand-ink); }
+.meal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .recent-chip { position: relative; padding-right: 34px; }
 .recent-again { position: absolute; top: 50%; right: 6px; display: grid; width: 26px; height: 26px; transform: translateY(-50%); place-items: center; border: 0; border-radius: 50%; background: var(--sunk); color: var(--muted); font-size: .82rem; line-height: 1; cursor: pointer; }
 .recent-again:hover { background: var(--brand); color: #fff; }
@@ -453,7 +440,19 @@ textarea { resize: vertical; line-height: 1.5; }
 .category-picker-footer div { display: flex; flex: 0 0 auto; gap: 8px; }
 
 /* Shopping-list row, and the Barbora products behind it */
-.shop-item { display: flex; width: 100%; align-items: baseline; justify-content: space-between; gap: 10px; padding: 13px 2px 5px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.shop-progress { height: 5px; margin: 12px 0 2px; overflow: hidden; border-radius: 99px; background: var(--sunk); }
+.shop-progress i { display: block; height: 100%; border-radius: 99px; background: var(--ok); transition: width .28s cubic-bezier(.22, .9, .28, 1); }
+
+.shop-row { display: flex; align-items: center; gap: 12px; }
+/* 44px of thumb around a 26px box, on the left where a thumb already is. */
+.shop-tick { display: grid; flex: 0 0 auto; width: 44px; height: 44px; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
+.shop-tick span { display: grid; width: 26px; height: 26px; place-items: center; border: 1.5px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: transparent; font-size: .9rem; font-weight: 700; line-height: 1; transition: background .16s ease, border-color .16s ease, color .16s ease; }
+.shop-tick[aria-pressed="true"] span { border-color: var(--ok); background: var(--ok); color: #fff; }
+.ingredient-shopping-list li.is-ticked .shop-item strong { color: var(--muted); text-decoration: line-through; }
+.ingredient-shopping-list li.is-ticked .ingredient-recipe-tags { opacity: .5; }
+.ingredient-shopping-list li.is-ticked { opacity: .72; }
+
+.shop-item { display: flex; flex: 1 1 auto; min-width: 0; align-items: baseline; justify-content: space-between; gap: 10px; padding: 13px 2px 5px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .shop-item:hover { color: var(--brand-ink); }
 .shop-item:hover span { color: var(--brand-ink); }
 .shop-item strong { display: block; min-width: 0; }
@@ -479,3 +478,79 @@ textarea { resize: vertical; line-height: 1.5; }
 .product-out { color: var(--danger); font-weight: 600; }
 .product-throttled { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--brand-line); border-radius: 14px; background: var(--brand-soft); color: var(--ink); font-size: .88rem; }
 .product-throttled small { color: var(--muted); font-size: .76rem; }
+
+/* The recipe window: the editor's sheet with nothing to fill in. */
+.recipe-detail-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.recipe-detail-tags span { padding: 4px 10px; border-radius: 999px; background: var(--tint-chip); color: var(--ink-2); font-size: .7rem; font-weight: 600; }
+.detail-heading { margin: 0 0 6px; color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.detail-heading b { margin-left: 3px; color: var(--line-strong); font-weight: 800; }
+.detail-products { margin: 0 0 20px; padding: 0; list-style: none; }
+.detail-products li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: .95rem; }
+/* A dot rather than a bullet, so the list reads as things to buy rather than
+   as prose, and takes the dish type's colour like everything else here. */
+.detail-products li::before { content: ''; flex: 0 0 auto; width: 5px; height: 5px; border-radius: 50%; background: var(--accent-solid, var(--line-strong)); }
+.detail-notes { margin: 0 0 20px; color: var(--ink-2); font-size: .92rem; line-height: 1.6; white-space: pre-wrap; }
+.detail-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
+.detail-links a, .detail-links button { padding: 7px 0; border: 0; background: transparent; color: var(--brand-ink); font: inherit; font-size: .84rem; font-weight: 650; text-decoration: none; cursor: pointer; }
+/* Sticky, so the decision is reachable however long the ingredient list is. */
+.detail-actions { position: sticky; bottom: -24px; display: flex; gap: 9px; margin: 18px -20px -24px; padding: 13px 20px calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); }
+.detail-actions .button { flex: 1 1 auto; min-height: 50px; }
+.detail-actions .button.secondary { flex: 0 1 auto; color: var(--muted); }
+
+/* ---------------------------------------------------------------------------
+   Movement.
+
+   Nothing in the app moved: a tapped card swapped to its open state in one
+   frame, which reads as a redraw rather than as a response. Four transitions
+   cover almost all of it, and none of them needs a library.
+
+   Two rules they all follow. Everything is on `transform` and `opacity`,
+   which the compositor can do without laying the page out again — a phone
+   mid-scroll has nothing spare. And nothing here animates a height: the
+   scroll restore waits for `document.documentElement.scrollHeight` to reach
+   the saved position, so a height that is still moving is a restore that
+   measures a page it cannot trust. That is the reason a recipe opens in a
+   window rather than by growing its tile.
+
+   `prefers-reduced-motion` turns every one of them off, above.
+   --------------------------------------------------------------------------- */
+
+/* The window arriving. It comes up from the bottom edge, which is where a
+   thumb is and where it will go back to. */
+@keyframes sheet-in { from { transform: translateY(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+.modal-backdrop { animation: scrim-in 200ms ease both; }
+.modal { animation: sheet-in 260ms cubic-bezier(.22, .9, .28, 1) both; }
+/* A modal opened on top of another one is a step deeper, not a new arrival:
+   the backdrop behind it is already dark, so only the card moves. */
+.modal-backdrop .modal-backdrop { animation-duration: 120ms; }
+
+/* The tap itself, which is the only feedback there is before the window
+   arrives. Kept on the pressed element rather than a class, so nothing has to
+   remember to take it off again. */
+.meal-open, .recipe-tile-summary, .shop-item, .settings-options button, .picker-row {
+  transition: transform 120ms ease, background-color 140ms ease;
+}
+.meal-open:active, .recipe-tile-summary:active, .shop-item:active { transform: scale(.978); }
+.settings-options button:active, .picker-row:active { background: var(--sunk); }
+
+/* Switching tabs cross-fades. It never slides: the three tabs are not a
+   sequence, and sliding invents a left and a right that mean nothing. */
+@keyframes tab-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.tab-pane { animation: tab-in 150ms ease both; }
+
+/* A tick in the shop, and the row settling into its ticked state. */
+.shop-tick span { transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s cubic-bezier(.3, 1.5, .5, 1); }
+.shop-tick:active span { transform: scale(.88); }
+.shop-tick[aria-pressed="true"] span { transform: scale(1.06); }
+.ingredient-shopping-list li { transition: opacity .18s ease; }
+.ingredient-shopping-list li .shop-item strong { transition: color .18s ease; }
+
+/* The undo toast, which arrives after a decision and has thirty seconds to
+   be noticed. */
+@keyframes toast-in { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+.undo-toast { animation: toast-in 220ms cubic-bezier(.22, .9, .28, 1) both; }
+
+/* The banner at the top of a tab, same idea, smaller. */
+@keyframes banner-in { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+.banner { animation: banner-in 180ms ease both; }

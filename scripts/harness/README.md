@@ -42,6 +42,7 @@ The catalogue comes from the real `data/barbora-categories.json`, so the categor
 - **`concurrent`** — two people, one household, two browsers. What each app does while holding a picture of the household that has stopped being true.
 - **`scrolltrace`** — the on-device scroll trace records the app switch, survives the reload it exists to explain, stays inside its cap, and prints in Settings.
 - **`shapes`** — the two phone shapes nothing else covers: 320px wide, where a row runs out of room across, and 390px tall in landscape, where a modal runs out of room down and strands its buttons.
+- **`shopticks`** — ticking items off in the shop: a tick survives a reload, tapping again unticks, and above all Apsipirkta is never gated on the ticks.
 - **`offline`** — a cold start with the backend unreachable. It must not sit on the loading screen, must not offer to create a household to someone who already has one, must say why, and must come back when the network does.
 
 A finding beginning with `note:` is advisory: reported, but it does not fail the run. Use it for judgement calls rather than regressions.
@@ -230,6 +231,7 @@ Each scenario has been run against the broken code it is meant to catch, because
 | `offline` | the error screen explaining itself | `the app gave up on loading and said nothing about why` |
 | `offline` | refusing to carry on with a placeholder household | `the app showed its tabs as though the data had loaded` |
 | `offline` | the retry button doing anything | `the app did not come back once the network did` |
+| `shopticks` | making Apsipirkta wait for every box | `Apsipirkta was disabled with nothing ticked` |
 
 Do the same for any scenario you add.
 
