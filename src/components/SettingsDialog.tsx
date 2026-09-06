@@ -5,6 +5,7 @@ import { debugEnabled } from '../lib/debugFlags'
 import { supabase } from '../lib/supabase'
 import type { Household, HouseholdTag, IngredientSection, Recipe, VocabularyIngredient } from '../lib/types'
 import { IngredientsManager } from './IngredientsManager'
+import { ChevronIcon } from './icons'
 import { Modal } from './Modal'
 import { RecipeCategoriesManager } from './RecipeCategoriesManager'
 import { useEffect, useState } from 'react'
@@ -58,12 +59,12 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
     <Modal title={title} onClose={onClose} wide={view === 'ingredients'}>
       {view === 'menu' && <>
         <div className="settings-options">
-          <button onClick={() => setView('invite')}><span><strong>Pakviesti prisijungti</strong><small>Virtuvės kodas kitam žmogui</small></span><b>›</b></button>
-          <button onClick={() => setView('ingredients')}><span><strong>Ingredientai</strong><small>Pavadinimai ir skyriai parduotuvėje</small></span><b>›</b></button>
-          <button onClick={() => setView('categories')}><span><strong>Receptų kategorijos</strong><small>Grupės receptų bibliotekoje</small></span><b>›</b></button>
-          <button onClick={() => setView('cuisines')}><span><strong>Virtuvės</strong><small>Šalys ir regionai receptų žymose</small></span><b>›</b></button>
-          <button onClick={() => setView('deleted')}><span><strong>Ištrinti receptai</strong><small>{deletedRecipes.length ? `${deletedRecipes.length} laukia atkūrimo` : 'Nieko neištrinta'}</small></span><b>›</b></button>
-          {debugEnabled() && <button onClick={() => setView('trace')}><span><strong>Slinkties žurnalas</strong><small>Ką programa įsiminė perjungiant programas</small></span><b>›</b></button>}
+          <button onClick={() => setView('invite')}><span><strong>Pakviesti prisijungti</strong><small>Virtuvės kodas kitam žmogui</small></span><b><ChevronIcon size={16} /></b></button>
+          <button onClick={() => setView('ingredients')}><span><strong>Ingredientai</strong><small>Pavadinimai ir skyriai parduotuvėje</small></span><b><ChevronIcon size={16} /></b></button>
+          <button onClick={() => setView('categories')}><span><strong>Receptų kategorijos</strong><small>Grupės receptų bibliotekoje</small></span><b><ChevronIcon size={16} /></b></button>
+          <button onClick={() => setView('cuisines')}><span><strong>Virtuvės</strong><small>Šalys ir regionai receptų žymose</small></span><b><ChevronIcon size={16} /></b></button>
+          <button onClick={() => setView('deleted')}><span><strong>Ištrinti receptai</strong><small>{deletedRecipes.length ? `${deletedRecipes.length} laukia atkūrimo` : 'Nieko neištrinta'}</small></span><b><ChevronIcon size={16} /></b></button>
+          {debugEnabled() && <button onClick={() => setView('trace')}><span><strong>Slinkties žurnalas</strong><small>Ką programa įsiminė perjungiant programas</small></span><b><ChevronIcon size={16} /></b></button>}
         </div>
         <div className="settings-meta"><span>Prisijungta kaip</span><strong>{email}</strong></div>
         <button className="button secondary wide" onClick={() => void supabase.auth.signOut()}>Atsijungti</button>

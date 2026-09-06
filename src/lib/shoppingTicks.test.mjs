@@ -23,11 +23,30 @@ test('reads back what it wrote', () => {
 })
 
 test('a tick for something no longer on the list is dropped', () => {
-  // Otherwise it comes back days later, when that ingredient reappears from
-  // another recipe, already ticked and silently wrong.
   const storage = store()
   writeTicks('k', new Set(['Morkos', 'Grybai']), storage)
   assert.deepEqual([...readTicks('k', ['Morkos'], storage)], ['Morkos'])
+})
+
+test('and it is dropped for good, not just hidden while it is away', () => {
+  // The whole basket emptied and refilled with the same meals. Filtering only
+  // on the way out let every tick come back, because the names had never left
+  // storage — they had only been off the list for a while.
+  const storage = store()
+  writeTicks('k', new Set(['Morkos', 'Grybai']), storage)
+  readTicks('k', [], storage)
+  assert.deepEqual([...readTicks('k', ['Morkos', 'Grybai'], storage)], [],
+    'a tick survived its row leaving the list')
+})
+
+test('reading an unchanged list does not rewrite storage', () => {
+  // This runs on every render of the shopping tab.
+  const storage = store()
+  writeTicks('k', new Set(['Morkos']), storage)
+  let writes = 0
+  const counting = { ...storage, setItem: (key, value) => { writes += 1; storage.setItem(key, value) } }
+  readTicks('k', ['Morkos', 'Grybai'], counting)
+  assert.equal(writes, 0)
 })
 
 test('nothing stored, nothing ticked', () => {
@@ -66,17 +85,16 @@ test('toggling adds and removes without touching the set it was given', () => {
 test('the count is information, never a gate', () => {
   const part = shoppingProgress(38, 12)
   assert.equal(part.left, 26)
-  assert.match(part.note, /26/)
+  assert.equal(part.ticked, 12)
   assert.equal(Math.round(part.fraction * 100), 32)
 })
 
-test('a finished list says so', () => {
-  assert.equal(shoppingProgress(6, 6).note, 'Viskas sudėta')
+test('a finished list fills the bar', () => {
   assert.equal(shoppingProgress(6, 6).fraction, 1)
+  assert.equal(shoppingProgress(6, 6).left, 0)
 })
 
-test('an empty list has nothing to say and does not divide by zero', () => {
-  assert.equal(shoppingProgress(0, 0).note, '')
+test('an empty list does not divide by zero', () => {
   assert.equal(shoppingProgress(0, 0).fraction, 0)
 })
 

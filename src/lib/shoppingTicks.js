@@ -34,21 +34,29 @@ export function ticksKey(householdId) {
 }
 
 /**
- * Read the ticks back, keeping only the ones still on the list.
+ * Read the ticks back, keeping only the ones still on the list — and forget
+ * the rest, permanently.
  *
- * A recipe leaving the basket takes its ingredients off the list, and a tick
- * for something nobody is buying any more would come back the next time that
- * ingredient reappeared — days later, already ticked, silently wrong.
+ * The forgetting is the point, and the first version got it wrong: it
+ * filtered on the way out but left the stored set alone. Empty the basket and
+ * fill it again with the same meals, and every tick came back — because the
+ * names had never gone anywhere, they had only been hidden while they were
+ * off the list. A tick has to die with the row it was made on.
  */
 export function readTicks(key, present, storage = window.localStorage) {
   const wanted = new Set(present)
+  let stored
   try {
-    const parsed = JSON.parse(storage.getItem(key) ?? 'null')
-    if (!Array.isArray(parsed)) return new Set()
-    return new Set(parsed.filter((item) => typeof item === 'string' && wanted.has(item)))
+    stored = JSON.parse(storage.getItem(key) ?? 'null')
   } catch {
-    return new Set()
+    stored = null
   }
+  if (!Array.isArray(stored)) return new Set()
+  const kept = new Set(stored.filter((item) => typeof item === 'string' && wanted.has(item)))
+  // Only write when something was actually dropped, so an ordinary read of an
+  // unchanged list does not touch storage on every render.
+  if (kept.size !== stored.length) writeTicks(key, kept, storage)
+  return kept
 }
 
 export function writeTicks(key, ticks, storage = window.localStorage) {
@@ -77,21 +85,19 @@ export function toggleTick(ticks, item) {
 }
 
 /**
- * How the button under the list should read.
+ * How far through the list you are.
  *
- * It is never disabled. What changes is what it says underneath, so the
- * number is information rather than an obstacle.
+ * The count and the bar live at the top, next to the list they describe.
+ * There is deliberately nothing beside the Apsipirkta button: it is never
+ * disabled, so a line explaining that it is not disabled was answering a
+ * question the screen had stopped asking.
  */
 export function shoppingProgress(total, ticked) {
-  const left = Math.max(0, total - ticked)
   return {
     total,
     ticked: Math.min(ticked, total),
-    left,
+    left: Math.max(0, total - ticked),
     // 0..1, and 0 rather than NaN for an empty list.
     fraction: total > 0 ? Math.min(1, ticked / total) : 0,
-    note: total === 0 ? ''
-      : left === 0 ? 'Viskas sudėta'
-      : `Liko nepažymėtų ${left} — nesvarbu`,
   }
 }

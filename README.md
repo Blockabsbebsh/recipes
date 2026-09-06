@@ -5,7 +5,7 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 ## What works
 
 - Separate email/password accounts sharing one household through an invite code
-- Compact, dish-type-grouped recipe library with expandable details, actions, notes, and source links
+- Recipe library filtered by a dish-type rail, each card tinted by its type, opening into a read-only recipe window
 - Importer that reads both a checklist and a recipe written over several lines, with editable previews, dish type and cuisine chosen per recipe, and case/quantity-tolerant ingredient matching
 - Current recipes with Cooked/Skipped actions and a 30-second Undo
 - Recently cooked section for the last five days and per-recipe last-cooked dates
@@ -22,7 +22,6 @@ A shared, mobile-first recipe library, current meal roster, and deliberately sim
 - Lithuanian interface copy and metadata
 - Automatic dish-type and cuisine classification with manual editing, and new dish types or cuisines added from the editor, the importer, or settings
 - Library search across recipe names, ingredients, dish types, and cuisines
-- Library sections grouped by dish type, with cuisine shown as an extra tag
 - Household ingredient, recipe-category and cuisine management from the settings menu
 
 The colours, why they are what they are, and the one loose end in the typography are in [`docs/app-behaviour.md`](docs/app-behaviour.md#colour).
@@ -43,7 +42,7 @@ New sign-ups are disabled in the Supabase dashboard, which is why a public publi
 ## Testing
 
 ```bash
-npm test          # 194 unit tests, none of which need a browser
+npm test          # 196 unit tests, none of which need a browser
 npm run harness   # the real app on an emulated phone, against a fake Supabase
 npm run dbtest    # every migration applied to a throwaway Postgres, then checked
 ```

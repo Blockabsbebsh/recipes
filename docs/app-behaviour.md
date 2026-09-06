@@ -351,11 +351,13 @@ must not be the same tap.
 Three rules, all in `src/lib/shoppingTicks.js`:
 
 - **A tick never blocks finishing.** Apsipirkta is a normal button at every
-  point; what changes is the line under it. Buying without ticking is the
-  ordinary way to use a list, and a screen that refuses to believe you is
-  worse than one that cannot count. The `shopticks` scenario exists mostly to
-  keep this true — it has been run against a `disabled={left > 0}` and fails
-  three ways.
+  point. Buying without ticking is the ordinary way to use a list, and a
+  screen that refuses to believe you is worse than one that cannot count. The
+  count and the bar sit at the top, beside the list they describe; there is
+  deliberately nothing beside the button, because a line explaining that it
+  is not disabled was answering a question the screen had stopped asking. The
+  `shopticks` scenario exists mostly to keep the rule true — it has been run
+  against a `disabled={left > 0}` and fails three ways.
 - **It lives on the phone.** A tick is worth nothing an hour after the shop.
   Putting it in Postgres means a table, a policy, a migration and a realtime
   subscription for a value with a half-life of twenty minutes.
@@ -365,9 +367,16 @@ Three rules, all in `src/lib/shoppingTicks.js`:
   that module — a set of ingredient names under one household — is what the
   table would hold.
 
-A tick for something that has left the basket is dropped on the way in, or it
-would come back days later when that ingredient reappears from another
-recipe, already ticked and silently wrong.
+A tick for something that has left the basket is **forgotten**, not merely
+hidden. The first version filtered on the way out and left storage alone, so
+emptying the basket and refilling it with the same meals brought every tick
+back — the names had never gone anywhere. `readTicks` now writes the shorter
+set back.
+
+That fix has a trap in it, and the harness caught it rather than the phone:
+pruning against a household that has not finished loading prunes against an
+empty list, which deletes every tick. The effect is gated on `dataReady` for
+that reason, and `shopticks` reloads mid-shop to keep it that way.
 
 ## Movement
 
@@ -387,3 +396,62 @@ invents a left and a right that mean nothing.
 `prefers-reduced-motion` turns all of it off, and that block now covers
 `animation` as well as `transition` — it did not, which would have left every
 new keyframe running for the people who asked for none.
+
+## The library filters rather than groups
+
+Every dish type used to be a card of its own with a heading and a count, and
+the recipes lived inside it. That was a whole level of nesting to say
+something the tint on each card now says by itself, and on a phone it meant
+scrolling past a heading every four recipes.
+
+The dish types are a rail across the top instead. Tapping one filters; tapping
+it again clears. The rail scrolls sideways on purpose — this household's list
+of dish types has no ceiling, and wrapping it to three rows would push the
+recipes off the screen in order to describe them.
+
+Two rules keep the rail honest. It counts what the *search* left, so a chip
+never offers a number it cannot then show; and a chip whose dish type the
+search has emptied stops being a filter, so you cannot end up looking at an
+empty library with no way to see why.
+
+The filter is not remembered between visits. A filter you cannot see the top
+of is a library that has silently lost half its recipes.
+
+This also meant teaching the `layout` and `shapes` scenarios the difference
+between content off the edge and content further along a rail: both now walk
+up from an offending element and ask whether an ancestor scrolls sideways.
+Both were re-run against a 140vw card afterwards, and both still catch it.
+
+## The icons are drawn
+
+Four of them always were — the ones in the tab bar. Everything else was a
+character: `＋ × ✓ › ↗ •••`. Those are font glyphs, so their weight, size and
+vertical alignment come from whichever face the phone is using. The fullwidth
+plus is a different width on iOS and Android, the check sits on a different
+baseline, and the ellipsis is three full stops with the font's own spacing
+between them. Beside a 1.75px stroked bowl they read as a different set of
+things, and at a glance that is what made the app look assembled rather than
+drawn.
+
+`src/components/icons.tsx` is all of them now, on one grid: a 24×24 viewBox
+with the drawing kept inside about 3.5–20.5 so nothing touches the edge at
+small sizes, a 1.75-ish stroke with round caps and joins, and `currentColor`
+throughout so an icon takes the colour of the text beside it and needs no
+variant per place it appears. `More` is the one exception to the stroke rule,
+because three dots are dots.
+
+Every one carries `aria-hidden`. Each sits beside a label or inside a button
+with an `aria-label`; an icon that announced itself as well would be read
+twice. The one place a glyph survives is the "+ Nauja…" option inside a
+`<select>`, where markup is not allowed — it is a plain ASCII `+` rather than
+the fullwidth one, so at least it is a character every font draws the same.
+
+## The menu card says less than the window
+
+It used to print the dish type on its own row, the cuisine on another, the
+whole ingredient list wrapping to as many lines as it needed, and the notes
+underneath — two cards to a screen. All of that is what the window it opens is
+*for*, so the card was a card you never needed to open.
+
+It is the title, one row with the two tags, and a single line of ingredients
+cut off where it runs out of room. Four fit where two did.

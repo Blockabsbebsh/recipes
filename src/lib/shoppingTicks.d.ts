@@ -8,5 +8,4 @@ export function shoppingProgress(total: number, ticked: number): {
   ticked: number
   left: number
   fraction: number
-  note: string
 }

@@ -1,3 +1,4 @@
+import { PlusIcon } from './icons'
 import type { CategoryIndex } from '../lib/barboraMapping'
 import { ingredientLookupKey } from '../lib/parser'
 import { SECTION_LABELS } from '../lib/sections'
@@ -28,7 +29,7 @@ export function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreat
   return <div className="manager-stack">
     <div className="manager-sticky-header">
       <input className="search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Ieškoti (${vocabulary.length})`} />
-      <button type="button" className="ingredient-add-chip" onClick={() => setCreating(true)}>＋ Pridėti naują ingredientą</button>
+      <button type="button" className="ingredient-add-chip" onClick={() => setCreating(true)}><PlusIcon size={16} /> Pridėti naują ingredientą</button>
     </div>
     <div className="manager-list">
       {filtered.map((ingredient) => (

@@ -1,3 +1,4 @@
+import { ChevronIcon } from './icons'
 import { trailTo } from '../lib/barboraMapping'
 import type { CategoryIndex } from '../lib/barboraMapping'
 import { Modal } from './Modal'
@@ -40,7 +41,7 @@ export function CategoryPicker({ index, ingredientName, initialPath, onCancel, o
       <button type="button" onClick={() => setNode(null)}>Visos</button>
       {trail.map((category) => (
         <button type="button" key={category.path} onClick={() => setNode(category.path)}>
-          <span aria-hidden="true">›</span> {category.name}
+          <ChevronIcon size={14} /> {category.name}
         </button>
       ))}
     </nav>
@@ -61,7 +62,7 @@ export function CategoryPicker({ index, ingredientName, initialPath, onCancel, o
             onClick={() => open(category.path)}
           >
             <span>{category.name}</span>
-            {deeper > 0 ? <b aria-hidden="true">›</b> : null}
+            {deeper > 0 ? <ChevronIcon size={15} /> : null}
           </button>
         })}
     </div>
