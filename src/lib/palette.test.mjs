@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
-import { ACCENTS, SECTION_ACCENTS, groupAccent, sectionAccent } from './palette.js'
+import { ACCENTS, DISH_POOL, SECTION_ACCENTS, groupAccent, sectionAccent } from './palette.js'
 
 const SECTIONS = ['Produce', 'Bakery', 'Dairy & alternatives', 'Frozen', 'Pantry', 'Spices', 'Other']
 
@@ -49,4 +49,34 @@ test('the stylesheet defines every accent this module can return', () => {
   for (const accent of [...ACCENTS, 'slate']) {
     assert.match(css, new RegExp(`\\[data-accent="${accent}"\\]`), `no rule for ${accent}`)
   }
+})
+
+const SHIPPED_DISH_TYPES = [
+  'Pusryčiai', 'Sriubos', 'Troškiniai ir kariai', 'Makaronai', 'Salotos',
+  'Ryžių ir kruopų patiekalai', 'Bulvių patiekalai', 'Sumuštiniai ir kebabai',
+  'Užkandžiai', 'Kepiniai ir picos', 'Desertai', 'Kita',
+]
+
+test('no two dish types that sit next to each other share a colour', () => {
+  // The library is sorted by dish type, so the colours arrive in bands — and a
+  // band is only a boundary if the band beside it is a different colour.
+  const accents = SHIPPED_DISH_TYPES.map(groupAccent)
+  for (let i = 1; i < accents.length; i += 1) {
+    assert.notEqual(accents[i], accents[i - 1],
+      `${SHIPPED_DISH_TYPES[i - 1]} and ${SHIPPED_DISH_TYPES[i]} are both ${accents[i]}`)
+  }
+})
+
+test('a dish type never wears one of the cold accents', () => {
+  // Indigo and slate belong to the shop, where dairy being blue is the point.
+  // "Kita" is the deliberate exception: the absence of a colour.
+  for (const name of [...SHIPPED_DISH_TYPES, 'Pica', 'Vakarienė svečiams', 'Sriubytė']) {
+    if (name === 'Kita') continue
+    assert.equal(DISH_POOL.includes(groupAccent(name)), true, `${name} → ${groupAccent(name)}`)
+  }
+})
+
+test('the shop keeps the accents the library gave up', () => {
+  assert.equal(SECTION_ACCENTS['Dairy & alternatives'], 'indigo')
+  assert.equal(DISH_POOL.includes('indigo'), false)
 })

@@ -1144,10 +1144,22 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
     .filter((chip) => chip.count > 0)
   // A chip whose dish type the search has emptied stops being a filter.
   const active = only && rail.some((chip) => chip.dishType === only) ? only : null
-  const filtered = active ? found.filter((recipe) => dishTypeFor(recipe) === active) : found
+  // Sorted by dish type, then by name inside it. Two things come out of that.
+  // The colours arrive in bands rather than as confetti, which is what made a
+  // deliberate palette read as a random one; and sixty-five recipes in an
+  // order nobody chose become sixty-five recipes in the order the rail above
+  // them lists, so a chip is a place on the page as well as a filter.
+  const order = new Map(railOrder.map((name, index) => [name, index]))
+  const filtered = (active ? found.filter((recipe) => dishTypeFor(recipe) === active) : found)
+    .slice()
+    .sort((a, b) => {
+      const byType = (order.get(dishTypeFor(a)) ?? 99) - (order.get(dishTypeFor(b)) ?? 99)
+      return byType !== 0 ? byType : a.title.localeCompare(b.title, 'lt')
+    })
 
   return (
     <div className="page-stack">
+      <div className="library-head">
       <div className="toolbar">
         <div className="search-field">
           <SearchIcon size={18} />
@@ -1175,6 +1187,7 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
           ))}
         </div>
       )}
+      </div>
       <button className="text-button import-button" onClick={onImport}>Importuoti receptus</button>
       {filtered.length === 0 ? <EmptyState title={recipes.length ? 'Nieko nerasta' : 'Receptų nėra'} text={recipes.length ? 'Pabandykite kitą paiešką.' : 'Pridėkite receptą arba įklijuokite turimą savaitės sąrašą.'} action={recipes.length ? undefined : 'Pridėti receptą'} onAction={recipes.length ? undefined : onAdd} /> : (
         <div className="recipe-tile-grid">

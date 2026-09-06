@@ -42,22 +42,44 @@ export function sectionAccent(section) {
 }
 
 /**
- * The dish types that ship with the app, so the library opens on a spread of
- * colour rather than on whatever a hash happened to choose. Anything a
- * household adds itself is hashed instead.
+ * The accents a dish type may wear — seven of the nine, all on the warm side
+ * of the set.
+ *
+ * Indigo is not here, and neither is slate except as the deliberate colour of
+ * "Kita". The library is the one screen where a dozen of these sit in a grid
+ * together, and the two coldest hues were what made that grid read as a
+ * scatter of unrelated things rather than as one palette. The shop keeps all
+ * nine, because there an aisle's colour has a job: dairy is meant to be blue.
+ */
+export const DISH_POOL = ['amber', 'red', 'brown', 'green', 'teal', 'violet', 'cyan']
+
+/**
+ * The dish types that ship with the app.
+ *
+ * Assigned along the order they ship in rather than picked one at a time, so
+ * that no two types that sit next to each other in the library are the same
+ * colour. That matters more than any single choice being food-plausible: the
+ * library is sorted by dish type, so the colours arrive in bands, and a band
+ * is only a boundary if the band beside it is a different colour.
+ *
+ * Where a plausible colour was available it was taken — soups red, salads
+ * green, stews brown, breakfast amber, desserts violet — and where it was
+ * not, the rule above decided. Anything a household adds itself is hashed
+ * into the same pool.
  */
 const DISH_ACCENTS = {
   'Pusryčiai': 'amber',
   'Sriubos': 'red',
   'Troškiniai ir kariai': 'brown',
-  'Makaronai': 'indigo',
+  'Makaronai': 'violet',
   'Salotos': 'green',
   'Ryžių ir kruopų patiekalai': 'teal',
   'Bulvių patiekalai': 'amber',
-  'Sumuštiniai ir kebabai': 'brown',
+  'Sumuštiniai ir kebabai': 'red',
   'Užkandžiai': 'cyan',
-  'Kepiniai ir picos': 'red',
+  'Kepiniai ir picos': 'brown',
   'Desertai': 'violet',
+  // The one that is not a colour so much as the absence of one.
   'Kita': 'slate',
 }
 
@@ -77,5 +99,5 @@ export function groupAccent(name) {
     hash ^= character.codePointAt(0)
     hash = Math.imul(hash, 0x01000193) >>> 0
   }
-  return ACCENTS[hash % ACCENTS.length]
+  return DISH_POOL[hash % DISH_POOL.length]
 }

@@ -193,7 +193,7 @@ h2 { margin-bottom: .45rem; font-size: 1.1rem; line-height: 1.25; }
 .text-button { padding: 0; border: 0; background: transparent; color: var(--brand-ink); font-weight: 700; cursor: pointer; }
 .danger-text { color: var(--danger) !important; }
 
-.page-stack { display: grid; gap: 18px; }
+.page-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .add-meals { justify-self: end; }
 .card-grid, .library-list { display: grid; gap: 14px; }
 .meal-card, .library-card, .shopping-card { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--card-shadow); }
@@ -574,12 +574,24 @@ textarea { resize: vertical; line-height: 1.5; }
 /* The dish-type rail. It scrolls sideways on purpose — the household's own
    list of dish types has no ceiling, and wrapping it to three rows would push
    the recipes off the screen to describe them. */
-.chip-rail { display: flex; gap: 7px; margin: -4px -20px 0; padding: 4px 20px 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+/* Search and the rail stay put while the grid scrolls under them. In a
+   library this long, a filter you have to scroll back up to reach is a filter
+   you stop using. `env(safe-area-inset-top)` is already the shell's padding,
+   so this only has to clear itself. */
+.library-head { position: sticky; z-index: 3; top: 0; min-width: 0; margin: 0 -20px; padding: 8px 20px 4px; background: var(--canvas); }
+.library-head::after { content: ''; position: absolute; right: 0; bottom: -14px; left: 0; height: 14px; background: linear-gradient(var(--canvas), transparent); pointer-events: none; }
+
+.chip-rail { display: flex; gap: 7px; margin: 10px -20px 0; padding: 0 20px 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .chip-rail::-webkit-scrollbar { display: none; }
 .rail-chip { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border: 1px solid var(--accent-tint-line, var(--line)); border-radius: 99px; background: var(--accent-soft, var(--surface)); color: var(--accent-ink, var(--ink-2)); font: inherit; font-size: .82rem; font-weight: 650; white-space: nowrap; cursor: pointer; transition: transform .12s ease, box-shadow .16s ease; }
 .rail-chip i { font-size: .74rem; font-style: normal; font-variant-numeric: tabular-nums; opacity: .62; }
 .rail-chip:active { transform: scale(.96); }
 /* The chosen one is filled rather than outlined, which is the one signal that
    survives nine different hues sitting next to each other. */
-.rail-chip.is-on { border-color: var(--accent-solid, var(--ink)); background: var(--accent-solid, var(--ink)); color: #fff; box-shadow: 0 2px 8px rgba(60, 44, 30, .16); }
+/* Filled with the accent's *ink* and lettered in the surface colour, not with
+   a hardcoded white. Both of those flip with the theme, so the pair is the
+   same contrast in both — and the "Visi" chip, which has no accent, falls back
+   to plain ink on plain surface instead of the white-on-near-white it used to
+   draw in the dark. */
+.rail-chip.is-on { border-color: var(--accent-ink, var(--ink)); background: var(--accent-ink, var(--ink)); color: var(--surface); box-shadow: 0 2px 8px rgba(60, 44, 30, .16); }
 .rail-chip.is-on i { opacity: .8; }

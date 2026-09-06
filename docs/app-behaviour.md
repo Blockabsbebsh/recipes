@@ -415,7 +415,24 @@ search has emptied stops being a filter, so you cannot end up looking at an
 empty library with no way to see why.
 
 The filter is not remembered between visits. A filter you cannot see the top
-of is a library that has silently lost half its recipes.
+of is a library that has silently lost half its recipes. The search and the
+rail are sticky for the same reason: in a library this long, a filter you have
+to scroll back up to reach is a filter you stop using.
+
+The grid is **sorted by dish type**, in the order the rail lists, then by name
+inside each type. That is one change doing two jobs. Sixty-five recipes in
+whatever order the database returned them become sixty-five recipes in the
+order of the chips above them, so a chip is a place on the page as well as a
+filter. And the tints arrive in bands rather than as confetti — which is what
+had made a deliberate palette read as a random one. The colours were never the
+problem; the ordering was.
+
+Dish types also gave up the two coldest accents. Indigo and slate belong to
+the shop, where an aisle's colour has a job and dairy is meant to be blue; the
+library draws from seven warm ones, plus slate for `Kita`, which is less a
+colour than the absence of one. They are assigned along the order the types
+ship in, so no two bands that touch are the same colour — `palette.test.mjs`
+fails if a later edit breaks that.
 
 This also meant teaching the `layout` and `shapes` scenarios the difference
 between content off the edge and content further along a rail: both now walk
