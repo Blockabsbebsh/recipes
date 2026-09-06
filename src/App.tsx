@@ -1087,7 +1087,7 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
                     <article className={`recipe-tile ${isExpanded ? 'expanded' : ''}`} key={recipe.id}>
                       <button className="recipe-tile-summary" aria-expanded={isExpanded} onClick={() => onExpandedChange(isExpanded ? null : recipe.id)}>
                         <span className="recipe-tile-copy"><strong>{recipe.title}</strong><small>{cookedAt ? `Gaminta ${formatRelative(cookedAt).toLocaleLowerCase('lt')}` : 'Dar negaminta'}</small></span>
-                        <span className="recipe-tile-meta"><span>{cuisineFor(recipe)}</span><i>{recipe.recipe_ingredients.length}</i></span>
+                        <span className="recipe-tile-meta"><span>{cuisineFor(recipe)}</span></span>
                         <span className="recipe-tile-chevron" aria-hidden="true">⌄</span>
                       </button>
                       {isExpanded && (
