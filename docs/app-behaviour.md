@@ -421,3 +421,37 @@ This also meant teaching the `layout` and `shapes` scenarios the difference
 between content off the edge and content further along a rail: both now walk
 up from an offending element and ask whether an ancestor scrolls sideways.
 Both were re-run against a 140vw card afterwards, and both still catch it.
+
+## The icons are drawn
+
+Four of them always were — the ones in the tab bar. Everything else was a
+character: `＋ × ✓ › ↗ •••`. Those are font glyphs, so their weight, size and
+vertical alignment come from whichever face the phone is using. The fullwidth
+plus is a different width on iOS and Android, the check sits on a different
+baseline, and the ellipsis is three full stops with the font's own spacing
+between them. Beside a 1.75px stroked bowl they read as a different set of
+things, and at a glance that is what made the app look assembled rather than
+drawn.
+
+`src/components/icons.tsx` is all of them now, on one grid: a 24×24 viewBox
+with the drawing kept inside about 3.5–20.5 so nothing touches the edge at
+small sizes, a 1.75-ish stroke with round caps and joins, and `currentColor`
+throughout so an icon takes the colour of the text beside it and needs no
+variant per place it appears. `More` is the one exception to the stroke rule,
+because three dots are dots.
+
+Every one carries `aria-hidden`. Each sits beside a label or inside a button
+with an `aria-label`; an icon that announced itself as well would be read
+twice. The one place a glyph survives is the "+ Nauja…" option inside a
+`<select>`, where markup is not allowed — it is a plain ASCII `+` rather than
+the fullwidth one, so at least it is a character every font draws the same.
+
+## The menu card says less than the window
+
+It used to print the dish type on its own row, the cuisine on another, the
+whole ingredient list wrapping to as many lines as it needed, and the notes
+underneath — two cards to a screen. All of that is what the window it opens is
+*for*, so the card was a card you never needed to open.
+
+It is the title, one row with the two tags, and a single line of ingredients
+cut off where it runs out of room. Four fit where two did.

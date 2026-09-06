@@ -1,3 +1,4 @@
+import { CloseIcon, PlusIcon } from './icons'
 import type { CategoryIndex } from '../lib/barboraMapping'
 import { findVocabularyMatch, ingredientLookupKey, ingredientNameWithoutQuantity, titleSimilarity } from '../lib/parser'
 import { SECTION_LABELS } from '../lib/sections'
@@ -109,7 +110,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
         {value.map((item, index) => (
           <span className="chip" key={`${item}-${index}`}>
             {item}
-            <button type="button" aria-label={`Pašalinti „${item}"`} onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
+            <button type="button" aria-label={`Pašalinti „${item}"`} onClick={() => onChange(value.filter((_, i) => i !== index))}><CloseIcon size={13} strokeWidth={2.2} /></button>
           </span>
         ))}
         {adding ? (
@@ -135,7 +136,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
                       className={`chip-create${highlight < 0 ? ' active' : ''}`}
                       onMouseDown={(event) => { event.preventDefault(); add(entry, { asWritten: true }) }}
                     >
-                      <strong>＋ {ingredientNameWithoutQuantity(entry.trim()) || entry.trim()}</strong><span>naujas produktas</span>
+                      <strong><PlusIcon size={14} /> {ingredientNameWithoutQuantity(entry.trim()) || entry.trim()}</strong><span>naujas produktas</span>
                     </button>
                   </li>
                 )}
@@ -154,7 +155,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
             )}
           </div>
         ) : (
-          <button type="button" className="chip-add" onClick={() => setAdding(true)}>＋ Pridėti</button>
+          <button type="button" className="chip-add" onClick={() => setAdding(true)}><PlusIcon size={15} /> Pridėti</button>
         )}
       </div>
       {value.length === 0 && !adding && <p className="chip-empty">Produktų dar nėra.</p>}

@@ -25,6 +25,7 @@ import { MealPicker } from './components/MealPicker'
 import { SettingsDialog } from './components/SettingsDialog'
 import { BarboraProductsModal } from './components/BarboraProductsModal'
 import { RecipeDetail } from './components/RecipeDetail'
+import { BasketIcon, BookIcon, BowlIcon, CheckIcon, ChevronIcon, CloseIcon, ExternalIcon, MoreIcon, PlusIcon, SearchIcon } from './components/icons'
 
 // The aisle each section falls back to, read from the same crawled catalogue
 // the mapper walks. Association-file aliases are deliberately not used here:
@@ -760,7 +761,7 @@ function App() {
           <p className="eyebrow">{household.name}</p>
           <h1>{tab === 'current' ? 'Meniu' : tab === 'library' ? 'Receptai' : tab === 'shop' ? 'Krepšelis' : 'Ištrinti'}</h1>
         </div>
-        <button className="icon-button" aria-label="Namų ūkio nustatymai" onClick={() => setSettingsOpen(true)}>•••</button>
+        <button className="icon-button" aria-label="Namų ūkio nustatymai" onClick={() => setSettingsOpen(true)}><MoreIcon size={20} /></button>
       </header>
 
       <main>
@@ -844,8 +845,8 @@ function App() {
           recipe={recipeById.get(openMeal.recipe_id)!}
           lastCookedLabel={cookedLabel(lastCooked(openMeal.recipe_id))}
           actions={[
-            { label: '✓ Pagaminta', tone: 'ok', onClick: () => { const entry = openMeal; setOpenMeal(null); void resolveEntry(entry, 'cooked') } },
-            { label: '× Praleisti', onClick: () => { const entry = openMeal; setOpenMeal(null); void resolveEntry(entry, 'skipped') } },
+            { label: 'Pagaminta', icon: <CheckIcon size={19} />, tone: 'ok', onClick: () => { const entry = openMeal; setOpenMeal(null); void resolveEntry(entry, 'cooked') } },
+            { label: 'Praleisti', icon: <CloseIcon size={17} />, onClick: () => { const entry = openMeal; setOpenMeal(null); void resolveEntry(entry, 'skipped') } },
           ]}
           onEdit={() => { const recipe = recipeById.get(openMeal.recipe_id)!; setOpenMeal(null); setEditor({ recipe, destination: 'library' }) }}
           onClose={() => setOpenMeal(null)}
@@ -1064,7 +1065,7 @@ function CurrentView({ entries, recent, recipeById, onOpen, onQueue, onAdd }: {
 }) {
   return (
     <div className="page-stack">
-      <button className="button primary add-meals" onClick={onAdd}>＋ Pridėti</button>
+      <button className="button primary add-meals" onClick={onAdd}><PlusIcon size={17} /> Pridėti</button>
       {entries.length === 0 ? (
         <EmptyState title="Nėra laukiančių receptų" text="Pridėkite kelis patiekalus, apsipirkite, ir jie atsiras čia." action="Pridėti" onAction={onAdd} />
       ) : (
@@ -1076,13 +1077,15 @@ function CurrentView({ entries, recent, recipeById, onOpen, onQueue, onAdd }: {
               <article className="meal-card" data-accent={groupAccent(dishTypeFor(recipe))} key={entry.id}>
                 <button className="meal-open" onClick={() => onOpen(entry)} aria-label={`Atverti „${recipe.title}“`}>
                 <div className="meal-copy">
+                  <h2>{recipe.title}</h2>
                   <div className="meal-head">
                     <span className="dish-tag">{dishTypeFor(recipe)}</span>
+                    <span className="cuisine-tag">{cuisineFor(recipe)}</span>
                   </div>
-                  <h2>{recipe.title}</h2>
-                  <RecipeTags recipe={recipe} />
-                  <IngredientLine recipe={recipe} />
-                  {recipe.notes && <p className="notes">{recipe.notes}</p>}
+                  {/* One line, cut off where it runs out of room. The whole
+                      list and the notes are what the window is for, and a card
+                      that reprints them is a card you never need to open. */}
+                  <IngredientLine recipe={recipe} oneLine />
                 </div>
                 </button>
               </article>
@@ -1098,9 +1101,9 @@ function CurrentView({ entries, recent, recipeById, onOpen, onQueue, onAdd }: {
               const recipe = recipeById.get(entry.recipe_id)
               return recipe ? (
                 <div className="recent-chip" key={entry.id}>
-                  <span>✓</span>
+                  <CheckIcon size={16} />
                   <div><strong>{recipe.title}</strong><small>{formatRelative(entry.resolved_at)}</small></div>
-                  <button className="recent-again" onClick={() => onQueue(recipe)} aria-label={`Vėl pridėti „${recipe.title}“ į krepšelį`} title="Vėl pridėti į krepšelį">＋</button>
+                  <button className="recent-again" onClick={() => onQueue(recipe)} aria-label={`Vėl pridėti „${recipe.title}“ į krepšelį`} title="Vėl pridėti į krepšelį"><PlusIcon size={16} /></button>
                 </div>
               ) : null
             })}
@@ -1146,8 +1149,11 @@ function LibraryView({ recipes, categories, lastCooked, expanded, onExpandedChan
   return (
     <div className="page-stack">
       <div className="toolbar">
-        <input className="search" type="search" placeholder="Ieškoti receptų ar produktų" value={search} onChange={(event) => setSearch(event.target.value)} />
-        <button className="button primary" onClick={onAdd} aria-label="Naujas receptas">＋</button>
+        <div className="search-field">
+          <SearchIcon size={18} />
+          <input className="search" type="search" placeholder="Ieškoti receptų ar produktų" value={search} onChange={(event) => setSearch(event.target.value)} />
+        </div>
+        <button className="button primary" onClick={onAdd} aria-label="Naujas receptas"><PlusIcon size={21} /></button>
       </div>
       {/* The dish types are a rail across the top rather than a card around
           each group. Grouping cost a whole level of nesting and a heading for
@@ -1212,14 +1218,14 @@ function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTick
   const progress = shoppingProgress(count, [...ticked].length)
   return (
     <div className="page-stack shop-page">
-      <div className="section-heading"><h2>Suplanuoti patiekalai</h2><button className="button primary" onClick={onAdd}>＋ Pridėti</button></div>
+      <div className="section-heading"><h2>Suplanuoti patiekalai</h2><button className="button primary" onClick={onAdd}><PlusIcon size={17} /> Pridėti</button></div>
       {queue.length === 0 ? <EmptyState title="Krepšelis tuščias" text="Pasirinkite visus norimus patiekalus ir gausite vieną bendrą sąrašą." action="Pridėti" onAction={onAdd} /> : (
         <>
           <div className="queue-chips">
             {queue.map((entry) => {
               const recipe = recipeById.get(entry.recipe_id)
               if (!recipe || recipe.deleted_at) return null
-              return <div className="queue-chip" key={entry.id}><span>{recipe.title}</span><button aria-label={`Pašalinti „${recipe.title}“`} onClick={() => onRemove(entry)}>×</button></div>
+              return <div className="queue-chip" key={entry.id}><span>{recipe.title}</span><button aria-label={`Pašalinti „${recipe.title}“`} onClick={() => onRemove(entry)}><CloseIcon size={14} strokeWidth={2.2} /></button></div>
             })}
           </div>
           <section className="shopping-card">
@@ -1233,7 +1239,7 @@ function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTick
               <div className="shop-section" data-accent={sectionAccent(group.section)} key={group.section}>
                 <h3 className="shop-section-title">
                   <BarboraLink href={SECTION_BARBORA_URLS[group.section] ?? null}>
-                    {SECTION_LABELS[group.section]} {SECTION_BARBORA_URLS[group.section] && <small aria-hidden="true">↗</small>}
+                    {SECTION_LABELS[group.section]} {SECTION_BARBORA_URLS[group.section] && <ExternalIcon size={13} />}
                   </BarboraLink>
                   <span>{group.items.length}</span>
                 </h3>
@@ -1250,10 +1256,10 @@ function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTick
                           aria-pressed={ticked.has(item.item)}
                           aria-label={`Pažymėti „${item.item}“ kaip įdėtą`}
                           onClick={() => onToggleTicked(item.item)}
-                        ><span aria-hidden="true">✓</span></button>
+                        ><span aria-hidden="true"><CheckIcon size={16} strokeWidth={2.6} /></span></button>
                         <button type="button" className="shop-item" onClick={() => onInspect(item)}>
                           <strong>{item.item}</strong>
-                          <span aria-hidden="true">›</span>
+                          <ChevronIcon size={16} />
                         </button>
                       </div>
                       <div className="ingredient-recipe-tags">{[...item.recipes].map((title) => <span key={title}>{title}</span>)}</div>
@@ -1266,7 +1272,7 @@ function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTick
           {/* Never disabled by the ticks. Buying without ticking is the
               ordinary way to use a list, and a button that refuses to believe
               you is worse than one that cannot count. */}
-          <button className="button success wide complete-button" disabled={loading} onClick={onComplete}>✓ Apsipirkta</button>
+          <button className="button success wide complete-button" disabled={loading} onClick={onComplete}><CheckIcon size={19} /> Apsipirkta</button>
           <p className="center-note">Visi suplanuoti patiekalai bus perkelti į „Meniu“, o krepšelis išvalytas.</p>
         </>
       )}
@@ -1274,18 +1280,17 @@ function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTick
   )
 }
 
-function IngredientLine({ recipe }: { recipe: Recipe }) {
+function IngredientLine({ recipe, oneLine = false }: { recipe: Recipe; oneLine?: boolean }) {
   const sorted = [...recipe.recipe_ingredients].sort((a, b) => a.position - b.position)
-  return sorted.length ? <p className="ingredients">{sorted.map((ingredient) => ingredient.item).join(' · ')}</p> : <p className="ingredients empty">Produktų nepridėta</p>
+  const className = `ingredients${oneLine ? ' one-line' : ''}`
+  return sorted.length
+    ? <p className={className}>{sorted.map((ingredient) => ingredient.item).join(' · ')}</p>
+    : <p className={`${className} empty`}>Produktų nepridėta</p>
 }
 
-function RecipeTags({ recipe }: { recipe: Recipe }) {
-  const cuisine = cuisineFor(recipe)
-  return <div className="recipe-tags"><span>{cuisine}</span></div>
-}
 
 function Banner({ tone = 'info', onClose, children }: { tone?: 'info' | 'error'; onClose: () => void; children: React.ReactNode }) {
-  return <div className={`banner ${tone}`} role={tone === 'error' ? 'alert' : 'status'}><span>{children}</span><button onClick={onClose}>×</button></div>
+  return <div className={`banner ${tone}`} role={tone === 'error' ? 'alert' : 'status'}><span>{children}</span><button onClick={onClose} aria-label="Uždaryti"><CloseIcon size={15} /></button></div>
 }
 
 function EmptyState({ title, text, action, onAction }: { title: string; text: string; action?: string; onAction?: () => void }) {
@@ -1298,27 +1303,7 @@ function NavButton({ active, label, icon, badge, onClick }: { active: boolean; l
 
 export default App
 
-const iconProps = {
-  width: 22,
-  height: 22,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.75,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-  'aria-hidden': true,
-}
 
-function BowlIcon() {
-  return <svg {...iconProps}><path d="M3.5 11.5h17a8.5 8.5 0 0 1-17 0Z" /><path d="M9.5 8.2c0-1.5 1.5-1.5 1.5-3.2" /><path d="M13.5 8.2c0-1.5 1.5-1.5 1.5-3.2" /></svg>
-}
 
-function BookIcon() {
-  return <svg {...iconProps}><path d="M5 4.5h11.5a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2V4.5Z" /><path d="M5 17.5a2 2 0 0 1 2-2h11.5" /></svg>
-}
 
-function BasketIcon() {
-  return <svg {...iconProps}><path d="M4.6 8.5h14.8l-1.2 10.1a2 2 0 0 1-2 1.8H7.8a2 2 0 0 1-2-1.8L4.6 8.5Z" /><path d="M9 8.5v-2a3 3 0 0 1 6 0v2" /></svg>
-}
 

@@ -1,3 +1,4 @@
+import { ExternalIcon } from './icons'
 import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
 import { supabase } from '../lib/supabase'
@@ -61,7 +62,7 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
         <p className="product-aisle">
           <a href={aisleHref} target="_blank" rel="noopener noreferrer"
             onClick={() => trace('leave-by-link', { to: aisleHref.replace(BARBORA_ORIGIN, '') })}>
-            Atidaryti skyrių „Barbora" ↗
+            Atidaryti skyrių „Barbora" <ExternalIcon size={14} />
           </a>
         </p>
       )}

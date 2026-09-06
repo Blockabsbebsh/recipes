@@ -1,3 +1,4 @@
+import { ChevronIcon } from './icons'
 import type { CategoryIndex } from '../lib/barboraMapping'
 import { SECTION_LABELS, SECTION_ORDER } from '../lib/sections'
 import type { IngredientSection, Recipe, VocabularyIngredient } from '../lib/types'
@@ -37,7 +38,7 @@ export function IngredientFormModal({ ingredient, categoryIndex, recipes, initia
         <label>Skyrius parduotuvėje<select value={section} onChange={(e) => setSection(e.target.value as IngredientSection)}>{SECTION_ORDER.map((s) => <option value={s} key={s}>{SECTION_LABELS[s]}</option>)}</select></label>
         {hasCatalogue && <div className="category-field">
           <button type="button" className="category-field-button" onClick={() => setPicking(true)}>
-            <span><strong>Barbora kategorija</strong><small>{label(path) ?? (ingredient ? label(ingredient.barbora_category_path) : null) ?? 'Parenkama automatiškai'}</small></span><b>›</b>
+            <span><strong>Barbora kategorija</strong><small>{label(path) ?? (ingredient ? label(ingredient.barbora_category_path) : null) ?? 'Parenkama automatiškai'}</small></span><b><ChevronIcon size={16} /></b>
           </button>
           {(path !== null || ingredient?.barbora_mapping_source === 'manual') && <button type="button" className="text-button" onClick={() => setPath(null)}>Atkurti automatinį parinkimą</button>}
         </div>}

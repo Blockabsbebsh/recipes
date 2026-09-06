@@ -1,6 +1,7 @@
 import { cuisineFor, dishTypeFor } from '../lib/categories'
 import { groupAccent } from '../lib/palette'
 import type { Recipe } from '../lib/types'
+import { ExternalIcon, PencilIcon, TrashIcon } from './icons'
 import { Modal } from './Modal'
 
 /**
@@ -31,7 +32,7 @@ export function RecipeDetail({ recipe, lastCookedLabel, actions, onClose, onEdit
    * two places it opens from: a planned meal is cooked or skipped, a library
    * recipe is put in the basket or on the menu.
    */
-  actions: { label: string; tone?: 'ok' | 'quiet'; onClick: () => void }[]
+  actions: { label: string; icon?: React.ReactNode; tone?: 'ok' | 'quiet'; onClick: () => void }[]
   onClose: () => void
   onEdit: () => void
   onDelete?: () => void
@@ -60,9 +61,9 @@ export function RecipeDetail({ recipe, lastCookedLabel, actions, onClose, onEdit
         </>}
 
         <div className="detail-links">
-          {recipe.source_url && <a href={recipe.source_url} target="_blank" rel="noreferrer">Originalus receptas ↗</a>}
-          <button onClick={onEdit}>Redaguoti</button>
-          {onDelete && <button className="danger-text" onClick={onDelete}>Ištrinti</button>}
+          {recipe.source_url && <a href={recipe.source_url} target="_blank" rel="noreferrer">Originalus receptas <ExternalIcon size={15} /></a>}
+          <button onClick={onEdit}><PencilIcon size={15} /> Redaguoti</button>
+          {onDelete && <button className="danger-text" onClick={onDelete}><TrashIcon size={15} /> Ištrinti</button>}
         </div>
       </div>
 
@@ -75,7 +76,7 @@ export function RecipeDetail({ recipe, lastCookedLabel, actions, onClose, onEdit
             key={action.label}
             className={`button ${action.tone === 'ok' ? 'success' : 'secondary'}`}
             onClick={action.onClick}
-          >{action.label}</button>
+          >{action.icon}{action.label}</button>
         ))}
       </div>
     </Modal>

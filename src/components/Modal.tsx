@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { backNav } from '../lib/backNav'
+import { CloseIcon } from './icons'
 
 export function Modal({ title, onClose, wide = false, children }: { title: string; onClose: () => void; wide?: boolean; children: React.ReactNode }) {
   // Every dialog in the app is one of these, nested ones included, so this is
@@ -75,7 +76,7 @@ export function Modal({ title, onClose, wide = false, children }: { title: strin
   // it; and the parent's backdrop-filter makes it the containing block for
   // anything fixed inside, which is not where a modal belongs.
   return createPortal(
-    <div ref={backdrop} className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title}><header><h2>{title}</h2><button className="icon-button" aria-label="Uždaryti" onClick={onClose}>×</button></header><div className="modal-body">{children}</div></section></div>,
+    <div ref={backdrop} className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title}><header><h2>{title}</h2><button className="icon-button" aria-label="Uždaryti" onClick={onClose}><CloseIcon size={18} /></button></header><div className="modal-body">{children}</div></section></div>,
     document.body,
   )
 }

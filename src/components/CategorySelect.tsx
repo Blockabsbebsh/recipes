@@ -54,7 +54,7 @@ export function CategorySelect({ label, value, options, onChange, onCreate }: {
       onChange(event.target.value)
     }}>
       {listed.map((option) => <option key={option}>{option}</option>)}
-      {onCreate && <option value={NEW_OPTION}>＋ Nauja…</option>}
+      {onCreate && <option value={NEW_OPTION}>+ Nauja…</option>}
     </select>
   </label>
 }
