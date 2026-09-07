@@ -5,7 +5,9 @@ export type LibraryEntry = {
   cuisine: string
   lastCooked: string | null
 }
-export type LibrarySort = 'type' | 'stale'
+export type LibrarySort = 'title' | 'type' | 'stale'
+export function daysSinceCooked(value: string, now?: Date): number | null
+export function suggestRecipes<T extends LibraryEntry>(entries: T[], excludedIds?: Set<string>, now?: Date): { entry: T; kind: 'familiar' | 'discovery'; days: number | null }[]
 export type Facet = { name: string; count: number }
 
 export const SORTS: LibrarySort[]

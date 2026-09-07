@@ -1,3 +1,4 @@
+import { useConfirmation } from '../components/Confirmation'
 import { supabase } from '../lib/supabase'
 import { ingredientLookupKey, ingredientNameWithoutQuantity } from '../lib/parser'
 import { classificationTags, classifyRecipe, CUISINE_TAG_PREFIX, DISH_TAG_PREFIX } from '../lib/categories'
@@ -24,6 +25,7 @@ export function useRecipeWriting({ household, userId, recipeCategories, reload, 
   dismissEditor: () => void
   dismissImporter: () => void
 }) {
+  const confirm = useConfirmation()
 async function saveRecipe(draft: RecipeDraft, existing?: Recipe, destination: RecipeDestination = 'library') {
   if (!household || !userId) return
   setBusy(true)
@@ -316,14 +318,14 @@ async function saveImported(drafts: RecipeDraft[]) {
 }
 
 async function softDelete(recipe: Recipe) {
-  if (!userId || !window.confirm(`Perkelti „${recipe.title}“ į ištrintus?`)) return
+  if (!userId || !await confirm(`Perkelti „${recipe.title}“ į ištrintus?`)) return false
   const { error: deleteError } = await supabase
     .from('recipes')
     .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
     .eq('id', recipe.id)
   if (deleteError) {
     onError(deleteError.message)
-    return
+    return false
   }
   // Take it out of the basket as well. Leaving it there shows a recipe that
   // cannot be cooked, and `complete_shopping` would drop it without saying so.
@@ -331,6 +333,7 @@ async function softDelete(recipe: Recipe) {
   if (queueError) onError(queueError.message)
   onMessage('Receptas perkeltas į ištrintus')
   await reload()
+  return true
 }
 
 async function restoreRecipe(recipe: Recipe) {

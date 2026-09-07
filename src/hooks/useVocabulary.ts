@@ -1,3 +1,4 @@
+import { useConfirmation } from '../components/Confirmation'
 import { supabase } from '../lib/supabase'
 import { ingredientNameWithoutQuantity } from '../lib/parser'
 import { mappingFields } from '../lib/ingredientMapping'
@@ -20,6 +21,7 @@ export function useVocabulary({ household, recipes, categoryIndex, reload, onErr
   onError: (message: string) => void
   onMessage: (message: string) => void
 }) {
+  const confirm = useConfirmation()
 async function createIngredient(name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) {
   if (!household) return false
   const cleaned = ingredientNameWithoutQuantity(name)
@@ -74,7 +76,7 @@ async function deleteIngredient(ingredient: VocabularyIngredient) {
   const warning = uses
     ? `„${ingredient.name}“ naudojamas ${uses} receptuose. Pašalinti jį ir iš šių receptų?`
     : `Pašalinti ingredientą „${ingredient.name}“?`
-  if (!window.confirm(warning)) return
+  if (!await confirm(warning)) return
   if (uses) {
     const { error: linkError } = await supabase.from('recipe_ingredients').delete().eq('ingredient_id', ingredient.id)
     if (linkError) {

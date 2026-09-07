@@ -1,3 +1,4 @@
+import { useConfirmation } from '../components/Confirmation'
 import { useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Household, QueueEntry, Recipe, RosterEntry } from '../lib/types'
@@ -22,6 +23,7 @@ export function usePlanning({ household, userId, queue, reload, onError, onMessa
   setQueue: (update: (current: QueueEntry[]) => QueueEntry[]) => void
   showMenu: () => void
 }) {
+  const confirm = useConfirmation()
   const [undo, setUndo] = useState<{ entryId: string; label: string } | null>(null)
   const undoTimer = useRef<number | null>(null)
 
@@ -72,8 +74,8 @@ async function removeFromQueue(entry: QueueEntry) {
 }
 
 async function completeShopping() {
-  if (!household || queue.length === 0) return
-  if (!window.confirm(`Perkelti suplanuotus receptus (${queue.length}) į „Meniu“ ir išvalyti krepšelį?`)) return
+  if (!household || queue.length === 0) return false
+  if (!await confirm(`Perkelti suplanuotus receptus (${queue.length}) į „Meniu“ ir išvalyti krepšelį?`)) return false
   setBusy(true)
   const { data, error: completeError } = await supabase.rpc('complete_shopping', { p_household_id: household.id })
   if (completeError) onError(completeError.message)
@@ -83,6 +85,7 @@ async function completeShopping() {
     await reload()
   }
   setBusy(false)
+  return !completeError
 }
 
   return { undo, planRecipe, resolveEntry, undoResolution, removeFromQueue, completeShopping }

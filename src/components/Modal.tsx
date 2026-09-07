@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { backNav } from '../lib/backNav'
 import { CloseIcon } from './icons'
 
-export function Modal({ title, onClose, wide = false, children }: { title: string; onClose: () => void; wide?: boolean; children: React.ReactNode }) {
+export function Modal({ title, onClose, wide = false, children, variant, header, footer }: { title: string; onClose: () => void; wide?: boolean; children: React.ReactNode; variant?: 'detail'; header?: React.ReactNode; footer?: React.ReactNode }) {
   // Every dialog in the app is one of these, nested ones included, so this is
   // the one place that has to know the phone's back button closes things.
   const backKey = useId()
@@ -14,6 +14,34 @@ export function Modal({ title, onClose, wide = false, children }: { title: strin
     return () => { remove() }
   }, [backKey])
   const backdrop = useRef<HTMLDivElement>(null)
+  const returnFocus = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null)
+
+  useEffect(() => {
+    const container = backdrop.current
+    const dialog = container?.querySelector<HTMLElement>('[role="dialog"]')
+    if (!container || !dialog) return
+    const previous = returnFocus.current
+    const behind = [...document.body.children].filter((element): element is HTMLElement => element instanceof HTMLElement && element !== container)
+    const wasInert = behind.map(element => element.inert)
+    behind.forEach(element => { element.inert = true })
+    const topmost = () => [...document.querySelectorAll('.modal-backdrop')].at(-1) === container
+    const focusable = () => [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')].filter(element => element.getClientRects().length > 0)
+    if (!dialog.contains(document.activeElement)) dialog.focus({ preventScroll: true })
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || !topmost()) return
+      const elements = focusable()
+      const first = elements[0], last = elements.at(-1)
+      if (!first) { event.preventDefault(); dialog.focus(); return }
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', trap)
+    return () => {
+      document.removeEventListener('keydown', trap)
+      behind.forEach((element, index) => { element.inert = wasInert[index] })
+      if (previous?.isConnected && !container.contains(previous)) previous.focus({ preventScroll: true })
+    }
+  }, [])
 
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
@@ -76,7 +104,7 @@ export function Modal({ title, onClose, wide = false, children }: { title: strin
   // it; and the parent's backdrop-filter makes it the containing block for
   // anything fixed inside, which is not where a modal belongs.
   return createPortal(
-    <div ref={backdrop} className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title}><header><h2>{title}</h2><button className="icon-button" aria-label="Uždaryti" onClick={onClose}><CloseIcon size={18} /></button></header><div className="modal-body">{children}</div></section></div>,
+    <div ref={backdrop} className={`modal-backdrop ${variant === 'detail' ? 'detail-backdrop' : ''}`} onMouseDown={(event) => event.target === event.currentTarget && onClose()}><section className={`modal ${wide ? 'wide-modal' : ''} ${variant === 'detail' ? 'recipe-modal' : ''}`} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}><header>{header ?? <><h2>{title}</h2><button className="icon-button" aria-label="Uždaryti" onClick={onClose}><CloseIcon size={18} /></button></>}</header><div className="modal-body">{children}</div>{footer}</section></div>,
     document.body,
   )
 }

@@ -16,8 +16,25 @@
  */
 export function createBackNav({ pushEntry, goBack }) {
   const undoable = []
-  let pushed = 0
-  let ignoring = 0
+  let pendingDrops = 0
+  let navigating = false
+
+  // Browsers complete history.back() asynchronously. Sending a second one
+  // before the first popstate arrives can jump past the app entirely. Drain
+  // one removed entry at a time, then publish layers opened while draining.
+  const drain = () => {
+    if (navigating) return
+    if (pendingDrops > 0) {
+      navigating = true
+      goBack()
+      return
+    }
+    for (const layer of undoable) {
+      if (layer.pushed) continue
+      pushEntry()
+      layer.pushed = true
+    }
+  }
 
   return {
     /**
@@ -25,9 +42,8 @@ export function createBackNav({ pushEntry, goBack }) {
      * it was closed some other way.
      */
     add(key, undo) {
-      undoable.push({ key, undo })
-      pushEntry()
-      pushed += 1
+      undoable.push({ key, undo, pushed: false })
+      drain()
       return () => this.drop(key)
     },
 
@@ -37,12 +53,9 @@ export function createBackNav({ pushEntry, goBack }) {
       // Not here means back has already dealt with it, and going back again
       // would take the household somewhere they did not ask to go.
       if (at === -1) return false
-      undoable.splice(at, 1)
-      if (pushed > 0) {
-        pushed -= 1
-        ignoring += 1
-        goBack()
-      }
+      const [layer] = undoable.splice(at, 1)
+      if (layer.pushed) pendingDrops += 1
+      drain()
       return true
     },
 
@@ -51,13 +64,14 @@ export function createBackNav({ pushEntry, goBack }) {
      * was nothing left to undo, and leaving the app is the right answer.
      */
     onPop() {
-      if (ignoring > 0) {
-        ignoring -= 1
+      if (navigating) {
+        navigating = false
+        pendingDrops -= 1
+        drain()
         return true
       }
       const layer = undoable.pop()
       if (!layer) return false
-      if (pushed > 0) pushed -= 1
       layer.undo()
       return true
     },
