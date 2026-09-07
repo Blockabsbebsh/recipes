@@ -1,3 +1,4 @@
+import { useConfirmation } from '../components/Confirmation'
 import { supabase } from '../lib/supabase'
 import { CUISINE_TAG_PREFIX, DISH_TAG_PREFIX } from '../lib/categories'
 import type { Household, HouseholdTag, Recipe } from '../lib/types'
@@ -21,6 +22,7 @@ export function useRecipeCategories({ household, recipes, tags, reload, onError,
   onError: (message: string) => void
   onMessage: (message: string) => void
 }) {
+  const confirm = useConfirmation()
 const MAX_LABEL = 40
 
 async function createTagged(prefix: string, name: string, kind: string) {
@@ -77,7 +79,7 @@ async function deleteRecipeCategory(category: HouseholdTag) {
   const warning = affected.length
     ? `Kategorijoje „${label}“ yra ${affected.length} receptai. Perkelti juos į „Kita“ ir pašalinti kategoriją?`
     : `Pašalinti kategoriją „${label}“?`
-  if (!window.confirm(warning)) return
+  if (!await confirm(warning)) return
 
   if (affected.length) {
     const fallbackName = `${DISH_TAG_PREFIX}${label === 'Kita' ? 'Be kategorijos' : 'Kita'}`
@@ -118,7 +120,7 @@ async function deleteCuisine(cuisine: HouseholdTag) {
   const warning = affected.length
     ? `Virtuvė „${label}“ pažymėta ${affected.length} receptuose. Pašalinti ją iš jų?`
     : `Pašalinti virtuvę „${label}“?`
-  if (!window.confirm(warning)) return
+  if (!await confirm(warning)) return
   // The link rows go with the tag: `recipe_tags` cascades on delete.
   const { error: deleteError } = await supabase.from('tags').delete().eq('id', cuisine.id)
   if (deleteError) onError(deleteError.message)

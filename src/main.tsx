@@ -1,3 +1,4 @@
+import { ConfirmationProvider } from './components/Confirmation'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
@@ -8,7 +9,7 @@ readDebugFlagFromUrl()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ConfirmationProvider><App /></ConfirmationProvider>
   </StrictMode>,
 )
 

@@ -72,6 +72,14 @@ export function SearchIcon({ size = 20, strokeWidth = 1.9 }: IconProps) {
   return svg(size, strokeWidth, <><circle cx="10.9" cy="10.9" r="6.4" /><path d="M15.6 15.6l4.2 4.2" /></>)
 }
 
+export function FilterIcon({ size = 20, strokeWidth = 1.75 }: IconProps) {
+  return svg(size, strokeWidth, <path d="M4 7h16M7 12h10M10 17h4" />)
+}
+
+export function BackIcon({ size = 20, strokeWidth = 1.75 }: IconProps) {
+  return svg(size, strokeWidth, <path d="m14 5-7 7 7 7" />)
+}
+
 export function PencilIcon({ size = 20, strokeWidth = 1.9 }: IconProps) {
   return svg(size, strokeWidth, <><path d="M4.7 19.3h4.1L19 9a2.05 2.05 0 0 0-2.9-2.9L5.8 16.4v2.9Z" /><path d="M14.8 7.4l2.8 2.8" /></>)
 }

@@ -15,8 +15,27 @@
  * where `lastCooked` is an ISO date string or `null`.
  */
 
-/** The two orders the library offers. `type` is the default. */
-export const SORTS = ['type', 'stale']
+/** Alphabetical default, with the existing type and history orders retained. */
+export const SORTS = ['title', 'type', 'stale']
+
+const byTitle = (a, b) => a.title.normalize('NFC').localeCompare(b.title.normalize('NFC'), 'lt') || a.id.localeCompare(b.id)
+
+/** Calendar days on this device, independent of daylight-saving day length. */
+export function daysSinceCooked(value, now = new Date()) {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return null
+  return Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())) / 86400000)
+}
+
+/** Two explained choices. No product overlap, pantry assumptions or random scores. */
+export function suggestRecipes(entries, excludedIds = new Set(), now = new Date()) {
+  const eligible = entries.filter(entry => !entry.deleted_at && !excludedIds.has(entry.id))
+  const familiar = eligible.filter(entry => entry.lastCooked && daysSinceCooked(entry.lastCooked, now) >= 7)
+    .sort((a, b) => new Date(a.lastCooked) - new Date(b.lastCooked) || byTitle(a, b))[0]
+  const discovery = eligible.filter(entry => !entry.lastCooked).sort(byTitle)[0]
+  return [familiar && { entry: familiar, kind: 'familiar', days: daysSinceCooked(familiar.lastCooked, now) },
+    discovery && { entry: discovery, kind: 'discovery', days: null }].filter(Boolean)
+}
 
 /**
  * Order the entries.
@@ -35,14 +54,15 @@ export const SORTS = ['type', 'stale']
  */
 export function orderLibrary(entries, sort, typeOrder = []) {
   const rank = new Map(typeOrder.map((name, index) => [name, index]))
-  const byTitle = (a, b) => a.title.localeCompare(b.title, 'lt')
   const sorted = entries.slice()
-  if (sort === 'stale') {
+  if (sort === 'title') {
+    sorted.sort(byTitle)
+  } else if (sort === 'stale') {
     sorted.sort((a, b) => {
       if (a.lastCooked === b.lastCooked) return byTitle(a, b)
       if (!a.lastCooked) return -1
       if (!b.lastCooked) return 1
-      return a.lastCooked < b.lastCooked ? -1 : 1
+      return new Date(a.lastCooked) - new Date(b.lastCooked) || byTitle(a, b)
     })
   } else {
     sorted.sort((a, b) => {

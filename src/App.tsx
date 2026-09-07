@@ -1,8 +1,8 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
-import { ingredientLookupKey, normalizeTitle } from './lib/parser'
-import { CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX, recipeTagNames } from './lib/categories'
+import { ingredientLookupKey } from './lib/parser'
+import { CUISINES, cuisineFor, DISH_TAG_PREFIX, DISH_TYPES, dishTypeFor, CUISINE_TAG_PREFIX } from './lib/categories'
 import { BARBORA_ORIGIN, SECTION_ROOTS, buildCategoryIndex, shoppingUrl } from './lib/barboraMapping'
 import { environment, navigationKind, trace, visualTop } from './lib/scrollTrace'
 import { showsSetupSplash, showsUnreachable } from './lib/readiness'
@@ -19,15 +19,15 @@ import type { PersistedViewState } from './lib/viewState'
 import { SECTION_LABELS, SECTION_ORDER } from './lib/sections'
 import { groupAccent, sectionAccent } from './lib/palette'
 import { clearTicks, readTicks, shoppingProgress, ticksKey, toggleTick, writeTicks } from './lib/shoppingTicks'
-import { facetCounts, liveChoice, orderLibrary } from './lib/library'
-import type { LibrarySort } from './lib/library'
+import { LibraryView } from './components/LibraryView'
+import { ActionMenu } from './components/ActionMenu'
 import { RecipeEditor } from './components/RecipeEditor'
 import { ImportDialog } from './components/ImportDialog'
 import { MealPicker } from './components/MealPicker'
 import { SettingsDialog } from './components/SettingsDialog'
 import { BarboraProductsModal } from './components/BarboraProductsModal'
 import { RecipeDetail } from './components/RecipeDetail'
-import { BasketIcon, BookIcon, BowlIcon, CheckIcon, ChevronIcon, CloseIcon, ExternalIcon, MoreIcon, PlusIcon, SearchIcon } from './components/icons'
+import { BasketIcon, BookIcon, BowlIcon, CheckIcon, ChevronIcon, CloseIcon, ExternalIcon, MoreIcon, PlusIcon } from './components/icons'
 
 // The aisle each section falls back to, read from the same crawled catalogue
 // the mapper walks. Association-file aliases are deliberately not used here:
@@ -40,7 +40,7 @@ const SECTION_BARBORA_URLS = Object.fromEntries(
 
 /** The window's third tag: when this was last made, already phrased. */
 function cookedLabel(dateValue: string | null) {
-  return dateValue ? `Gaminta ${formatRelative(dateValue).toLocaleLowerCase('lt')}` : 'Dar negaminta'
+  return dateValue ? `Gaminta ${formatRelative(dateValue).toLocaleLowerCase('lt')}` : 'Gaminimas dar nepažymėtas'
 }
 
 function formatRelative(dateValue: string | null) {
@@ -775,7 +775,7 @@ function App() {
           {tab === 'library'
             ? <button className="button primary" onClick={() => setEditor({ destination: 'library' })} aria-label="Naujas receptas"><PlusIcon size={20} /></button>
             : <button className="button primary" onClick={() => setPickerOpen(true)}><PlusIcon size={17} /> Pridėti</button>}
-          <button className="icon-button" aria-label="Namų ūkio nustatymai" onClick={() => setSettingsOpen(true)}><MoreIcon size={20} /></button>
+          <ActionMenu label="Daugiau veiksmų">{tab === 'library' && <button onClick={() => setImportOpen(true)}><BookIcon size={18} /> Importuoti receptus</button>}<button aria-label="Namų ūkio nustatymai" onClick={() => setSettingsOpen(true)}><MoreIcon size={18} /> Nustatymai</button></ActionMenu>
         </div>
       </header>
 
@@ -806,7 +806,8 @@ function App() {
             expanded={libraryExpanded}
             onExpandedChange={changeExpandedRecipe}
             onAdd={() => setEditor({ destination: 'library' })}
-            onImport={() => setImportOpen(true)}
+            readyIds={new Set(readyEntries.map(entry => entry.recipe_id))}
+            queuedIds={new Set(queue.map(entry => entry.recipe_id))}
           />
         )}
         {tab === 'shop' && (
@@ -820,7 +821,7 @@ function App() {
             loading={loading}
             onAdd={() => setPickerOpen(true)}
             onRemove={(entry) => void removeFromQueue(entry)}
-            onComplete={() => { if (ticksStoreKey) clearTicks(ticksStoreKey); setTicked(new Set()); void completeShopping() }}
+            onComplete={() => { void completeShopping().then(completed => { if (completed) { if (ticksStoreKey) clearTicks(ticksStoreKey); setTicked(new Set()) } }) }}
             onInspect={(item) => setInspecting({ item: item.item, href: item.href })}
           />
         )}
@@ -873,11 +874,11 @@ function App() {
           recipe={openLibraryRecipe}
           lastCookedLabel={cookedLabel(lastCooked(openLibraryRecipe.id))}
           actions={[
-            { label: 'Į krepšelį', tone: 'ok', onClick: () => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); void planRecipe(recipe, 'queue') } },
-            { label: 'Gaminti dabar', onClick: () => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); void planRecipe(recipe, 'roster') } },
+            { label: 'Į krepšelį', icon: <BasketIcon size={19} />, tone: 'ok', onClick: () => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); void planRecipe(recipe, 'queue') } },
+            { label: 'Pridėti į meniu', onClick: () => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); void planRecipe(recipe, 'roster') } },
           ]}
           onEdit={() => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); setEditor({ recipe, destination: 'library' }) }}
-          onDelete={() => { const recipe = openLibraryRecipe; changeExpandedRecipe(null); void softDelete(recipe) }}
+          onDelete={() => { const recipe = openLibraryRecipe; void softDelete(recipe).then(deleted => { if (deleted) changeExpandedRecipe(null) }) }}
           onClose={() => changeExpandedRecipe(null)}
         />
       )}
@@ -1082,7 +1083,7 @@ function CurrentView({ entries, recent, recipeById, onOpen, onQueue, onAdd }: {
   return (
     <div className="page-stack">
       {entries.length === 0 ? (
-        <EmptyState title="Nėra laukiančių receptų" text="Pridėkite kelis patiekalus, apsipirkite, ir jie atsiras čia." action="Pridėti" onAction={onAdd} />
+        <EmptyState title="Nėra laukiančių receptų" text="Pridėkite kelis patiekalus, apsipirkite, ir jie atsiras čia." action="Rinktis patiekalus" onAction={onAdd} />
       ) : (
         <section className="card-grid">
           {entries.map((entry) => {
@@ -1129,133 +1130,6 @@ function CurrentView({ entries, recent, recipeById, onOpen, onQueue, onAdd }: {
   )
 }
 
-function LibraryView({ recipes, categories, cuisines, lastCooked, expanded, onExpandedChange, onAdd, onImport }: {
-  recipes: Recipe[]
-  categories: string[]
-  cuisines: string[]
-  lastCooked: (id: string) => string | null
-  expanded: string | null
-  onExpandedChange: (recipeId: string | null) => void
-  onAdd: () => void
-  onImport: () => void
-}) {
-  const [search, setSearch] = useState('')
-  // Which dish type and which cuisine the two filters are set to. Null is
-  // "all", and neither is remembered between visits: a filter you cannot see
-  // the top of is a library that has silently lost half its recipes.
-  const [onlyType, setOnlyType] = useState<string | null>(null)
-  const [onlyCuisine, setOnlyCuisine] = useState<string | null>(null)
-  const [sort, setSort] = useState<LibrarySort>('type')
-
-  const needle = normalizeTitle(search)
-  const entries = recipes
-    .filter((recipe) => {
-      if (!needle) return true
-      const tags = recipeTagNames(recipe).map((name) => name.replace(DISH_TAG_PREFIX, '').replace(CUISINE_TAG_PREFIX, ''))
-      const haystack = normalizeTitle(`${recipe.title} ${recipe.recipe_ingredients.map((item) => item.item).join(' ')} ${tags.join(' ')}`)
-      return haystack.includes(needle)
-    })
-    .map((recipe) => ({
-      recipe,
-      id: recipe.id,
-      title: recipe.title,
-      dishType: dishTypeFor(recipe),
-      cuisine: cuisineFor(recipe),
-      lastCooked: lastCooked(recipe.id),
-    }))
-
-  // Each axis is counted against everything filtered except itself, so a chip
-  // always says what choosing it would actually show.
-  const typeOptions = facetCounts(entries.filter((e) => !onlyCuisine || e.cuisine === onlyCuisine), 'dishType', categories)
-  const cuisineOptions = facetCounts(entries.filter((e) => !onlyType || e.dishType === onlyType), 'cuisine', cuisines)
-  const activeType = liveChoice(onlyType, typeOptions)
-  const activeCuisine = liveChoice(onlyCuisine, cuisineOptions)
-
-  const shown = orderLibrary(
-    entries.filter((e) => (!activeType || e.dishType === activeType) && (!activeCuisine || e.cuisine === activeCuisine)),
-    sort,
-    categories,
-  )
-
-  return (
-    <div className="page-stack">
-      <div className="library-head">
-        <div className="toolbar">
-          <div className="search-field">
-            <SearchIcon size={18} />
-            <input className="search" type="search" placeholder="Ieškoti receptų ar produktų" value={search} onChange={(event) => setSearch(event.target.value)} />
-          </div>
-        </div>
-        {/* The dish types are a rail across the top rather than a card around
-            each group. Grouping cost a whole level of nesting and a heading for
-            every type on screen at once; filtering costs one tap and gives the
-            tint the job of saying what a recipe is. */}
-        {typeOptions.length > 1 && (
-          <div className="chip-rail" role="group" aria-label="Filtruoti pagal patiekalo tipą">
-            <button className={`rail-chip ${activeType === null ? 'is-on' : ''}`} aria-pressed={activeType === null} onClick={() => setOnlyType(null)}>
-              Visi <i>{entries.filter((e) => !activeCuisine || e.cuisine === activeCuisine).length}</i>
-            </button>
-            {typeOptions.map((option) => (
-              <button
-                key={option.name}
-                className={`rail-chip ${activeType === option.name ? 'is-on' : ''}`}
-                data-accent={groupAccent(option.name)}
-                aria-pressed={activeType === option.name}
-                onClick={() => setOnlyType(activeType === option.name ? null : option.name)}
-              >{option.name} <i>{option.count}</i></button>
-            ))}
-          </div>
-        )}
-        {/* Cuisine is the second axis and gets a select rather than a second
-            rail: fourteen more chips would be another forty pixels of header
-            on every scroll, to narrow a list the first rail has usually
-            narrowed already. */}
-        <div className="library-tools">
-          <label className="pill-select">
-            <span className="visually-hidden">Rūšiavimas</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value as LibrarySort)}>
-              <option value="type">Pagal tipą</option>
-              <option value="stale">Seniausiai gaminti</option>
-            </select>
-          </label>
-          {cuisineOptions.length > 1 && (
-            <label className="pill-select">
-              <span className="visually-hidden">Virtuvė</span>
-              <select value={activeCuisine ?? ''} onChange={(event) => setOnlyCuisine(event.target.value || null)}>
-                <option value="">Visos virtuvės</option>
-                {cuisineOptions.map((option) => (
-                  <option key={option.name} value={option.name}>{option.name} ({option.count})</option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-      </div>
-      <button className="text-button import-button" onClick={onImport}>Importuoti receptus</button>
-      {shown.length === 0 ? <EmptyState title={recipes.length ? 'Nieko nerasta' : 'Receptų nėra'} text={recipes.length ? 'Pabandykite kitą paiešką.' : 'Pridėkite receptą arba įklijuokite turimą savaitės sąrašą.'} action={recipes.length ? undefined : 'Pridėti receptą'} onAction={recipes.length ? undefined : onAdd} /> : (
-        <div className="recipe-tile-grid">
-          {shown.map((entry) => {
-            const isExpanded = expanded === entry.id
-            return (
-              <article className={`recipe-tile ${isExpanded ? 'expanded' : ''}`} data-accent={groupAccent(entry.dishType)} key={entry.id}>
-                <button className="recipe-tile-summary" aria-expanded={isExpanded} onClick={() => onExpandedChange(isExpanded ? null : entry.id)}>
-                  <span className="recipe-tile-copy"><strong>{entry.title}</strong></span>
-                  <span className="recipe-tile-meta">
-                    {/* The dish type is on the tile now that nothing above it
-                        says so, and it wears the same colour as the wash. */}
-                    <span className="dish-tag">{entry.dishType}</span>
-                    <small>{entry.lastCooked ? formatRelative(entry.lastCooked).toLocaleLowerCase('lt') : '—'}</small>
-                  </span>
-                </button>
-              </article>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTicked, loading, onAdd, onRemove, onComplete, onInspect }: {
   queue: QueueEntry[]
   recipeById: Map<string, Recipe>
@@ -1273,7 +1147,7 @@ function ShoppingView({ queue, recipeById, sections, count, ticked, onToggleTick
   return (
     <div className="page-stack shop-page">
       <div className="section-heading"><h2>Suplanuoti patiekalai</h2></div>
-      {queue.length === 0 ? <EmptyState title="Krepšelis tuščias" text="Pasirinkite visus norimus patiekalus ir gausite vieną bendrą sąrašą." action="Pridėti" onAction={onAdd} /> : (
+      {queue.length === 0 ? <EmptyState title="Krepšelis tuščias" text="Pasirinkite visus norimus patiekalus ir gausite vieną bendrą sąrašą." action="Rinktis patiekalus" onAction={onAdd} /> : (
         <>
           <div className="queue-chips">
             {queue.map((entry) => {
@@ -1344,11 +1218,11 @@ function IngredientLine({ recipe, oneLine = false }: { recipe: Recipe; oneLine?:
 
 
 function Banner({ tone = 'info', onClose, children }: { tone?: 'info' | 'error'; onClose: () => void; children: React.ReactNode }) {
-  return <div className={`banner ${tone}`} role={tone === 'error' ? 'alert' : 'status'}><span>{children}</span><button onClick={onClose} aria-label="Uždaryti"><CloseIcon size={15} /></button></div>
+  return <div role={tone === 'error' ? 'alert' : 'status'} className={`banner ${tone}`}><span>{children}</span><button onClick={onClose} aria-label="Uždaryti"><CloseIcon size={15} /></button></div>
 }
 
 function EmptyState({ title, text, action, onAction }: { title: string; text: string; action?: string; onAction?: () => void }) {
-  return <section className="empty-state"><div className="empty-icon">◇</div><h2>{title}</h2><p>{text}</p>{action && onAction && <button className="button secondary" onClick={onAction}>{action}</button>}</section>
+  return <section className="empty-state"><div className="empty-icon"><BowlIcon /></div><h2>{title}</h2><p>{text}</p>{action && onAction && <button className="button secondary" onClick={onAction}>{action}</button>}</section>
 }
 
 function NavButton({ active, label, icon, badge, onClick }: { active: boolean; label: string; icon: ReactNode; badge?: number; onClick: () => void }) {
