@@ -240,6 +240,7 @@ export async function layout(page, base) {
 /** A modal must cover the screen and stay reachable when the keyboard opens. */
 export async function keyboard(page, base) {
   await signIn(page, base)
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, '.settings-list button, button', 'Ingredientai')
   await tap(page, '.manager-row button', 'Keisti')
@@ -343,6 +344,7 @@ export async function appswitch(page, base) {
   // Backgrounded with a modal open, which parks the body at the top.
   await userScroll(page, target)
   await page.waitForTimeout(100)
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await setVisibility(page, 'hidden')
   await page.waitForTimeout(300)
@@ -641,6 +643,7 @@ export async function scrolltrace(page, base) {
   await page.goto(`${base}?debug=1`, { waitUntil: 'networkidle' })
   await page.waitForSelector('.bottom-nav button', { timeout: 15000 })
   await page.waitForTimeout(800)
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, 'button', 'Slinkties žurnalas')
   await page.waitForTimeout(300)
@@ -730,6 +733,7 @@ export async function planning(page, base) {
   await tap(page, '.detail-links button', 'Ištrinti')
   await page.waitForTimeout(800)
   if (await page.locator('.recipe-tile').count() !== inLibrary - 1) findings.push('deleting a recipe did not take it out of the library')
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, '.settings-options button', 'Ištrinti receptai')
   if (await page.locator('.deleted-row').count() === 0) findings.push('a deleted recipe did not appear under Ištrinti receptai')
@@ -759,6 +763,7 @@ export async function back(page, base) {
   await signIn(page, base)
 
   // One dialog: back closes it rather than the app.
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   if (await open() !== 1) findings.push('settings did not open')
   await press()
@@ -769,6 +774,7 @@ export async function back(page, base) {
   // keeps its pages in one dialog rather than a dialog each, so back used to
   // close the whole thing from Ingredients rather than returning to the menu.
   const heading = () => page.locator('.modal h2').first().innerText()
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, 'button', 'Ingredientai')
   if (!/Ingredientai/.test(await heading())) findings.push('the ingredients page did not open')
@@ -784,6 +790,7 @@ export async function back(page, base) {
   }
 
   // Three deep: one press each, innermost first.
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, 'button', 'Ingredientai')
   await tap(page, '.manager-row button', 'Keisti')
@@ -805,6 +812,7 @@ export async function back(page, base) {
 
   // Taking a dialog's entry off must not read as a back press of its own, or
   // closing the inner dialog closes the one underneath with it.
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, 'button', 'Ingredientai')
   await tap(page, '.manager-row button', 'Keisti')
@@ -830,6 +838,7 @@ export async function back(page, base) {
   // that stale entry would silently swallow this press. Last, because there is
   // no app left afterwards. (`history.length` cannot see it: going back keeps
   // the forward entry, so the count never drops.)
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, '.modal .icon-button')
   await page.waitForTimeout(500)
@@ -1172,6 +1181,7 @@ export async function shapes(page, base) {
   const landscape = { width: 844, height: 390 }
   await page.setViewportSize(landscape)
   await page.waitForTimeout(500)
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   await tap(page, 'button', 'Ingredientai')
   await tap(page, '.manager-row button', 'Keisti')
@@ -1258,6 +1268,7 @@ export async function modals(page, base) {
   const findings = []
   const count = () => page.evaluate(() => document.querySelectorAll('.modal-backdrop').length)
   await signIn(page, base)
+  await tap(page, 'button[aria-label="Daugiau veiksmų"]')
   await tap(page, 'button[aria-label="Namų ūkio nustatymai"]')
   if (await count() !== 1) findings.push('settings did not open')
   await tap(page, 'button', 'Ingredientai')
@@ -1369,8 +1380,8 @@ export async function ingredients(page, base) {
   await signIn(page, base)
   await openTab(page, 1)
   await page.evaluate(() => document.querySelector('.recipe-tile-summary')?.click())
-  await page.waitForTimeout(400)
-  await tap(page, 'button[aria-label="Recepto veiksmai"]')
+  await page.waitForSelector('.recipe-modal')
+  await tap(page, '.recipe-modal button[aria-label="Recepto veiksmai"]')
   await tap(page, '.action-menu-panel button', 'Redaguoti')
   const title = await page.locator('.modal input[required]').first().inputValue()
 
@@ -1433,8 +1444,8 @@ export async function drafts(page, base) {
     findings.push('the restored recipe gave no indication that it was a draft')
   }
 
-  await tap(page, '.modal-backdrop:first-of-type .icon-button')
-  await tap(page, '.confirmation-message ~ .button-row .button.primary', 'Patvirtinti')
+  await tap(page, '.modal-backdrop button[aria-label="Uždaryti"]')
+  await tap(page, '.button-row .button.primary', 'Patvirtinti')
   await page.waitForTimeout(500)
   await tap(page, 'button[aria-label="Naujas receptas"]')
   const discarded = await page.locator('.modal input[required]').first().inputValue()
