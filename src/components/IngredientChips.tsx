@@ -53,7 +53,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
 
   const exactMatch = suggestions.some((item) => ingredientLookupKey(item.name) === ingredientLookupKey(entry))
 
-  function add(name: string, { asWritten = false } = {}) {
+  function add(name: string, { create = false } = {}) {
     const cleaned = ingredientNameWithoutQuantity(name)
     setEntry('')
     setHighlight(-1)
@@ -61,7 +61,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
     // A vocabulary entry picked from the list is itself. Typed text is matched
     // against the vocabulary word for word, so `avinžirnių miltai` reaches
     // `Avinžirnių miltai` and never `Avinžirniai`.
-    const existing = asWritten ? null : findVocabularyMatch(cleaned, vocabulary.map((item) => item.name))
+    const existing = create ? null : findVocabularyMatch(cleaned, vocabulary.map((item) => item.name))
     if (existing) {
       onChange([...value, existing])
       return
@@ -77,7 +77,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
     if (event.key === 'Enter') {
       event.preventDefault()
       const chosen = highlight >= 0 ? suggestions[highlight] : null
-      if (chosen) add(chosen.name, { asWritten: true })
+      if (chosen) add(chosen.name)
       else add(entry)
       return
     }
@@ -134,7 +134,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
                     <button
                       type="button"
                       className={`chip-create${highlight < 0 ? ' active' : ''}`}
-                      onMouseDown={(event) => { event.preventDefault(); add(entry, { asWritten: true }) }}
+                      onMouseDown={(event) => { event.preventDefault(); add(entry, { create: true }) }}
                     >
                       <strong><PlusIcon size={14} /> {ingredientNameWithoutQuantity(entry.trim()) || entry.trim()}</strong><span>naujas produktas</span>
                     </button>
@@ -145,7 +145,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
                     <button
                       type="button"
                       className={index === highlight ? 'active' : ''}
-                      onMouseDown={(event) => { event.preventDefault(); add(item.name, { asWritten: true }) }}
+                      onMouseDown={(event) => { event.preventDefault(); add(item.name) }}
                     >
                       <strong>{item.name}</strong><span>{SECTION_LABELS[item.section]}</span>
                     </button>
