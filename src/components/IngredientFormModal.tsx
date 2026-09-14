@@ -20,6 +20,7 @@ export function IngredientFormModal({ ingredient, categoryIndex, recipes, initia
   const [path, setPath] = useState<string | null>(ingredient?.barbora_mapping_source === 'manual' ? ingredient.barbora_category_path : null)
   const [directUrl, setDirectUrl] = useState(ingredient?.barbora_direct_url ?? '')
   const [picking, setPicking] = useState(false)
+  const [saving, setSaving] = useState(false)
   const hasCatalogue = categoryIndex.byPath.size > 0
   const label = (p: string | null) => (p === null ? null : categoryIndex.byPath.get(p)?.name ?? p)
 
@@ -32,7 +33,16 @@ export function IngredientFormModal({ ingredient, categoryIndex, recipes, initia
     <Modal title={ingredient ? 'Redaguoti ingredientą' : 'Naujas ingredientas'} onClose={onClose}>
       <form className="form-stack" onSubmit={(e) => {
         e.preventDefault()
-        void onSave(name, section, path, directUrl || null).then((ok) => { if (ok) onClose() })
+        // This dialog can be opened from inside the recipe form. Portal events
+        // still bubble through the React tree, so without this the same submit
+        // also saves and closes the recipe before the ingredient is attached.
+        e.stopPropagation()
+        if (saving) return
+        setSaving(true)
+        void onSave(name, section, path, directUrl || null).then((ok) => {
+          if (ok) onClose()
+          else setSaving(false)
+        })
       }}>
         <label>Pavadinimas<input autoFocus required value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label>Skyrius parduotuvėje<select value={section} onChange={(e) => setSection(e.target.value as IngredientSection)}>{SECTION_ORDER.map((s) => <option value={s} key={s}>{SECTION_LABELS[s]}</option>)}</select></label>
@@ -45,7 +55,7 @@ export function IngredientFormModal({ ingredient, categoryIndex, recipes, initia
         <label>Tiesioginis produkto URL <span className="optional">nebūtina</span><input type="url" value={directUrl} onChange={(e) => setDirectUrl(e.target.value)} placeholder="https://barbora.lt/produktai/..." /></label>
         {ingredient && <p className="muted ingredient-form-meta">Naudojamas receptuose: {usage}</p>}
         <div className="ingredient-form-actions">
-          <button className="button primary" disabled={!name.trim()}>{ingredient ? 'Išsaugoti' : 'Pridėti'}</button>
+          <button className="button primary" disabled={!name.trim() || saving}>{saving ? 'Saugoma…' : ingredient ? 'Išsaugoti' : 'Pridėti'}</button>
           <button type="button" className="button secondary" onClick={onClose}>Atšaukti</button>
         </div>
         {ingredient && onDelete && <button type="button" className="text-button danger-text ingredient-form-delete" onClick={() => void onDelete(ingredient)}>Ištrinti ingredientą</button>}
