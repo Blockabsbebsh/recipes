@@ -1374,7 +1374,7 @@ export async function shopticks(page, base) {
  */
 export async function ingredients(page, base) {
   const findings = []
-  const ingredient = `Mobilus bandymas ${Date.now()}`
+  const ingredient = 'Mobilus bandymas'
   const modalCount = () => page.locator('.modal-backdrop').count()
 
   await signIn(page, base)
