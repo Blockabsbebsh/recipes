@@ -1354,4 +1354,55 @@ export async function shopticks(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, shopticks, back, join, concurrent, coldstart, shapes, offline }
+/**
+ * Creating an ingredient inside the recipe editor is a nested-form case even
+ * though both dialogs are portalled into the body: React submit events follow
+ * the component tree. The inner submit must add a chip, not submit the recipe.
+ */
+export async function ingredients(page, base) {
+  const findings = []
+  const ingredient = `Mobilus bandymas ${Date.now()}`
+  const modalCount = () => page.locator('.modal-backdrop').count()
+
+  await signIn(page, base)
+  await openTab(page, 1)
+  await page.evaluate(() => document.querySelector('.recipe-tile-summary')?.click())
+  await page.waitForTimeout(400)
+  await tap(page, 'button[aria-label="Recepto veiksmai"]')
+  await tap(page, '.action-menu-panel button', 'Redaguoti')
+  const title = await page.locator('.modal input[required]').first().inputValue()
+
+  await tap(page, '.chip-add')
+  await page.locator('.chip-input input').fill(ingredient)
+  await tap(page, '.chip-create')
+  if (await modalCount() !== 2) {
+    findings.push('creating an ingredient did not open over the recipe editor')
+    return findings
+  }
+
+  await tap(page, '.modal-backdrop:last-of-type .ingredient-form-actions .button.primary', 'Pridėti')
+  await page.waitForTimeout(1200)
+  const open = await modalCount()
+  if (open !== 1) findings.push(`saving the ingredient left ${open} dialogs open instead of the recipe editor`)
+  const chips = await page.locator('.chip').allTextContents()
+  if (!chips.some((text) => text.includes(ingredient))) findings.push('the new ingredient was not added to the recipe draft')
+
+  // Save only if the editor survived, then prove the relationship reached the
+  // database rather than merely appearing in local component state.
+  if (open === 1 && await page.locator('.modal form .button.primary.wide').count()) {
+    await tap(page, '.modal form .button.primary.wide')
+    await page.waitForTimeout(1400)
+  }
+  if (await modalCount()) {
+    while (await modalCount()) {
+      await tap(page, '.modal-backdrop:last-of-type .icon-button')
+    }
+  }
+  await openTab(page, 1)
+  await tap(page, '.recipe-tile-summary', title)
+  const saved = await page.locator('.detail-products').allTextContents()
+  if (!saved.some((text) => text.includes(ingredient))) findings.push('the new ingredient did not persist on the saved recipe')
+  return findings
+}
+
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, ingredients, shopticks, back, join, concurrent, coldstart, shapes, offline }

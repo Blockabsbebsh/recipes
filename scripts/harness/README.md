@@ -36,6 +36,7 @@ The catalogue comes from the real `data/barbora-categories.json`, so the categor
 - **`appswitch`** — leaves the app and returns, leaves with a modal open, and reopens after eviction. Each must land back where you were.
 - **`modals`** — three modals deep, Escape closes the topmost one at a time.
 - **`planning`** — a week run through: into the basket and out, the shop finished, a meal cooked and un-cooked, a recipe deleted and restored.
+- **`ingredients`** — edits a recipe, creates an ingredient inside it, and verifies the editor stays open and the relationship persists.
 - **`back`** — the phone's back button closes dialogs innermost-first, steps back out of a page inside a dialog, comes home from another tab, and leaves the app when there is nothing left of ours.
 - **`join`** — the only way a second person gets in: a wrong invite code is refused and said so, a right one typed with a space in it works.
 - **`coldstart`** — the app opens on the tab you were last using, and passes through no other on the way.
