@@ -209,10 +209,10 @@ async function completeShoppingConcurrency() {
     () => `begin; select set_config('request.jwt.claim.sub', '${ANA}', true); set local role authenticated; select public.complete_shopping('${KITCHEN}'); commit;`,
   ))
   const failed = results.filter((result) => result.code !== 0)
-  const roster = Number(psql(`select count(*) from public.roster_entries where recipe_id = '${RECIPE}'`).stdout.match(/\\d+/)?.[0] ?? -1)
-  const queue = Number(psql(`select count(*) from public.shopping_queue where household_id = '${KITCHEN}'`).stdout.match(/\\d+/)?.[0] ?? -1)
+  const roster = Number(psql(`select count(*) from public.roster_entries where recipe_id = '${RECIPE}'`).stdout.match(/\d+/)?.[0] ?? -1)
+  const queue = Number(psql(`select count(*) from public.shopping_queue where household_id = '${KITCHEN}'`).stdout.match(/\d+/)?.[0] ?? -1)
 
-  if (failed.length) problems.push(`${failed.length} concurrent completion call(s) failed: ${failed[0].err.trim().split('\\n')[0]}`)
+  if (failed.length) problems.push(`${failed.length} concurrent completion call(s) failed: ${failed[0].err.trim().split('\n')[0]}`)
   if (roster !== 1) problems.push(`one basket recipe produced ${roster} roster rows, not 1`)
   if (queue !== 0) problems.push(`the completed basket retained ${queue} rows`)
 

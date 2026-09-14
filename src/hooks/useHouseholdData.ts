@@ -24,6 +24,8 @@ export function useHouseholdData(household: Household | null, onError: (message:
   const [tags, setTags] = useState<HouseholdTag[]>([])
   const [ready, setReady] = useState(false)
   const reloadSequence = useRef(0)
+  const activeHouseholdId = useRef(household?.id ?? null)
+  activeHouseholdId.current = household?.id ?? null
 
   const reload = useCallback(async () => {
     if (!household) return
@@ -55,7 +57,7 @@ export function useHouseholdData(household: Household | null, onError: (message:
         .eq('household_id', household.id)
         .order('name', { ascending: true }),
     ])
-    if (request !== reloadSequence.current) return
+    if (request !== reloadSequence.current || activeHouseholdId.current !== household.id) return
     const firstError = recipeResult.error || rosterResult.error || queueResult.error || vocabularyResult.error || tagResult.error
     if (firstError) {
       onError(firstError.message)
@@ -105,7 +107,6 @@ export function useHouseholdData(household: Household | null, onError: (message:
 
 
   useEffect(() => {
-    reloadSequence.current += 1
     setReady(false)
     if (household) return
     // Signed out, or between households: none of this belongs to anyone yet.
