@@ -134,7 +134,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
                     <button
                       type="button"
                       className={`chip-create${highlight < 0 ? ' active' : ''}`}
-                      onMouseDown={(event) => { event.preventDefault(); add(entry, { create: true }) }}
+                      onClick={() => add(entry, { create: true })}
                     >
                       <strong><PlusIcon size={14} /> {ingredientNameWithoutQuantity(entry.trim()) || entry.trim()}</strong><span>naujas produktas</span>
                     </button>
@@ -145,7 +145,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
                     <button
                       type="button"
                       className={index === highlight ? 'active' : ''}
-                      onMouseDown={(event) => { event.preventDefault(); add(item.name) }}
+                      onClick={() => add(item.name)}
                     >
                       <strong>{item.name}</strong><span>{SECTION_LABELS[item.section]}</span>
                     </button>
