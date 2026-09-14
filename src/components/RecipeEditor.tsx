@@ -1,14 +1,16 @@
 import type { CategoryIndex } from '../lib/barboraMapping'
 import { classifyRecipe, cuisineFor, dishTypeFor } from '../lib/categories'
 import { CategorySelect } from './CategorySelect'
-import { blankDraft } from '../lib/drafts'
+import { blankDraft, clearRecipeDraft, readRecipeDraft, recipeDraftKey, writeRecipeDraft } from '../lib/drafts'
 import { normalizeTitle, titleSimilarity } from '../lib/parser'
 import type { IngredientSection, Recipe, RecipeDestination, RecipeDraft, VocabularyIngredient } from '../lib/types'
 import { IngredientChips } from './IngredientChips'
 import { Modal } from './Modal'
-import { useMemo, useState } from 'react'
+import { useConfirmation } from './Confirmation'
+import { useEffect, useMemo, useState } from 'react'
 
-export function RecipeEditor({ recipe, destination, vocabulary, categories, cuisines, recipes: allRecipes, loading, onClose, onSave, categoryIndex, onCreateIngredient, onCreateCategory, onCreateCuisine }: {
+export function RecipeEditor({ householdId, recipe, destination, vocabulary, categories, cuisines, recipes: allRecipes, loading, onClose, onSave, categoryIndex, onCreateIngredient, onCreateCategory, onCreateCuisine }: {
+  householdId: string
   recipe?: Recipe
   destination: RecipeDestination
   vocabulary: VocabularyIngredient[]
@@ -17,23 +19,36 @@ export function RecipeEditor({ recipe, destination, vocabulary, categories, cuis
   recipes: Recipe[]
   loading: boolean
   onClose: () => void
-  onSave: (draft: RecipeDraft) => void
+  onSave: (draft: RecipeDraft) => Promise<boolean>
   categoryIndex?: CategoryIndex
   onCreateIngredient?: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
   onCreateCategory?: (name: string) => Promise<boolean>
   onCreateCuisine?: (name: string) => Promise<boolean>
 }) {
+  const confirm = useConfirmation()
   const fallbackCategory = categories.includes('Kita') ? 'Kita' : categories[0] || 'Kita'
   const selectableCategories = categories.length ? categories : [fallbackCategory]
-  const [draft, setDraft] = useState<RecipeDraft>(() => recipe ? {
-    title: recipe.title,
-    ingredients: [...recipe.recipe_ingredients].sort((a, b) => a.position - b.position).map((item) => item.item),
-    notes: recipe.notes || '',
-    sourceUrl: recipe.source_url || '',
-    dishType: categories.includes(dishTypeFor(recipe)) ? dishTypeFor(recipe) : fallbackCategory,
-    cuisine: cuisineFor(recipe),
-  } : { ...blankDraft(), dishType: fallbackCategory })
-  const [categoriesTouched, setCategoriesTouched] = useState(Boolean(recipe))
+  const key = recipeDraftKey(householdId, recipe?.id, destination)
+  const [initial] = useState(() => {
+    const server: RecipeDraft = recipe ? {
+      title: recipe.title,
+      ingredients: [...recipe.recipe_ingredients].sort((a, b) => a.position - b.position).map((item) => item.item),
+      notes: recipe.notes || '',
+      sourceUrl: recipe.source_url || '',
+      dishType: categories.includes(dishTypeFor(recipe)) ? dishTypeFor(recipe) : fallbackCategory,
+      cuisine: cuisineFor(recipe),
+    } : { ...blankDraft(), dishType: fallbackCategory }
+    const restored = readRecipeDraft(key, recipe?.updated_at ?? null)
+    return { server, draft: restored ?? server, restored: Boolean(restored) }
+  })
+  const [draft, setDraft] = useState<RecipeDraft>(initial.draft)
+  const [categoriesTouched, setCategoriesTouched] = useState(Boolean(recipe || initial.restored))
+  const dirty = JSON.stringify(draft) !== JSON.stringify(initial.server)
+
+  useEffect(() => {
+    if (dirty) writeRecipeDraft(key, recipe?.updated_at ?? null, draft)
+    else clearRecipeDraft(key)
+  }, [dirty, draft, key, recipe?.updated_at])
 
   const similarRecipe = useMemo(() => {
     const title = draft.title.trim()
@@ -57,11 +72,20 @@ export function RecipeEditor({ recipe, destination, vocabulary, categories, cuis
     setDraft((current) => ({ ...current, ...next, ...classification }))
   }
 
+  async function requestClose() {
+    if (loading) return
+    if (dirty && !await confirm('Atmesti neišsaugotus recepto pakeitimus?')) return
+    clearRecipeDraft(key)
+    onClose()
+  }
+
   return (
-    <Modal title={recipe ? 'Redaguoti receptą' : destination === 'queue' ? 'Naujas patiekalas' : 'Naujas receptas'} onClose={onClose}>
+    <Modal title={recipe ? 'Redaguoti receptą' : destination === 'queue' ? 'Naujas patiekalas' : 'Naujas receptas'} onClose={() => void requestClose()}>
+      {initial.restored && <p className="form-notice">Atkurtas neišsaugotas juodraštis.</p>}
       <form className="form-stack" onSubmit={(event) => {
         event.preventDefault()
-        onSave(draft)
+        if (loading) return
+        void onSave(draft).then((saved) => { if (saved) clearRecipeDraft(key) })
       }}>
         <label>Patiekalo pavadinimas<input autoFocus required value={draft.title} onChange={(event) => updateContent({ title: event.target.value, ingredients: draft.ingredients })} placeholder="Pasta e ceci" /></label>
         {similarRecipe && <p className="form-notice">Panašus receptas jau yra: <strong>{similarRecipe}</strong></p>}

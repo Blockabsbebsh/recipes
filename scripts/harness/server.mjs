@@ -220,6 +220,100 @@ const server = createServer(async (req, res) => {
       }
       return send(res, 200, HOUSEHOLD_ID)
     }
+    if (fn === 'save_recipe' || fn === 'save_recipes_import') {
+      const body = await readBody(req)
+      const write = (recipeBody) => {
+        const now = new Date().toISOString()
+        const existing = recipeBody.p_recipe_id
+          ? db.recipes.find((recipe) => recipe.id === recipeBody.p_recipe_id)
+          : null
+        const recipe = existing ?? {
+          id: randomUUID(),
+          household_id: recipeBody.p_household_id,
+          created_by: callerOf(req).id,
+          created_at: now,
+          deleted_at: null,
+          deleted_by: null,
+          recipe_ingredients: [],
+          recipe_tags: [],
+        }
+        Object.assign(recipe, {
+          title: recipeBody.p_title,
+          notes: recipeBody.p_notes,
+          source_url: recipeBody.p_source_url,
+          updated_at: now,
+        })
+        if (!existing) db.recipes.push(recipe)
+
+        const names = [...new Map((recipeBody.p_ingredient_names ?? [])
+          .map((name) => [String(name).trim().toLocaleLowerCase('lt'), String(name).trim()])).values()]
+        recipe.recipe_ingredients = names.map((name, position) => {
+          let ingredient = db.ingredients.find((row) => row.name.toLocaleLowerCase('lt') === name.toLocaleLowerCase('lt'))
+          if (!ingredient) {
+            ingredient = {
+              id: randomUUID(), household_id: recipeBody.p_household_id, name,
+              section: 'Other', food_type: 'Other', created_at: now, updated_at: now,
+              barbora_category_path: null, barbora_mapping_reason: null,
+              barbora_mapping_source: null, barbora_mapping_updated_at: null,
+              barbora_direct_url: null,
+            }
+            db.ingredients.push(ingredient)
+          }
+          return {
+            id: randomUUID(), household_id: recipeBody.p_household_id,
+            recipe_id: recipe.id, ingredient_id: ingredient.id, item: ingredient.name, position,
+          }
+        })
+        db.recipe_ingredients = db.recipe_ingredients.filter((row) => row.recipe_id !== recipe.id)
+        db.recipe_ingredients.push(...recipe.recipe_ingredients)
+
+        const tagNames = recipeBody.p_tag_names ?? []
+        const tags = tagNames.map((name) => {
+          let tag = db.tags.find((row) => row.name.toLocaleLowerCase('lt') === String(name).toLocaleLowerCase('lt'))
+          if (!tag) {
+            tag = { id: randomUUID(), household_id: recipeBody.p_household_id, name: String(name), created_at: now }
+            db.tags.push(tag)
+          }
+          return { tag: { id: tag.id, name: tag.name } }
+        })
+        recipe.recipe_tags = [
+          ...recipe.recipe_tags.filter(({ tag }) => !/^(Tipas|Virtuvė): /i.test(tag.name)),
+          ...tags,
+        ]
+
+        if (recipeBody.p_add_to_queue && !db.shopping_queue.some((row) => row.recipe_id === recipe.id)) {
+          db.shopping_queue.push({
+            id: randomUUID(), household_id: recipeBody.p_household_id, recipe_id: recipe.id,
+            added_by: callerOf(req).id, added_at: now,
+          })
+        }
+        return recipe.id
+      }
+
+      if (fn === 'save_recipe') return send(res, 200, write(body))
+      for (const recipe of body?.p_recipes ?? []) {
+        write({
+          p_household_id: body.p_household_id,
+          p_recipe_id: null,
+          p_title: recipe.title,
+          p_notes: recipe.notes,
+          p_source_url: recipe.source_url,
+          p_ingredient_names: recipe.ingredients,
+          p_tag_names: recipe.tags,
+          p_add_to_queue: false,
+        })
+      }
+      return send(res, 200, body?.p_recipes?.length ?? 0)
+    }
+    if (fn === 'delete_ingredient') {
+      const body = await readBody(req)
+      db.recipe_ingredients = db.recipe_ingredients.filter((row) => row.ingredient_id !== body.p_ingredient_id)
+      for (const recipe of db.recipes) {
+        recipe.recipe_ingredients = recipe.recipe_ingredients.filter((row) => row.ingredient_id !== body.p_ingredient_id)
+      }
+      db.ingredients = db.ingredients.filter((row) => row.id !== body.p_ingredient_id)
+      return send(res, 204)
+    }
     // The one procedure the app relies on doing real work: everything in the
     // basket becomes something to cook, and the basket is emptied. Stubbing it
     // as a no-op would let a scenario "complete a shop" and prove nothing.

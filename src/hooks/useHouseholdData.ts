@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Household, HouseholdTag, QueueEntry, Recipe, RosterEntry, VocabularyIngredient } from '../lib/types'
 
@@ -23,9 +23,13 @@ export function useHouseholdData(household: Household | null, onError: (message:
   const [vocabulary, setVocabulary] = useState<VocabularyIngredient[]>([])
   const [tags, setTags] = useState<HouseholdTag[]>([])
   const [ready, setReady] = useState(false)
+  const reloadSequence = useRef(0)
+  const activeHouseholdId = useRef(household?.id ?? null)
+  activeHouseholdId.current = household?.id ?? null
 
   const reload = useCallback(async () => {
     if (!household) return
+    const request = ++reloadSequence.current
     const [recipeResult, rosterResult, queueResult, vocabularyResult, tagResult] = await Promise.all([
       supabase
         .from('recipes')
@@ -53,6 +57,7 @@ export function useHouseholdData(household: Household | null, onError: (message:
         .eq('household_id', household.id)
         .order('name', { ascending: true }),
     ])
+    if (request !== reloadSequence.current || activeHouseholdId.current !== household.id) return
     const firstError = recipeResult.error || rosterResult.error || queueResult.error || vocabularyResult.error || tagResult.error
     if (firstError) {
       onError(firstError.message)

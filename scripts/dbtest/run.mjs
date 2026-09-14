@@ -191,6 +191,35 @@ async function recipeIngredientCapConcurrency() {
   return problems
 }
 
+async function completeShoppingConcurrency() {
+  const RECIPE = '00000000-0000-4000-8000-00000000c001'
+  const KITCHEN = '00000000-0000-4000-8000-00000000b001'
+  const ANA = '00000000-0000-4000-8000-00000000a001'
+  const problems = []
+
+  const step = psql(`
+    select t.seed();
+    insert into public.shopping_queue (household_id, recipe_id, added_by)
+    values ('${KITCHEN}', '${RECIPE}', '${ANA}');
+  `)
+  if (step.status !== 0) return [`the shopping fixture would not commit: ${step.stderr.trim()}`]
+
+  const results = await runTogether(Array.from(
+    { length: 2 },
+    () => `begin; select set_config('request.jwt.claim.sub', '${ANA}', true); set local role authenticated; select public.complete_shopping('${KITCHEN}'); commit;`,
+  ))
+  const failed = results.filter((result) => result.code !== 0)
+  const roster = Number(psql(`select count(*) from public.roster_entries where recipe_id = '${RECIPE}'`).stdout.match(/\d+/)?.[0] ?? -1)
+  const queue = Number(psql(`select count(*) from public.shopping_queue where household_id = '${KITCHEN}'`).stdout.match(/\d+/)?.[0] ?? -1)
+
+  if (failed.length) problems.push(`${failed.length} concurrent completion call(s) failed: ${failed[0].err.trim().split('\n')[0]}`)
+  if (roster !== 1) problems.push(`one basket recipe produced ${roster} roster rows, not 1`)
+  if (queue !== 0) problems.push(`the completed basket retained ${queue} rows`)
+
+  cleanFixtures()
+  return problems
+}
+
 // Postgres refuses to run as root, and this container is root.
 sh(`mkdir -p ${root}/data ${sock} && chown -R postgres:postgres ${root}`)
 let out = sh(`su postgres -c "${BIN}/initdb -D ${root}/data -U postgres --auth=trust -E UTF8 --locale=C"`)
@@ -240,6 +269,7 @@ try {
       ['concurrent join attempts', joinConcurrency],
       ['concurrent household cap', householdCapConcurrency],
       ['concurrent recipe-ingredient cap', recipeIngredientCapConcurrency],
+      ['concurrent shopping completion', completeShoppingConcurrency],
     ]
     for (const [name, check] of checks) {
       const said = await check()

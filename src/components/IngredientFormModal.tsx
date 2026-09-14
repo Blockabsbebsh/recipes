@@ -12,7 +12,7 @@ export function IngredientFormModal({ ingredient, categoryIndex, recipes, initia
   recipes?: Recipe[]
   initialName?: string
   onSave: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
-  onDelete?: (ingredient: VocabularyIngredient) => Promise<void>
+  onDelete?: (ingredient: VocabularyIngredient) => Promise<boolean>
   onClose: () => void
 }) {
   const [name, setName] = useState(ingredient?.name ?? initialName ?? '')
@@ -58,7 +58,14 @@ export function IngredientFormModal({ ingredient, categoryIndex, recipes, initia
           <button className="button primary" disabled={!name.trim() || saving}>{saving ? 'Saugoma…' : ingredient ? 'Išsaugoti' : 'Pridėti'}</button>
           <button type="button" className="button secondary" onClick={onClose}>Atšaukti</button>
         </div>
-        {ingredient && onDelete && <button type="button" className="text-button danger-text ingredient-form-delete" onClick={() => void onDelete(ingredient)}>Ištrinti ingredientą</button>}
+        {ingredient && onDelete && <button type="button" disabled={saving} className="text-button danger-text ingredient-form-delete" onClick={() => {
+          if (saving) return
+          setSaving(true)
+          void onDelete(ingredient).then((deleted) => {
+            if (deleted) onClose()
+            else setSaving(false)
+          })
+        }}>Ištrinti ingredientą</button>}
       </form>
     </Modal>
     {picking && <CategoryPicker index={categoryIndex} ingredientName={name} initialPath={path} onCancel={() => setPicking(false)} onConfirm={(p) => { setPath(p); setPicking(false) }} />}

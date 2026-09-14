@@ -28,6 +28,7 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
   // must never blame one for the other.
   const [problem, setProblem] = useState<'none' | 'throttled' | 'refused'>('none')
   const [degraded, setDegraded] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let live = true
@@ -54,7 +55,7 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
     // component, and reopening on another ingredient must not show the first
     // one's products.
     return () => { live = false }
-  }, [item])
+  }, [item, attempt])
 
   return (
     <Modal title={item} onClose={onClose}>
@@ -71,13 +72,18 @@ export function BarboraProductsModal({ item, aisleHref, onClose }: {
         <p className="muted product-status">Ieškoma parduotuvėje…</p>
       )}
       {problem === 'throttled' && (
-        <p className="product-status product-throttled">
-          Per dažnai užklausiama. Palaukite minutę ir bandykite dar kartą.
-          <small>Užklausas ribojame patys, kad neapkrautume parduotuvės.</small>
-        </p>
+        <div className="product-status product-throttled">
+          <p>Per dažnai užklausiama. Palaukite minutę ir bandykite dar kartą.
+            <small>Užklausas ribojame patys, kad neapkrautume parduotuvės.</small>
+          </p>
+          <button type="button" className="button secondary" onClick={() => setAttempt((value) => value + 1)}>Bandyti dar kartą</button>
+        </div>
       )}
       {problem === 'refused' && (
-        <p className="muted product-status">Nepavyko susisiekti su parduotuve. Bandykite vėliau.</p>
+        <div className="product-status">
+          <p className="muted">Nepavyko susisiekti su parduotuve.</p>
+          <button type="button" className="button secondary" onClick={() => setAttempt((value) => value + 1)}>Bandyti dar kartą</button>
+        </div>
       )}
       {products !== null && products.length === 0 && (
         <p className="muted product-status">Atitikmenų parduotuvėje nerasta.</p>
