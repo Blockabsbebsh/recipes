@@ -21,7 +21,7 @@ export function SettingsDialog({ household, email, vocabulary, recipes, categori
   categoryIndex: CategoryIndex
   onCreateIngredient: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
   onUpdateIngredient: (ingredient: VocabularyIngredient, name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
-  onDeleteIngredient: (ingredient: VocabularyIngredient) => Promise<void>
+  onDeleteIngredient: (ingredient: VocabularyIngredient) => Promise<boolean>
   onCreateCategory: (name: string) => Promise<boolean>
   onUpdateCategory: (category: HouseholdTag, name: string) => Promise<boolean>
   onDeleteCategory: (category: HouseholdTag) => Promise<void>

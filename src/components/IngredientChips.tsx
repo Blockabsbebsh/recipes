@@ -4,7 +4,7 @@ import { findVocabularyMatch, ingredientLookupKey, ingredientNameWithoutQuantity
 import { SECTION_LABELS } from '../lib/sections'
 import type { IngredientSection, VocabularyIngredient } from '../lib/types'
 import { IngredientFormModal } from './IngredientFormModal'
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 
 /**
  * Shared ingredient editor. Typing filters the household vocabulary, first on
@@ -32,6 +32,7 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
   const [highlight, setHighlight] = useState(-1)
   const [adding, setAdding] = useState(false)
   const [pendingNew, setPendingNew] = useState<string | null>(null)
+  const suggestionsId = useId()
   const taken = useMemo(() => new Set(value.map(ingredientLookupKey)), [value])
 
   const suggestions = useMemo(() => {
@@ -126,14 +127,21 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
               autoCorrect="off"
               placeholder="Pradėkite rašyti…"
               aria-label="Pridėti produktą"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={Boolean(suggestions.length || entry.trim())}
+              aria-controls={suggestionsId}
+              aria-activedescendant={highlight >= 0 ? `${suggestionsId}-${highlight}` : undefined}
             />
             {(suggestions.length > 0 || entry.trim()) && (
-              <ul className="chip-suggestions">
+              <ul className="chip-suggestions" id={suggestionsId} role="listbox">
                 {entry.trim() && !exactMatch && (
                   <li key="__new__">
                     <button
                       type="button"
-                      className={`chip-create${highlight < 0 ? ' active' : ''}`}
+                      className="chip-create"
+                      role="option"
+                      aria-selected={false}
                       onClick={() => add(entry, { create: true })}
                     >
                       <strong><PlusIcon size={14} /> {ingredientNameWithoutQuantity(entry.trim()) || entry.trim()}</strong><span>naujas produktas</span>
@@ -144,6 +152,9 @@ export function IngredientChips({ value, vocabulary, onChange, categoryIndex, on
                   <li key={item.id}>
                     <button
                       type="button"
+                      id={`${suggestionsId}-${index}`}
+                      role="option"
+                      aria-selected={index === highlight}
                       className={index === highlight ? 'active' : ''}
                       onClick={() => add(item.name)}
                     >

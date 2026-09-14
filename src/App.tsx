@@ -839,6 +839,7 @@ function App() {
 
       {editor && (
         <RecipeEditor
+          householdId={household.id}
           vocabulary={vocabulary}
           categories={recipeCategories}
           cuisines={recipeCuisines}
@@ -847,7 +848,7 @@ function App() {
           destination={editor.destination}
           loading={loading}
           onClose={() => setEditor(null)}
-          onSave={(draft) => void saveRecipe(draft, editor.recipe, editor.destination)}
+          onSave={(draft) => saveRecipe(draft, editor.recipe, editor.destination)}
           categoryIndex={categoryIndex}
           onCreateIngredient={createIngredient}
           onCreateCategory={createRecipeCategory}

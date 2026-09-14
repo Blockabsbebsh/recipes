@@ -68,7 +68,7 @@ async function updateIngredient(
   return true
 }
 
-async function deleteIngredient(ingredient: VocabularyIngredient) {
+async function deleteIngredient(ingredient: VocabularyIngredient): Promise<boolean> {
   const uses = recipes.reduce(
     (count, recipe) => count + (recipe.recipe_ingredients.some((item) => item.ingredient_id === ingredient.id) ? 1 : 0),
     0,
@@ -76,20 +76,18 @@ async function deleteIngredient(ingredient: VocabularyIngredient) {
   const warning = uses
     ? `„${ingredient.name}“ naudojamas ${uses} receptuose. Pašalinti jį ir iš šių receptų?`
     : `Pašalinti ingredientą „${ingredient.name}“?`
-  if (!await confirm(warning)) return
-  if (uses) {
-    const { error: linkError } = await supabase.from('recipe_ingredients').delete().eq('ingredient_id', ingredient.id)
-    if (linkError) {
-      onError(linkError.message)
-      return
-    }
+  if (!await confirm(warning) || !household) return false
+  const { error: deleteError } = await supabase.rpc('delete_ingredient', {
+    p_household_id: household.id,
+    p_ingredient_id: ingredient.id,
+  })
+  if (deleteError) {
+    onError(deleteError.message)
+    return false
   }
-  const { error: deleteError } = await supabase.from('ingredients').delete().eq('id', ingredient.id)
-  if (deleteError) onError(deleteError.message)
-  else {
-    await reload()
-    onMessage('Ingredientas pašalintas')
-  }
+  await reload()
+  onMessage('Ingredientas pašalintas')
+  return true
 }
 
   return { createIngredient, updateIngredient, deleteIngredient }

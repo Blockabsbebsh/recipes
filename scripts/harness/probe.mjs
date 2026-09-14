@@ -10,7 +10,9 @@
 
 import { devices } from 'playwright'
 
-export const PHONE = { ...devices['iPhone 13'], locale: 'lt-LT' }
+const PHONE_NAME = process.env.HARNESS_DEVICE || 'iPhone 13'
+if (!devices[PHONE_NAME]) throw new Error(`Unknown HARNESS_DEVICE: ${PHONE_NAME}`)
+export const PHONE = { ...devices[PHONE_NAME], locale: 'lt-LT' }
 /** Roughly the height an iOS keyboard takes from a 6.1" screen. */
 export const KEYBOARD = 336
 
@@ -1405,4 +1407,39 @@ export async function ingredients(page, base) {
   return findings
 }
 
-export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, ingredients, shopticks, back, join, concurrent, coldstart, shapes, offline }
+/**
+ * iOS and Android can evict a web view while the keyboard is open. A recipe
+ * draft must come back after a full page reconstruction, then be removable by
+ * an intentional discard.
+ */
+export async function drafts(page, base) {
+  const findings = []
+  const title = `Neišsaugotas ${Date.now()}`
+
+  await signIn(page, base)
+  await openTab(page, 1)
+  await tap(page, 'button[aria-label="Naujas receptas"]')
+  await page.locator('.modal input[required]').first().fill(title)
+  await page.waitForTimeout(300)
+
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForSelector('.bottom-nav button', { timeout: 15000 })
+  await page.waitForTimeout(1200)
+  await openTab(page, 1)
+  await tap(page, 'button[aria-label="Naujas receptas"]')
+  const restored = await page.locator('.modal input[required]').first().inputValue()
+  if (restored !== title) findings.push(`a full reload restored "${restored}" instead of the recipe draft`)
+  if (await page.getByText('Atkurtas neišsaugotas juodraštis.').count() === 0) {
+    findings.push('the restored recipe gave no indication that it was a draft')
+  }
+
+  await tap(page, '.modal-backdrop:first-of-type .icon-button')
+  await tap(page, '.confirmation-message ~ .button-row .button.primary', 'Patvirtinti')
+  await page.waitForTimeout(500)
+  await tap(page, 'button[aria-label="Naujas receptas"]')
+  const discarded = await page.locator('.modal input[required]').first().inputValue()
+  if (discarded) findings.push(`discarding a draft reopened it as "${discarded}"`)
+  return findings
+}
+
+export const SCENARIOS = { layout, keyboard, appswitch, modals, scrolltrace, planning, ingredients, drafts, shopticks, back, join, concurrent, coldstart, shapes, offline }

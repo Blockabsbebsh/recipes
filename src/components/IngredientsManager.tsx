@@ -12,7 +12,7 @@ export function IngredientsManager({ vocabulary, recipes, categoryIndex, onCreat
   categoryIndex: CategoryIndex
   onCreate: (name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
   onUpdate: (ingredient: VocabularyIngredient, name: string, section: IngredientSection, manualPath?: string | null, directUrl?: string | null) => Promise<boolean>
-  onDelete: (ingredient: VocabularyIngredient) => Promise<void>
+  onDelete: (ingredient: VocabularyIngredient) => Promise<boolean>
 }) {
   const [search, setSearch] = useState('')
   const [creating, setCreating] = useState(false)
